@@ -1,0 +1,29 @@
+# Build output
+*.iml
+.gradle
+.kotlin
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# Machine-specific
+/local.properties
+/.idea
+.DS_Store
+
+# Signing keys never belong in the repo (the release key lives in %USERPROFILE%)
+*.jks
+*.keystore
+*.p12
+
+# Personal data: phone backups, family cards, sticker art of other people's characters
+/backups/
+/cards/
+/stickers/
+
+# Local Claude Code config
+/.claude/

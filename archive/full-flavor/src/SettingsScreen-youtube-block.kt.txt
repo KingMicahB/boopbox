@@ -1,0 +1,31 @@
+// Was the last part of accountsSection() in ui/settings/SettingsScreen.kt (inside the function).
+    // The Google Play build never downloads YouTube audio: nothing to show.
+    if (!BuildConfig.YT_DOWNLOAD) return
+    item { SubTitle(stringResource(R.string.settings_youtube_title)) }
+    item {
+        val cache = viewModel.player.youtubeCache
+        val version by cache.version.collectAsStateWithLifecycle()
+        val downloading by cache.downloading.collectAsStateWithLifecycle()
+        val used = remember(version) { cache.usedBytes() }
+        Column {
+            SwitchRow(
+                title = stringResource(R.string.settings_youtube_keep_title),
+                subtitle = stringResource(R.string.settings_youtube_keep_subtitle),
+                checked = settings.youtubeAutoCache
+            ) { v -> viewModel.updateSettings { it.copy(youtubeAutoCache = v) } }
+            Text(
+                "%.1f".format(used / 1_048_576f).let { mb ->
+                    if (downloading.isNotEmpty()) pluralStringResource(R.plurals.settings_youtube_downloading, downloading.size, downloading.size, mb)
+                    else stringResource(R.string.settings_podcasts_using, mb)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    cache.refreshAllAsync(viewModel.cards.value, settings.youtubeAutoCache, minIntervalMs = 0)
+                }) { Text(stringResource(R.string.settings_podcasts_refresh)) }
+                OutlinedButton(onClick = { cache.clearAll() }) { Text(stringResource(R.string.settings_podcasts_delete)) }
+            }
+        }
+    }

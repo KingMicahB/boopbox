@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BoopBox</string>
+
+    <!-- ==== 00_common.en.xml ==== -->
+    <!-- Common button / label words -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_back">Back</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_remove">Remove</string>
+    <string name="common_done">Done</string>
+    <string name="common_close">Close</string>
+    <string name="common_ok">OK</string>
+    <string name="common_open">Open</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_add">Add</string>
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+    <string name="common_not_now">Not now</string>
+
+    <!-- Source types and podcast modes (SourceType / PodcastMode in Models.kt) -->
+    <string name="source_local_file">File on this phone</string>
+    <string name="source_local_folder">Folder on this phone</string>
+    <string name="source_playlist">Playlist (songs you pick)</string>
+    <string name="source_podcast">Podcast (RSS feed)</string>
+    <string name="source_yoto">Yoto card</string>
+    <string name="source_stream_url">Audio stream URL</string>
+    <string name="source_spotify">Spotify</string>
+    <string name="source_youtube_music">YouTube Music</string>
+    <string name="source_youtube">YouTube</string>
+    <string name="source_audible">Audible</string>
+    <string name="source_video">Video</string>
+    <string name="source_netflix">Netflix</string>
+    <string name="source_disney">Disney+</string>
+    <string name="source_app_link">Other app link</string>
+    <string name="podcast_mode_latest">Newest episode</string>
+    <string name="podcast_mode_episode">A specific episode</string>
+
+    <!-- ==== 10_player.en.xml ==== -->
+    <!-- PlayerScreen: sleep timer label (top corner) -->
+    <string name="player_sleep_after_song">🌙 after this song</string>
+    <string name="player_sleep_minutes">🌙 %1$d min</string>
+    <string name="player_sleep_soon">🌙 soon</string>
+
+    <!-- PlayerScreen: grown-up gear -->
+    <string name="player_gear_tap">Grown-up settings (tap)</string>
+    <string name="player_gear_double_tap">Grown-up settings (double tap)</string>
+
+    <!-- PlayerScreen: NFC banner -->
+    <string name="player_nfc_missing">This phone has no NFC, so cards can\'t be read</string>
+    <string name="player_nfc_off_tap">NFC is off, so cards won\'t work. Tap here to turn it on</string>
+    <string name="player_nfc_off_double_tap">NFC is off, so cards won\'t work. Double-tap here to turn it on</string>
+
+    <!-- PlayerScreen: idle screen -->
+    <string name="player_idle_night">Night night</string>
+    <string name="player_idle_no_cards">No cards yet</string>
+    <string name="player_idle_tap_card">Tap a card</string>
+    <string name="player_idle_hint_tap">Tap the gear in the top corner, then \"Add a card\". Any NFC sticker, card or toy will do.</string>
+    <string name="player_idle_hint_double_tap">Double-tap the gear in the top corner, then \"Add a card\". Any NFC sticker, card or toy will do.</string>
+
+    <!-- PlayerScreen: now playing -->
+    <string name="player_play">Play</string>
+    <string name="player_latest_episode">"⏫  Latest episode"</string>
+    <string name="player_scrub_fast">Fast</string>
+    <string name="player_scrub_normal">Normal</string>
+    <string name="player_scrub_fine">Fine</string>
+
+    <!-- PlayerScreen: unknown card overlay -->
+    <string name="player_new_card">New card!</string>
+    <string name="player_new_card_not_set_up">This card isn\'t set up yet.</string>
+    <string name="player_card_id">Card ID %1$s</string>
+    <string name="player_set_up_double_tap">Double-tap to set up</string>
+    <string name="player_set_up">Set up</string>
+
+    <!-- ==== 20_settings.en.xml ==== -->
+    <!-- SettingsScreen: shared words -->
+    <string name="settings_off">Off</string>
+    <string name="settings_on">On</string>
+    <string name="settings_minutes_short">%1$d min</string>
+    <string name="settings_play">Play</string>
+    <string name="settings_play_now">Play now</string>
+
+    <!-- SettingsScreen: top bar, add button, edit prompt -->
+    <string name="settings_title">Grown-up settings</string>
+    <string name="settings_back_to_player">Back to player</string>
+    <string name="settings_back_to_settings">Back to settings</string>
+    <string name="settings_add_card">Add a card</string>
+    <string name="settings_edit_prompt_title">Edit \"%1$s\"?</string>
+    <string name="settings_edit_prompt_body">You tapped a card that is already set up (%1$s).</string>
+    <string name="settings_edit_card">Edit card</string>
+
+    <!-- SettingsScreen: hub tiles -->
+    <string name="settings_section_cards_title">Cards</string>
+    <string name="settings_section_cards_blurb">Your cards, add or edit</string>
+    <string name="settings_section_playback_title">Playback</string>
+    <string name="settings_section_playback_blurb">Volume limit, resume, card lifted off, other apps</string>
+    <string name="settings_section_safety_title">Toddler safety</string>
+    <string name="settings_section_safety_blurb">Child lock, PIN, grip guard</string>
+    <string name="settings_section_bedtime_title">Bedtime &amp; sleep</string>
+    <string name="settings_section_bedtime_blurb">Sleep timer, bedtime hours</string>
+    <string name="settings_section_look_title">Look &amp; idle screen</string>
+    <string name="settings_section_look_blurb">Theme, battery, tap flash, clock, night light</string>
+    <string name="settings_section_permissions_title">Permissions</string>
+    <string name="settings_section_permissions_blurb">Overlay, notification access</string>
+    <string name="settings_section_help_title">Help</string>
+    <string name="settings_section_help_blurb">How BoopBox works</string>
+
+    <!-- SettingsScreen: hub tile status lines -->
+    <string name="settings_status_no_cards">No cards yet</string>
+    <plurals name="settings_status_cards">
+        <item quantity="one">%1$d card</item>
+        <item quantity="other">%1$d cards</item>
+    </plurals>
+    <string name="settings_status_volume_off">Volume limit off</string>
+    <string name="settings_status_volume_limit">Volume limit %1$d%%</string>
+    <string name="settings_status_child_lock_on">Child lock on</string>
+    <string name="settings_status_new_cards_stop">New cards: off = stop</string>
+    <string name="settings_status_new_cards_pause">New cards: off = pause</string>
+    <string name="settings_status_new_cards_keep">New cards: off = keep playing</string>
+    <string name="settings_status_sleep_running">Sleep timer running</string>
+    <string name="settings_status_bedtime_hours">Bedtime %1$s–%2$s</string>
+    <string name="settings_status_follows_phone">Follows phone</string>
+    <string name="settings_status_night_light_off">night light off</string>
+    <string name="settings_status_night_light_on">night light on</string>
+    <string name="settings_status_night_light_bedtime">night light bedtime</string>
+    <string name="settings_status_all_set">All set</string>
+    <string name="settings_status_to_fix">%1$d to fix</string>
+    <string name="settings_status_help">Controls, tips</string>
+
+    <!-- SettingsScreen: mini player and sleep menu -->
+    <string name="settings_mini_sleep_after_song">🌙 after this song</string>
+    <string name="settings_mini_sleep_minutes">🌙 %1$d min</string>
+    <string name="settings_mini_playing">Playing</string>
+    <string name="settings_mini_paused">Paused</string>
+    <string name="settings_sleep_timer_off">Sleep timer off</string>
+    <string name="settings_sleep_in_minutes">Sleep in %1$d min</string>
+    <string name="settings_sleep_after_song">Sleep after this song</string>
+
+    <!-- SettingsScreen: Cards section -->
+    <string name="settings_cards_empty">No cards yet. Tap \"Add a card\", then hold any NFC card, sticker or toy against the back of the phone.</string>
+    <string name="settings_cards_hint">Tap a card to edit it. Holding a physical card on the phone while you are here also opens it.</string>
+    <string name="settings_load_boop">Load a .boop</string>
+    <string name="settings_load_boop_unpacking">Unpacking…</string>
+    <string name="settings_load_boop_hint">Got a .boop from someone? Just open it (WhatsApp, email, Files…) and BoopBox takes over. Or pick the file here.</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_backup_body">Every card, every setting, the Yoto sign-in and every song and picture the cards use (also the ones picked from the phone\'s own folders), in one file. With lots of songs from the phone the file can get big.</string>
+    <string name="settings_backup_save">Save backup</string>
+    <string name="settings_backup_restore">Restore backup</string>
+    <string name="settings_restore_title">Restore this backup?</string>
+    <string name="settings_restore_body">It replaces every card and setting on this phone with the backup\'s. Whatever is playing stops.</string>
+    <string name="settings_restore_confirm">Restore</string>
+    <string name="settings_your_cards">Your cards</string>
+
+    <!-- SettingsScreen: Playback section -->
+    <string name="settings_volume_limit_off">Volume limit: off</string>
+    <string name="settings_volume_limit_percent">Volume limit: %1$d%%</string>
+    <string name="settings_same_card_title">Tapping the same card again pauses / resumes</string>
+    <string name="settings_same_card_subtitle">Off = tapping again restarts it.</string>
+    <string name="settings_default_resume_title">New cards continue where they left off</string>
+    <string name="settings_default_resume_subtitle">Default for cards you add from now on; each card can still be changed in its editor.</string>
+    <string name="settings_external_apps">Spotify, YouTube, Audible</string>
+    <string name="settings_return_title">Come back to BoopBox after opening the other app</string>
+    <string name="settings_return_subtitle">Straight away needs no permission. A delay (the other app shows for a moment) needs \"Display over other apps\" (see Permissions).</string>
+    <string name="settings_return_now">Come back straight away (recommended)</string>
+    <string name="settings_return_after">Come back after %1$ds</string>
+    <string name="settings_stop_autoplay_title">Stop Spotify / YouTube Music when a single song ends</string>
+    <string name="settings_stop_autoplay_subtitle">Those apps roll on to autoplay. With notification access on, BoopBox pauses them when they leave the song on the card.</string>
+    <string name="settings_keep_screen_on">Keep the screen on while on the player</string>
+    <string name="settings_yoto_title">Yoto account</string>
+    <string name="settings_yoto_connected">Connected to Yoto</string>
+    <string name="settings_yoto_not_connected">Not connected</string>
+    <string name="settings_yoto_body">Lets \"Yoto card\" cards play anything in your Yoto library, including Yoto Daily\'s episode of the day. Sign-in happens in the browser; BoopBox never sees the password.</string>
+    <string name="settings_yoto_waiting">Waiting for sign-in…</string>
+    <string name="settings_yoto_connect">Connect Yoto account</string>
+    <string name="settings_yoto_disconnect">Disconnect</string>
+    <string name="settings_podcasts_title">Podcasts</string>
+    <string name="settings_podcasts_keep_title">Keep episodes downloaded</string>
+    <string name="settings_podcasts_keep_subtitle">When online, podcast and Yoto cards save their newest episode on the phone (other Yoto cards save all their tracks), so a tap plays at once, even offline. Older episodes are removed.</string>
+    <plurals name="settings_podcasts_downloading">
+        <item quantity="one">Downloading %1$d episode… Using %2$s MB</item>
+        <item quantity="other">Downloading %1$d episodes… Using %2$s MB</item>
+    </plurals>
+    <string name="settings_podcasts_using">Using %1$s MB</string>
+    <string name="settings_podcasts_refresh">Refresh now</string>
+    <string name="settings_podcasts_delete">Delete downloads</string>
+    <string name="settings_youtube_title">YouTube &amp; YouTube Music</string>
+    <string name="settings_youtube_keep_title">Save cards\' audio on the phone</string>
+    <string name="settings_youtube_keep_subtitle">YouTube and YouTube Music cards download their sound when saved (or on their first tap). Once it is here the card plays inside BoopBox: no app switch, no ads, keeps playing in the background, works offline. Until then it opens the app as before.</string>
+    <string name="yt_cache_saved">Saved on the phone · plays in BoopBox</string>
+    <string name="yt_cache_downloading">Downloading %1$d%%…</string>
+    <string name="yt_cache_missing">Not saved yet · opens %1$s until it is</string>
+    <string name="yt_cache_off">Not saved (turned off in Settings) · opens %1$s</string>
+    <string name="yt_cache_download_now">Download now</string>
+    <plurals name="settings_youtube_downloading">
+        <item quantity="one">Downloading %1$d card… Using %2$s MB</item>
+        <item quantity="other">Downloading %1$d cards… Using %2$s MB</item>
+    </plurals>
+
+    <!-- SettingsScreen: Toddler safety section -->
+    <string name="settings_child_lock_title">Child lock (pin BoopBox to the screen)</string>
+    <string name="settings_child_lock_subtitle">Home, Back and Recents stop working. Android asks you to confirm the first time. Spotify / YouTube cards unpin it while the other app opens.</string>
+    <string name="settings_unpin_now">Unpin now (leave BoopBox)</string>
+    <string name="settings_gear_taps_title">Gear button: taps to open settings</string>
+    <string name="settings_gear_taps_hint">Double tap is harder for toddlers to hit by accident.</string>
+    <string name="settings_gear_double">Double tap</string>
+    <string name="settings_gear_single">Single tap</string>
+    <string name="settings_password_title">Settings PIN</string>
+    <string name="settings_password_on">On. The gear asks for it before opening settings.</string>
+    <string name="settings_password_off">Off. Anyone who taps the gear gets in.</string>
+    <string name="settings_password_change">Change PIN</string>
+    <string name="settings_password_set">Set PIN</string>
+    <string name="settings_card_removed_override_title">All cards: when lifted off the phone</string>
+    <string name="settings_card_removed_override_hint">Overrides every card\'s own choice.</string>
+    <string name="settings_card_removed_override_none">No Override</string>
+    <string name="settings_card_removed_title">New cards: when the card is lifted off the phone</string>
+    <string name="settings_card_removed_hint">Each card has its own choice in its settings (e.g. audiobooks stop, music keeps playing). This is what new cards start with.</string>
+    <string name="settings_card_removed_stop">Stop</string>
+    <string name="settings_card_removed_pause">Pause</string>
+    <string name="settings_card_removed_keep">Keep playing</string>
+    <string name="settings_card_removed_grace">Cards that stop or pause: putting the card back within %1$d s carries on.</string>
+    <string name="settings_gate_title">Double-tap needed to set up a new card</string>
+    <string name="settings_gate_subtitle">Stops little fingers wandering into the setup screen.</string>
+    <string name="settings_grip_title">Grip guard</string>
+    <string name="settings_grip_body">Ignores hands that are only holding the phone: fingers round the edges, resting fingers, palms and slides. Strong also needs a longer hold on the picture to stop and slows down skipping.</string>
+    <string name="settings_grip_normal">Normal</string>
+    <string name="settings_grip_strong">Strong</string>
+    <string name="settings_picture_only_title">Only the picture works</string>
+    <string name="settings_picture_only_subtitle">Turns off louder / quieter / skip on the player screen. Tap the picture to play or pause; the phone\'s volume buttons still work.</string>
+    <string name="settings_scrub_title">Drag sideways to move through a song</string>
+    <string name="settings_scrub_subtitle">Drag right to go forward, left to go back; it jumps when you let go. Slide up while dragging to go faster, down to go finer. Flicks, palms and a second finger cancel it.</string>
+    <string name="settings_flash_title">Flash the screen on every tap</string>
+    <string name="settings_flash_subtitle">Warm = louder, blue = quieter, teal = skip, white = play/pause.</string>
+    <string name="settings_buzz_title">Buzz on every tap</string>
+    <string name="settings_buzz_subtitle">A little vibration for taps on the player, for hold-to-stop and when the gear opens.</string>
+
+    <!-- SettingsScreen: Bedtime & sleep section -->
+    <string name="settings_sleep_state_after_song">Sleep timer: after this song</string>
+    <string name="settings_sleep_state_left">Sleep timer: %1$d min %2$d s left</string>
+    <string name="settings_sleep_state_off">Sleep timer: off</string>
+    <string name="settings_sleep_hint">Fades out over the last 20 seconds, then pauses. The toddler sees a little moon on the player.</string>
+    <string name="settings_song_end">Song end</string>
+    <string name="settings_bedtime_hours">Bedtime hours</string>
+    <string name="settings_bedtime_hours_hint">Quieter volume limit, automatic sleep timer and night light between these times.</string>
+    <string name="settings_bedtime_starts">Starts</string>
+    <string name="settings_bedtime_ends">Ends</string>
+    <string name="settings_time_stepper">%1$s: %2$s</string>
+    <string name="settings_bedtime_now">It is bedtime now.</string>
+    <string name="settings_bedtime_not_now">Not bedtime right now.</string>
+    <string name="settings_bedtime_volume">Bedtime volume limit: %1$d%%</string>
+    <string name="settings_bedtime_card_sleep_off">Sleep timer when a card is tapped at bedtime: off</string>
+    <string name="settings_bedtime_card_sleep_minutes">Sleep timer when a card is tapped at bedtime: %1$d min</string>
+
+    <!-- SettingsScreen: Look & idle screen section -->
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_system">Follow phone</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_pixel_art_title">Pixel art pictures</string>
+    <string name="settings_pixel_art_subtitle">Artwork is drawn chunky, like a retro game. Off = normal photos.</string>
+    <string name="settings_battery_title">Battery percentage</string>
+    <string name="settings_battery_hint">A small battery with its percentage, in the top corner of the player.</string>
+    <string name="settings_battery_low">When low or charging</string>
+    <string name="settings_battery_always">Always</string>
+    <string name="settings_taps">Taps</string>
+    <string name="settings_idle_screen">Idle screen</string>
+    <string name="settings_show_clock">Show the clock</string>
+    <string name="settings_night_light">Night light</string>
+    <string name="settings_night_light_hint">Dims the whole player to a soft colour, like a bedside lamp.</string>
+    <string name="settings_night_light_bedtime">At bedtime</string>
+    <string name="settings_brightness">Brightness: %1$d%%</string>
+
+    <!-- SettingsScreen: Permissions section -->
+    <string name="settings_perm_nfc_title">NFC</string>
+    <string name="settings_perm_nfc_missing">This phone has no NFC reader, so cards can\'t be read on it.</string>
+    <string name="settings_perm_nfc_off">Cards are read over NFC and it is switched off, so tapping a card does nothing right now.</string>
+    <string name="settings_perm_nfc_on">Cards are read over NFC.</string>
+    <string name="settings_perm_nfc_action">Turn on NFC</string>
+    <string name="settings_perm_notif_title">Notification access</string>
+    <string name="settings_perm_notif_why">Lets BoopBox see Spotify / YouTube\'s real play state, song title, artwork and progress, control them directly, skip between songs in a long video, and stop their autoplay.</string>
+    <string name="settings_perm_notif_action">Allow notification access</string>
+    <string name="settings_perm_overlay_title">Display over other apps</string>
+    <string name="settings_perm_overlay_needed">Needed for the delayed \"come back to BoopBox\". Without it the app uses a picture-in-picture bubble instead.</string>
+    <string name="settings_perm_overlay_not_needed">Only needed if you set a come-back delay under Playback. Not needed right now.</string>
+    <string name="settings_perm_overlay_action">Allow \"Display over other apps\"</string>
+    <string name="settings_perm_xiaomi_title">Xiaomi: pop-up windows in the background</string>
+    <string name="settings_perm_xiaomi_why">HyperOS / MIUI has an extra switch (\"Display pop-up windows while running in the background\") that BoopBox needs to come back on top. Found under Other permissions.</string>
+    <string name="settings_perm_xiaomi_action">Open BoopBox permissions</string>
+    <string name="settings_perm_battery_title">Battery: no restrictions</string>
+    <string name="settings_perm_battery_why">Some phones (Xiaomi especially) kill background apps. Set BoopBox\'s battery saver to \"No restrictions\" so playback and the come-back work reliably.</string>
+    <string name="settings_perm_battery_action">Open app settings</string>
+
+    <!-- SettingsScreen: Help section -->
+    <string name="settings_help_player_title">Player</string>
+    <string name="settings_help_player_body">Tap the middle = play / pause. Hold the middle = stop. Top = louder, bottom = quieter. Right = next song, left = previous song. Single-song cards ignore left / right.</string>
+    <string name="settings_help_cards_title">Cards</string>
+    <string name="settings_help_cards_body">Any NFC thing works: blank NTAG stickers, old hotel key cards, Amiibo, transit cards. Only the card\'s ID is used unless you choose \"Write to card\" to share it.</string>
+    <string name="settings_help_pictures_title">Pictures</string>
+    <string name="settings_help_pictures_body">Every song gets its own picture: album art, a yotoicons.com pixel icon, or a generated pixel creature. Pick them per track in the card editor.</string>
+    <string name="settings_help_songs_title">Songs in one file or video</string>
+    <string name="settings_help_songs_body">File cards: \"Split into songs\" finds the pauses. YouTube cards: the video\'s chapters or description tracklist are read automatically.</string>
+    <string name="settings_help_apps_title">Spotify / YouTube / Audible</string>
+    <string name="settings_help_apps_body">They open in their own app; BoopBox comes back on top and controls them. YouTube (and free YouTube Music) stops when its app isn\'t on screen. Audible opens the book and BoopBox presses play; if it doesn\'t start, press play once in Audible.</string>
+    <string name="settings_help_gear_title">Getting here</string>
+    <string name="settings_help_gear_body">Double-tap the faded gear in the top-right corner of the player. With the child lock on, this is the only way out.</string>
+
+    <!-- ==== 30_editor.en.xml ==== -->
+    <!-- Card editor: card types (Category enum) -->
+    <string name="editor_cat_link">Music / video link</string>
+    <string name="editor_cat_link_hint">Spotify, YouTube Music, YouTube or any app link</string>
+    <string name="editor_cat_video">Video (Netflix / Disney+)</string>
+    <string name="editor_cat_video_hint">A show or movie in Netflix or Disney+</string>
+    <string name="editor_cat_audible">Audiobook (Audible)</string>
+    <string name="editor_cat_audible_hint">A link to a book in the Audible app</string>
+    <string name="editor_cat_podcast">Podcast</string>
+    <string name="editor_cat_podcast_hint">An RSS feed address</string>
+    <string name="editor_cat_file_hint">MP3, M4B, FLAC, OGG, video… anything the phone can play</string>
+    <string name="editor_cat_folder_hint">Plays every audio file in the folder, in name order</string>
+    <string name="editor_cat_playlist">Playlist</string>
+    <string name="editor_cat_playlist_hint">Pick songs from the phone (and stream URLs), put them in order, give each its own picture</string>
+    <string name="editor_cat_yoto_hint">A card from your Yoto library: Yoto Daily, bought cards, Yoto Club</string>
+    <string name="editor_cat_stream">Audio stream</string>
+    <string name="editor_cat_stream_hint">A direct URL to an MP3 / stream</string>
+
+    <!-- Card editor: default titles stored with the card -->
+    <string name="editor_default_song_title">Song</string>
+    <string name="editor_default_stream_title">Stream</string>
+
+    <!-- Card editor: status / error lines -->
+    <string name="editor_status_no_details">Couldn\'t fetch details for this link. You can still save it.</string>
+    <string name="editor_status_feed_empty">Feed loaded but it has no playable episodes.</string>
+    <string name="editor_status_feed_failed">Couldn\'t load feed: %1$s</string>
+    <string name="editor_status_playlist_empty">Add at least one song to the playlist first.</string>
+    <string name="editor_status_choose_source">Choose what this card should play first.</string>
+    <string name="editor_status_not_stream">That\'s a %1$s link, not an audio stream. Use the \"Music / video link\" type for it.</string>
+    <string name="editor_status_playlist_external">That\'s a %1$s link. Playlists can only hold files on the phone and direct audio streams (an .mp3 or radio URL). Make a separate card for it.</string>
+    <string name="editor_status_downloading_newest">Downloading the newest episode…</string>
+    <string name="editor_status_feed_unreachable">Couldn\'t reach the feed.</string>
+    <string name="editor_status_downloaded">Downloaded: %1$s</string>
+    <string name="editor_newest_episode_fallback">newest episode</string>
+
+    <!-- Card editor: leave dialog, bars -->
+    <string name="editor_leave_title">Save changes to this card?</string>
+    <string name="editor_leave_unsaved">This card hasn\'t been saved yet.</string>
+    <string name="editor_leave_changed">You changed this card.</string>
+    <string name="editor_leave_discard">Discard</string>
+    <string name="editor_leave_keep">Keep editing</string>
+    <string name="editor_title_new">Set up card</string>
+    <string name="editor_title_edit">Edit card</string>
+    <string name="editor_delete_card_cd">Delete card</string>
+    <string name="editor_save_and_play">Save &amp; play</string>
+
+    <!-- Card editor: preview -->
+    <string name="editor_untitled">Untitled card</string>
+    <string name="editor_card_id">Card ID %1$s</string>
+    <string name="editor_read_from_shared">Read from a shared card. Save to keep it.</string>
+
+    <!-- Card editor: what should it play -->
+    <string name="editor_section_play">What should it play?</string>
+    <string name="editor_card_type">Card type</string>
+    <string name="editor_paste_link">Paste link (Share → Copy link in the app)</string>
+    <string name="editor_paste_video">Paste Netflix or Disney+ link (Share → Copy link)</string>
+    <string name="editor_video_unknown">Not a Netflix or Disney+ link</string>
+    <string name="editor_video_note">Opens in the app and stays there: these apps stop playing when BoopBox comes back.</string>
+    <string name="editor_paste_audible">Paste Audible book link</string>
+    <string name="editor_stream_url">Stream URL</string>
+    <string name="editor_will_open_in">Will open in %1$s</string>
+    <string name="editor_will_open_in_other">Will open in another app</string>
+    <string name="editor_scanning_tracklist">Looking for a tracklist in the video…</string>
+    <!-- Always 2 or more songs here, so no plural. -->
+    <string name="editor_found_songs">Found %1$d songs in this video. Right/left skip between them.</string>
+    <string name="editor_no_tracklist">No tracklist found: plays as one song.</string>
+    <string name="editor_rescan">Rescan</string>
+    <string name="editor_trim_hint">Talky intro or a long ending? Pick where the song starts and stops.</string>
+    <string name="editor_trim_done">Plays %1$s → %2$s</string>
+    <string name="editor_trim">Trim this song</string>
+    <string name="editor_trim_remove">Play it all</string>
+    <string name="editor_trim_end">end</string>
+    <string name="editor_skip_needs_access">Skipping between the songs needs notification access (grown-up settings).</string>
+    <string name="editor_audible_note">Audible can\'t be started by a link, so BoopBox opens the book and then presses play for you. If it doesn\'t start, press play once in Audible; after that the card resumes it.</string>
+
+    <!-- Card editor: podcast -->
+    <string name="editor_rss_address">RSS feed address</string>
+    <string name="editor_load_feed">Load feed</string>
+    <string name="editor_download_newest">Download newest</string>
+    <plurals name="editor_feed_summary">
+        <item quantity="one">%1$s · %2$d episode</item>
+        <item quantity="other">%1$s · %2$d episodes</item>
+    </plurals>
+    <string name="editor_episode_chosen">Chosen: %1$s (load the feed to change it)</string>
+    <string name="editor_episode_load_feed">Load the feed to pick an episode.</string>
+
+    <!-- Card editor: file / folder -->
+    <string name="editor_choose_file">Choose a file</string>
+    <string name="editor_file_chosen">File chosen</string>
+    <string name="editor_no_file">No file yet</string>
+    <string name="editor_songs_inside">Songs inside this file</string>
+    <!-- Always 2 or more songs here, so no plural. -->
+    <string name="editor_split_done">Split into %1$d songs. Right/left skip between them, each can have its own picture.</string>
+    <string name="editor_split_hint">One long file with several songs in it, or a song with a talky intro? Split it at the pauses, or trim its start and end.</string>
+    <string name="editor_edit_songs">Edit songs</string>
+    <string name="editor_split_into_songs">Split or trim</string>
+    <string name="editor_remove_split">Remove split</string>
+    <plurals name="editor_file_has_chapters">
+        <item quantity="one">This file has %d chapter mark of its own.</item>
+        <item quantity="other">This file has %d chapter marks of its own.</item>
+    </plurals>
+    <string name="editor_use_file_chapters">Use them</string>
+
+    <!-- Downloaded audiobooks -->
+    <string name="editor_cat_book">Audiobook on this phone</string>
+    <string name="editor_cat_book_hint">A downloaded book: one M4B / MP3 file or a folder of chapter files. Remembers where it stopped; right/left skip chapters.</string>
+    <string name="editor_book_choose_file">Book file</string>
+    <string name="editor_book_choose_folder">Book folder</string>
+    <string name="editor_book_note">Copy-protected books (Audible, Apple Books, Libby) only play in their own apps. DRM-free downloads and LibriVox books work here.</string>
+    <string name="editor_book_reading">Reading the book…</string>
+    <plurals name="editor_book_chapters">
+        <item quantity="one">%d chapter. Right/left on the player skip between chapters.</item>
+        <item quantity="other">%d chapters. Right/left on the player skip between chapters.</item>
+    </plurals>
+    <string name="editor_book_no_chapters">No chapter marks in this file, so it plays as one long track. You can mark chapters by hand.</string>
+    <plurals name="editor_book_parts">
+        <item quantity="one">%d part.</item>
+        <item quantity="other">%d parts, played in number order (1, 2 … 10, 11). Right/left skip between them.</item>
+    </plurals>
+    <string name="editor_book_edit_chapters">Edit chapters</string>
+    <string name="editor_book_mark_chapters">Mark chapters</string>
+    <string name="editor_book_progress_title">Where it stopped</string>
+    <string name="editor_book_at_chapter">Chapter %1$d of %2$d (%3$s), %4$s in</string>
+    <string name="editor_book_at_part">Part %1$d of %2$d (%3$s), %4$s in</string>
+    <string name="editor_book_at_time">%1$s in</string>
+    <string name="editor_book_start_over">Start over</string>
+    <string name="editor_book_play_from_cd">Play from here</string>
+    <string name="book_chapter_number">Chapter %1$d</string>
+    <string name="editor_speed_title">Speed</string>
+    <string name="editor_speed_note">Slower helps little ones follow a story.</string>
+    <string name="editor_speed_normal">Normal</string>
+    <string name="editor_choose_folder">Choose a folder</string>
+    <string name="editor_folder_chosen">Folder chosen</string>
+    <string name="editor_no_folder">No folder yet</string>
+
+    <!-- Card editor: Yoto -->
+    <string name="editor_yoto_signin_note">Sign in with the family\'s Yoto account once; BoopBox can then play anything in your Yoto library, including Yoto Daily\'s episode of the day. Real Yoto cards need no sign-in: just tap one on the player screen.</string>
+    <string name="editor_yoto_waiting">Waiting for Yoto sign-in…</string>
+    <string name="editor_yoto_connect">Connect Yoto account</string>
+    <string name="editor_yoto_choose">Choose from my Yoto library</string>
+    <string name="editor_yoto_change">Change Yoto card</string>
+    <string name="editor_yoto_none">No card chosen yet</string>
+    <string name="editor_yoto_real_card">Real Yoto card: %1$s</string>
+    <string name="editor_yoto_plays_from_card">plays straight from the card</string>
+    <plurals name="editor_yoto_chapters_note">
+        <item quantity="one">%d chapter. Podcast cards (Yoto Daily) play the newest episode and then stop, just like the Yoto player.</item>
+        <item quantity="other">%d chapters. Podcast cards (Yoto Daily) play the newest episode and then stop, just like the Yoto player.</item>
+    </plurals>
+    <string name="editor_downloading_percent">Downloading %1$d%%</string>
+    <string name="editor_download_offline">Download for offline</string>
+    <string name="editor_nothing_downloaded">Nothing downloaded yet</string>
+    <plurals name="editor_tracks_on_phone">
+        <item quantity="one">%d track on the phone</item>
+        <item quantity="other">%d tracks on the phone</item>
+    </plurals>
+    <string name="editor_yoto_library_title">Your Yoto library</string>
+    <string name="editor_yoto_library_empty">Your Yoto library is empty. In the Yoto app, open Discover, find Yoto Daily (or any card) and tap \"Add to library\".</string>
+    <string name="editor_loading">Loading…</string>
+    <string name="editor_reload">Reload</string>
+
+    <!-- Card editor: playlist -->
+    <string name="editor_add_songs">Add songs from phone</string>
+    <string name="editor_no_songs">No songs yet</string>
+    <plurals name="editor_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+    <string name="editor_add_stream_label">Or add a stream / MP3 URL</string>
+    <string name="editor_playlist_hint">Use the arrows to put songs in order. Each song gets its own picture below.</string>
+
+    <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
+    <string name="editor_fetching">Fetching details…</string>
+    <string name="editor_tap_again_title">When the card is tapped again later</string>
+    <string name="editor_resume_continue">Continue where it left off (audiobooks, podcasts)</string>
+    <string name="editor_resume_restart">Start from the beginning (songs, albums)</string>
+    <string name="editor_shuffle">Shuffle</string>
+    <string name="editor_lifted_title">When the card is lifted off the phone</string>
+    <string name="editor_lifted_stop">Stop</string>
+    <string name="editor_lifted_pause">Pause (tap again to carry on)</string>
+    <string name="editor_lifted_nothing">Keep playing</string>
+    <string name="editor_sleep_title">Sleep timer when this card is tapped (minutes)</string>
+    <string name="editor_sleep_note">For bedtime stories: the sound fades out and pauses after this long, every time the card is tapped. Off = only the bedtime-hours timer applies.</string>
+    <string name="editor_sleep_off">Off</string>
+
+    <!-- Card editor: looks -->
+    <string name="editor_section_looks">Looks</string>
+    <string name="editor_name">Name</string>
+    <string name="editor_picture">Picture</string>
+    <string name="editor_picture_note">Shown big in the middle of the player. Pick a pixel icon (yotoicons.com) or album art, or paste a link to any picture. With no picture, each track gets its own little pixel creature.</string>
+    <string name="editor_find_picture">Find a picture</string>
+    <string name="editor_change_picture">Change picture</string>
+    <string name="editor_tracks_songs_title">Songs and their pictures</string>
+    <string name="editor_tracks_each_title">A picture for each track</string>
+    <string name="editor_tracks_note">So the little one can see which track is on. Tracks without a picture use embedded cover art or their own pixel creature.</string>
+    <string name="editor_drag_cd">Drag to reorder</string>
+    <string name="editor_remove_song_cd">Remove song</string>
+    <string name="editor_remove_picture_cd">Remove picture</string>
+    <string name="editor_pick">Pick</string>
+    <string name="editor_drag_hint">Drag the ≡ handle to reorder. Tap a song\'s picture to choose its icon.</string>
+    <string name="editor_first_80">Showing the first 80 tracks.</string>
+    <string name="editor_icon_title">Little icon for the card list</string>
+    <string name="editor_colour">Colour</string>
+    <string name="editor_artwork_url">Artwork image URL (optional)</string>
+
+    <!-- Card editor: another tag, sharing -->
+    <string name="editor_section_tag">Another tag</string>
+    <string name="editor_tag_note">Sticker lost or worn out? Move this card onto a different NFC tag. Or copy it, so two tags play the same thing.</string>
+    <string name="editor_move_tag">Move to another tag</string>
+    <string name="editor_copy_tag">Copy to another tag</string>
+    <string name="editor_section_share">Share this card</string>
+    <string name="editor_share_local_only">Files, folders and playlists on this phone can\'t be shared on a card. Links, podcasts and streams can.</string>
+    <string name="editor_share_note">Writes the card\'s details onto the NFC tag itself. Anyone with BoopBox can then tap it and it is added to their phone automatically. Needs a writable tag (NTAG213/215/216 stickers work).</string>
+    <string name="editor_write_to_card">Write to card</string>
+    <string name="editor_boop_note">Or send it as a .boop file (WhatsApp, email, Drive…). It carries everything: songs and pictures from this phone too. The other person just opens the file and holds a blank card to their phone.</string>
+    <string name="editor_send_file">Send %1$s</string>
+    <string name="editor_send_boop">Send .boop</string>
+    <string name="editor_save_boop">Save .boop</string>
+    <string name="boop_share_text">A BoopBox card. Open the file with BoopBox and hold a blank card to the phone.</string>
+
+    <!-- Card editor: write-to-tag dialogs -->
+    <string name="editor_write_hold">Hold the card on the phone</string>
+    <string name="editor_writing">Writing \"%1$s\". Keep the card still until this closes.</string>
+    <string name="editor_written">Written ✓</string>
+    <string name="editor_written_body">This card now carries \"%1$s\". Tap it on any phone with BoopBox and it plays.</string>
+    <string name="editor_write_failed">Couldn\'t write</string>
+    <string name="editor_try_again">Try again</string>
+
+    <!-- Card editor: move / copy dialogs -->
+    <string name="editor_copy_hold">Hold the second tag to the phone</string>
+    <string name="editor_move_hold">Hold the new tag to the phone</string>
+    <string name="editor_copy_waiting">That tag will play \"%1$s\" as well.</string>
+    <string name="editor_move_waiting">\"%1$s\" moves to that tag; this one is forgotten.</string>
+    <string name="editor_copied">Copied ✓</string>
+    <string name="editor_moved">Moved ✓</string>
+    <string name="editor_copy_done">Both tags now play \"%1$s\".</string>
+    <string name="editor_move_done">\"%1$s\" now lives on the new tag.</string>
+    <string name="editor_copy_failed">Couldn\'t copy</string>
+    <string name="editor_move_failed">Couldn\'t move</string>
+
+    <!-- Card editor: delete dialog -->
+    <string name="editor_delete_title">Delete this card?</string>
+    <string name="editor_delete_body">The physical card keeps working; it just won\'t play anything until you set it up again.</string>
+
+    <!-- ==== 40_art.en.xml ==== -->
+    <!-- Artwork picker (ArtworkPicker.kt) -->
+    <string name="art_title">Find a picture</string>
+    <string name="art_source_icons">Pixel icons</string>
+    <string name="art_source_album">Album art</string>
+    <string name="art_search_icons_hint">Search icons (e.g. dinosaur, train, moon)</string>
+    <string name="art_search_album_hint">Album, song, podcast or book</string>
+    <string name="art_find">Find</string>
+    <string name="art_searching">Searching…</string>
+    <string name="art_nothing_found">Nothing found. Try another word.</string>
+    <plurals name="art_icon_count">
+        <item quantity="one">%d icon</item>
+        <item quantity="other">%d icons</item>
+    </plurals>
+    <string name="art_loading">Loading…</string>
+    <string name="art_more_icons">More icons</string>
+    <string name="art_credit_icons">Icons drawn by the yotoicons.com community</string>
+    <string name="art_credit_album">Artwork via iTunes Search</string>
+
+    <!-- ==== 41_split.en.xml ==== -->
+    <!-- Split-into-songs editor (SplitEditorDialog.kt) -->
+    <string name="split_title">Split &amp; trim</string>
+    <string name="split_reading">Reading the file…</string>
+    <string name="split_reading_progress">Reading the file… %1$d%% (you can already adjust the sliders)</string>
+    <string name="split_error_read">Couldn\'t read this file: %1$s</string>
+    <string name="split_error_unknown">unknown error</string>
+    <string name="split_time_playing">"%1$s  ▶"</string>
+    <string name="split_time_idle">"%1$s  · tap the wave to listen"</string>
+    <string name="split_stop">Stop</string>
+    <string name="split_here">Split here</string>
+    <string name="split_stop_checking">Stop checking</string>
+    <string name="split_hear_cuts">Hear every cut (1.5 s before → 3 s after)</string>
+    <string name="split_auto">Split at silences automatically</string>
+    <string name="split_threshold">Quieter than %1$s counts as silent</string>
+    <string name="split_min_silence">Silence at least %1$s s long</string>
+    <string name="split_min_song">Songs at least %1$d s long</string>
+    <plurals name="split_will_make">
+        <item quantity="one">Will make %d song</item>
+        <item quantity="other">Will make %d songs</item>
+    </plurals>
+    <string name="split_no_split">No split yet: lower the silence length, raise the dB, or add cuts by hand</string>
+    <string name="split_cd_listen">Listen to the start of this song</string>
+    <string name="split_cd_remove_cut">Remove this cut</string>
+    <string name="split_use_songs">Use these songs</string>
+    <string name="trim_title">Cut the song</string>
+    <string name="split_trim_hint">Orange handles: where it starts and stops (drag, let go to hear). Orange lines: where one song ends and the next begins. Tap the wave to listen anywhere.</string>
+    <string name="trim_youtube_no_preview">YouTube won\'t play this video outside its app, so it can\'t be heard here. You can still drag the handles; check the cut by playing the card.</string>
+    <string name="split_no_split_manual">No split yet: listen, then tap Split here between songs</string>
+    <string name="trim_hint">Drag the orange handles to where the song should start and stop. Let go to hear the cut; tap the wave to listen anywhere.</string>
+    <string name="trim_reading">Reading the song… %1$d%%</string>
+    <string name="trim_start">Starts %1$s</string>
+    <string name="trim_end">Stops %1$s</string>
+    <string name="trim_length">Plays %1$s of %2$s</string>
+    <string name="trim_play">Play the cut</string>
+    <string name="trim_reset">Whole song</string>
+    <string name="trim_use">Use this cut</string>
+    <string name="trim_earlier">A bit earlier</string>
+    <string name="trim_later">A bit later</string>
+    <string name="trim_listen">Listen here</string>
+
+    <!-- ==== 50_lead.en.xml ==== -->
+    <!-- PendingCardScreen -->
+    <string name="pending_header">READY FOR A CARD</string>
+    <string name="pending_header_position">"READY FOR A CARD  ·  %1$d OF %2$d"</string>
+    <string name="pending_sent_from_computer">Sent from the computer</string>
+    <string name="pending_shared_with_you">Shared with you</string>
+    <string name="pending_from_link">Shared from %1$s</string>
+    <plurals name="pending_track_count">
+        <item quantity="one">%1$d track</item>
+        <item quantity="other">%1$d tracks</item>
+    </plurals>
+    <string name="pending_hold_card">Hold a card to the phone</string>
+    <string name="pending_will_get">It will get these songs and start playing</string>
+    <string name="pending_double_tap">double-tap</string>
+    <string name="pending_replace_title">This card already plays \"%1$s\"</string>
+    <string name="pending_replace_body">Put \"%1$s\" on it instead?</string>
+    <string name="pending_replace">Replace</string>
+    <string name="pending_keep">Keep it</string>
+    <!-- ReceivingOverlay: a shared .boop being opened -->
+    <string name="receive_opening">Opening the card…</string>
+    <string name="receive_opening_hint">Unpacking its songs and pictures</string>
+    <string name="receive_fetching_link_hint">Fetching its title and picture</string>
+    <string name="receive_failed_title">Couldn\'t open that file</string>
+
+    <!-- ScanScreen -->
+    <string name="scan_title">Add a card</string>
+    <string name="scan_hold_card">Hold a card against the back of the phone</string>
+    <string name="scan_hint">Any NFC card, sticker or toy will do. The NFC antenna is usually near the camera.</string>
+
+    <!-- Settings password dialogs (SettingsLock) -->
+    <string name="lock_title">Grown-ups only</string>
+    <string name="lock_password">PIN</string>
+    <string name="lock_wrong_password">Wrong PIN</string>
+    <string name="lock_use_letters">Old password with letters? Use the full keyboard</string>
+    <string name="lock_set_title">Set settings PIN</string>
+    <string name="lock_new_password">New PIN (at least 4 digits)</string>
+    <string name="lock_type_again">Type it again</string>
+    <string name="lock_mismatch">Doesn\'t match</string>
+    <string name="lock_forgot_hint">If you forget it, the only way back in is clearing the app\'s data.</string>
+
+    <!-- Notices flashed on the player (MainViewModel, PendingCards, PlayerController) -->
+    <string name="msg_move_same_card">That\'s the same card. Hold a different one to the phone.</string>
+    <string name="msg_move_card_in_use">That card already plays \"%1$s\". Delete that card first, or use another one.</string>
+    <string name="msg_added_from_card">Added \"%1$s\" from the card</string>
+    <string name="msg_card_set_up">Card set up: \"%1$s\"</string>
+    <string name="msg_updated_card">Updated \"%1$s\"</string>
+    <string name="msg_added_card">Added \"%1$s\"</string>
+    <string name="msg_card_ready">\"%1$s\" is ready: tap a new card</string>
+    <string name="msg_something_went_wrong">something went wrong</string>
+    <string name="msg_unknown_error">unknown error</string>
+    <string name="msg_cant_write_there">can\'t write there</string>
+    <string name="msg_cant_open_file">can\'t open that file</string>
+    <string name="msg_boop_packing">Packing \"%1$s\"…</string>
+    <string name="msg_boop_make_failed">Couldn\'t make the .boop: %1$s</string>
+    <string name="msg_saved_file">Saved %1$s</string>
+    <string name="msg_save_failed">Couldn\'t save: %1$s</string>
+    <string name="msg_load_failed">Couldn\'t load: %1$s</string>
+    <string name="msg_backup_saved">Backup saved</string>
+    <string name="msg_backup_failed">Couldn\'t save the backup: %1$s</string>
+    <plurals name="msg_restored_cards">
+        <item quantity="one">Restored %1$d card</item>
+        <item quantity="other">Restored %1$d cards</item>
+    </plurals>
+    <string name="msg_restore_failed">Couldn\'t restore: %1$s</string>
+
+    <!-- .boop files and backups (BoopFile, Backup) -->
+    <string name="msg_boop_empty_folder">the folder has no songs in it</string>
+    <string name="msg_boop_cant_read">can\'t read \"%1$s\" any more</string>
+    <string name="msg_boop_unnamed_file">file</string>
+    <string name="msg_boop_not_boop">that file isn\'t a .boop</string>
+    <string name="msg_boop_damaged_or_newer">that .boop is damaged or from a newer BoopBox</string>
+    <string name="msg_boop_damaged">that .boop is damaged</string>
+    <string name="msg_boop_download_failed">couldn\'t download it (HTTP %1$d)</string>
+    <string name="msg_backup_not_backup">that file isn\'t a BoopBox backup</string>
+    <string name="msg_backup_damaged_or_newer">that backup is damaged or from a newer BoopBox</string>
+
+    <!-- Writing a card onto an NFC tag (CardTag) -->
+    <string name="msg_tag_not_shareable">Files and folders on this phone can\'t be shared on a card.</string>
+    <string name="msg_tag_read_only">This card is read-only.</string>
+    <string name="msg_tag_too_small">Card too small: needs %1$d bytes, this one holds %2$d. Use an NTAG215/216 sticker.</string>
+    <string name="msg_tag_write_failed">Couldn\'t write: %1$s. Hold it still and try again.</string>
+    <string name="msg_tag_lost_contact">lost contact with the card</string>
+    <string name="msg_tag_format_failed">Couldn\'t format this card: %1$s.</string>
+    <string name="msg_tag_no_ndef">This card can\'t hold data (not an NDEF tag). NTAG213/215/216 stickers work.</string>
+
+    <!-- Playback (PlayerController) -->
+    <string name="msg_sleep_timer_finished">Sleep timer finished</string>
+    <string name="msg_sleep_song_finished">Sleep: song finished</string>
+    <string name="msg_cant_play_card">Couldn\'t play %1$s: %2$s</string>
+    <string name="msg_need_notification_access">Turn on notification access in grown-up settings to skip between the songs in this video.</string>
+    <string name="msg_err_yoto_not_connected">connect your Yoto account in grown-up settings</string>
+    <string name="msg_err_yoto_unreachable">couldn\'t reach Yoto</string>
+    <string name="msg_err_yoto_needs_internet">needs internet (Yoto streams aren\'t stored on the phone)</string>
+    <string name="msg_err_yoto_no_chapters">this Yoto card has no playable chapters</string>
+    <string name="msg_part_number">Part %1$d</string>
+    <string name="msg_err_playlist_empty">this playlist has no songs yet</string>
+    <string name="msg_err_no_saved_episode">no internet and no saved episode</string>
+    <string name="msg_err_unsupported_source">unsupported source</string>
+    <string name="msg_err_nothing_to_play">nothing to play</string>
+    <string name="msg_err_no_app_for_link">no app installed that can open this link</string>
+    <string name="msg_err_player_service">player service unavailable</string>
+    <string name="msg_playing_in">Playing in %1$s</string>
+    <string name="msg_finished">Finished</string>
+    <string name="msg_another_app">another app</string>
+    <string name="msg_play_err_not_audio">isn\'t an audio file or stream BoopBox understands (a YouTube or Spotify page isn\'t audio; use a link card for those)</string>
+    <string name="msg_play_err_cant_open">can\'t be opened any more. The file may have been moved or deleted; pick it again in the card editor</string>
+    <string name="msg_play_err_offline">needs internet and there isn\'t any right now</string>
+    <string name="msg_play_err_gone">isn\'t there any more (the server said no)</string>
+    <string name="msg_play_err_format">is in a format this phone can\'t decode (WMA and some rare codecs aren\'t supported)</string>
+    <string name="msg_play_err_other">couldn\'t be played (%1$s)</string>
+    <string name="msg_cant_play_titled">Can\'t play \"%1$s\": %2$s.</string>
+    <string name="msg_cant_play_this">Can\'t play this: %1$s.</string>
+    <string name="msg_opened_in_no_access">Opened in %1$s. Allow notification access to see its real play state.</string>
+
+    <!-- ==== 60_polish.en.xml ==== -->
+    <!-- Card editor: paste, type change, podcast search, folder count -->
+    <string name="editor_paste">Paste</string>
+    <string name="editor_clipboard_hint">There is something on the clipboard: tap Paste to use it.</string>
+    <string name="editor_type_change_title">Change the card type?</string>
+    <string name="editor_type_change_body">What this card plays is cleared; you choose it again for \"%1$s\".</string>
+    <string name="editor_type_change_confirm">Change</string>
+    <string name="editor_episode_search">Search episodes</string>
+    <string name="editor_episode_none_match">No episode matches.</string>
+    <plurals name="editor_folder_track_count">
+        <item quantity="one">%d track</item>
+        <item quantity="other">%d tracks</item>
+    </plurals>
+
+    <!-- Artwork picker: paste a link -->
+    <string name="art_source_url">Paste a link</string>
+    <string name="art_url_hint">Image address (https://…)</string>
+    <string name="art_use_url">Use this picture</string>
+    <string name="art_url_note">Any picture on the web: copy its link and paste it here.</string>
+
+    <!-- Settings: accounts section, card list sorting, bedtime times -->
+    <string name="settings_section_accounts_title">Accounts &amp; downloads</string>
+    <string name="settings_section_accounts_blurb">Yoto account, podcast downloads</string>
+    <string name="settings_status_yoto_connected">Yoto connected</string>
+    <string name="settings_status_yoto_not_connected">Yoto not connected</string>
+    <string name="settings_sort_recent">Recently played</string>
+    <string name="settings_sort_name">By name</string>
+    <string name="settings_sort_added">Newest first</string>
+    <string name="settings_search_cards">Search cards</string>
+    <string name="settings_no_matching_cards">No card matches.</string>
+    <string name="settings_played_ago">Played %1$s</string>
+    <string name="settings_change_time">Change</string>
+
+    <!-- Scan screen -->
+    <string name="scan_existing_hint">Tapping a card that is already set up opens it for editing.</string>
+    <string name="scan_nfc_off">NFC is off, so nothing can be read right now.</string>
+    <string name="msg_no_link_shared">There was no link in what was shared.</string>
+
+    <!-- BoopBox Plus -->
+    <string name="plus_title">BoopBox Plus</string>
+    <string name="plus_reason_cards">Free BoopBox holds up to %1$d cards of your own. Plus has no limit.</string>
+    <string name="plus_reason_split">Splitting a file into songs and marking audiobook chapters are part of BoopBox Plus.</string>
+    <string name="plus_reason_bedtime">Bedtime hours are part of BoopBox Plus.</string>
+    <string name="plus_reason_night_light">Night light colours and brightness are part of BoopBox Plus.</string>
+    <string name="plus_reason_card_sleep">A sleep timer for each card is part of BoopBox Plus.</string>
+    <string name="plus_reason_speed">A playback speed for each card is part of BoopBox Plus.</string>
+    <string name="plus_reason_trim">Trimming the start and end of a song is part of BoopBox Plus.</string>
+    <string name="plus_reason_general">Unlock every card and grown-up extra.</string>
+    <string name="plus_includes">Plus includes</string>
+    <string name="plus_feature_cards">As many cards as you like</string>
+    <string name="plus_feature_split">Split a file into songs, trim a song\'s start and end, mark audiobook chapters</string>
+    <string name="plus_feature_bedtime">Bedtime hours: quieter, sleep timer and night light on their own</string>
+    <string name="plus_feature_night_light">Night light colours and brightness</string>
+    <string name="plus_feature_card_extras">A sleep timer and speed for each card</string>
+    <string name="plus_once">One purchase, yours for good. No subscription. Cards shared with you always work.</string>
+    <string name="plus_buy">Unlock for %1$s</string>
+    <string name="plus_buy_no_price">Unlock Plus</string>
+    <string name="plus_restore">Restore purchase</string>
+    <string name="plus_active">Plus is on. Thank you!</string>
+    <string name="plus_store_unavailable">Google Play isn\'t available right now. Try again in a moment.</string>
+    <string name="plus_restored">BoopBox Plus restored.</string>
+    <string name="plus_nothing_to_restore">No BoopBox Plus purchase found on this Google account.</string>
+    <string name="plus_thanks">Thank you! BoopBox Plus is on.</string>
+    <string name="plus_pending">Payment pending. Plus turns on once it goes through.</string>
+    <string name="plus_buy_failed">Couldn\'t buy Plus: %1$s</string>
+    <string name="plus_badge">Plus</string>
+    <string name="plus_locked">Part of BoopBox Plus. Tap to unlock.</string>
+    <string name="plus_pretend_title">Pretend Plus is bought</string>
+    <string name="plus_pretend_subtitle">Test builds only, to try both versions.</string>
+    <string name="plus_cards_used">%1$d of %2$d free cards used</string>
+    <string name="settings_section_plus_title">BoopBox Plus</string>
+    <string name="settings_section_plus_blurb">Unlimited cards and grown-up extras</string>
+    <string name="settings_status_plus_on">On, thank you!</string>
+    <string name="settings_status_plus_off">Free version</string>
+</resources>

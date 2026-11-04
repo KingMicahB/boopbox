@@ -1,0 +1,826 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ==== 00_common.he.xml ==== -->
+    <!-- Common button / label words -->
+    <string name="common_cancel">ביטול</string>
+    <string name="common_save">שמירה</string>
+    <string name="common_back">חזרה</string>
+    <string name="common_delete">מחיקה</string>
+    <string name="common_remove">הסרה</string>
+    <string name="common_done">סיום</string>
+    <string name="common_close">סגירה</string>
+    <string name="common_ok">אישור</string>
+    <string name="common_open">פתיחה</string>
+    <string name="common_edit">עריכה</string>
+    <string name="common_add">הוספה</string>
+    <string name="common_yes">כן</string>
+    <string name="common_no">לא</string>
+    <string name="common_not_now">לא עכשיו</string>
+
+    <!-- Source types and podcast modes (SourceType / PodcastMode in Models.kt) -->
+    <string name="source_local_file">קובץ בטלפון הזה</string>
+    <string name="source_local_folder">תיקייה בטלפון הזה</string>
+    <string name="source_playlist">רשימת השמעה (שירים לבחירתכם)</string>
+    <string name="source_podcast">פודקאסט (עדכון RSS)</string>
+    <string name="source_yoto">כרטיס Yoto</string>
+    <string name="source_stream_url">כתובת של שידור שמע</string>
+    <string name="source_spotify">Spotify</string>
+    <string name="source_youtube_music">YouTube Music</string>
+    <string name="source_youtube">YouTube</string>
+    <string name="source_audible">Audible</string>
+    <string name="source_video">סרטון</string>
+    <string name="source_netflix">Netflix</string>
+    <string name="source_disney">Disney+</string>
+    <string name="source_app_link">קישור לאפליקציה אחרת</string>
+    <string name="podcast_mode_latest">הפרק החדש ביותר</string>
+    <string name="podcast_mode_episode">פרק מסוים</string>
+
+    <!-- ==== 10_player.he.xml ==== -->
+    <!-- PlayerScreen: sleep timer label (top corner) -->
+    <string name="player_sleep_after_song">🌙 אחרי השיר הזה</string>
+    <string name="player_sleep_minutes">🌙 %1$d דק׳</string>
+    <string name="player_sleep_soon">🌙 עוד רגע</string>
+
+    <!-- PlayerScreen: grown-up gear -->
+    <string name="player_gear_tap">הגדרות למבוגרים (הקשה)</string>
+    <string name="player_gear_double_tap">הגדרות למבוגרים (הקשה כפולה)</string>
+
+    <!-- PlayerScreen: NFC banner -->
+    <string name="player_nfc_missing">הטלפון הזה לא כולל NFC, ולכן אי אפשר לקרוא כרטיסים</string>
+    <string name="player_nfc_off_tap">ה־NFC כבוי, ולכן הכרטיסים לא יעבדו. הקישו כאן כדי להפעיל אותו</string>
+    <string name="player_nfc_off_double_tap">ה־NFC כבוי, ולכן הכרטיסים לא יעבדו. הקישו פעמיים כאן כדי להפעיל אותו</string>
+
+    <!-- PlayerScreen: idle screen -->
+    <string name="player_idle_night">לילה טוב</string>
+    <string name="player_idle_no_cards">עדיין אין כרטיסים</string>
+    <string name="player_idle_tap_card">הצמידו כרטיס</string>
+    <string name="player_idle_hint_tap">הקישו על גלגל השיניים בפינה העליונה, ואז על \"הוספת כרטיס\". כל מדבקה, כרטיס או צעצוע עם NFC יתאימו.</string>
+    <string name="player_idle_hint_double_tap">הקישו פעמיים על גלגל השיניים בפינה העליונה, ואז על \"הוספת כרטיס\". כל מדבקה, כרטיס או צעצוע עם NFC יתאימו.</string>
+
+    <!-- PlayerScreen: now playing -->
+    <string name="player_play">ניגון</string>
+    <string name="player_latest_episode">"⏫  הפרק החדש"</string>
+    <string name="player_scrub_fast">מהר</string>
+    <string name="player_scrub_normal">רגיל</string>
+    <string name="player_scrub_fine">עדין</string>
+
+    <!-- PlayerScreen: unknown card overlay -->
+    <string name="player_new_card">כרטיס חדש!</string>
+    <string name="player_new_card_not_set_up">הכרטיס הזה עוד לא הוגדר.</string>
+    <string name="player_card_id">מזהה כרטיס: %1$s</string>
+    <string name="player_set_up_double_tap">הקישו פעמיים להגדרה</string>
+    <string name="player_set_up">הגדרה</string>
+
+    <!-- ==== 20_settings.he.xml ==== -->
+    <!-- SettingsScreen: shared words -->
+    <string name="settings_off">כבוי</string>
+    <string name="settings_on">פעיל</string>
+    <string name="settings_minutes_short">%1$d דק׳</string>
+    <string name="settings_play">ניגון</string>
+    <string name="settings_play_now">נגן עכשיו</string>
+
+    <!-- SettingsScreen: top bar, add button, edit prompt -->
+    <string name="settings_title">הגדרות למבוגרים</string>
+    <string name="settings_back_to_player">חזרה לנגן</string>
+    <string name="settings_back_to_settings">חזרה להגדרות</string>
+    <string name="settings_add_card">הוספת כרטיס</string>
+    <string name="settings_edit_prompt_title">לערוך את \"%1$s\"?</string>
+    <string name="settings_edit_prompt_body">הקשתם על כרטיס שכבר מוגדר (%1$s).</string>
+    <string name="settings_edit_card">עריכת כרטיס</string>
+
+    <!-- SettingsScreen: hub tiles -->
+    <string name="settings_section_cards_title">כרטיסים</string>
+    <string name="settings_section_cards_blurb">הכרטיסים שלכם: הוספה ועריכה</string>
+    <string name="settings_section_playback_title">ניגון</string>
+    <string name="settings_section_playback_blurb">הגבלת עוצמה, המשך מאיפה שעצרנו, הרמת כרטיס, אפליקציות אחרות</string>
+    <string name="settings_section_safety_title">בטיחות לפעוטות</string>
+    <string name="settings_section_safety_blurb">נעילת ילדים, קוד PIN, הגנה מאחיזה</string>
+    <string name="settings_section_bedtime_title">שעת שינה וטיימר</string>
+    <string name="settings_section_bedtime_blurb">טיימר שינה, שעות שינה</string>
+    <string name="settings_section_look_title">מראה ומסך המתנה</string>
+    <string name="settings_section_look_blurb">ערכת נושא, סוללה, הבהוב בהקשה, שעון, אור לילה</string>
+    <string name="settings_section_permissions_title">הרשאות</string>
+    <string name="settings_section_permissions_blurb">הצגה מעל אפליקציות, גישה להתראות</string>
+    <string name="settings_section_help_title">עזרה</string>
+    <string name="settings_section_help_blurb">איך BoopBox עובד</string>
+
+    <!-- SettingsScreen: hub tile status lines -->
+    <string name="settings_status_no_cards">עדיין אין כרטיסים</string>
+    <plurals name="settings_status_cards">
+        <item quantity="one">כרטיס אחד</item>
+        <item quantity="two">שני כרטיסים</item>
+        <item quantity="many">%1$d כרטיסים</item>
+        <item quantity="other">%1$d כרטיסים</item>
+    </plurals>
+    <string name="settings_status_volume_off">הגבלת עוצמה כבויה</string>
+    <string name="settings_status_volume_limit">הגבלת עוצמה %1$d%%</string>
+    <string name="settings_status_child_lock_on">נעילת ילדים פעילה</string>
+    <string name="settings_status_new_cards_stop">כרטיסים חדשים: הרמה = עצירה</string>
+    <string name="settings_status_new_cards_pause">כרטיסים חדשים: הרמה = השהיה</string>
+    <string name="settings_status_new_cards_keep">כרטיסים חדשים: הרמה = המשך ניגון</string>
+    <string name="settings_status_sleep_running">טיימר שינה פועל</string>
+    <string name="settings_status_bedtime_hours">שעת שינה %1$s–%2$s</string>
+    <string name="settings_status_follows_phone">כמו הטלפון</string>
+    <string name="settings_status_night_light_off">אור לילה כבוי</string>
+    <string name="settings_status_night_light_on">אור לילה פעיל</string>
+    <string name="settings_status_night_light_bedtime">אור לילה בשעת שינה</string>
+    <string name="settings_status_all_set">הכול מוכן</string>
+    <string name="settings_status_to_fix">%1$d לתיקון</string>
+    <string name="settings_status_help">שליטה, טיפים</string>
+
+    <!-- SettingsScreen: mini player and sleep menu -->
+    <string name="settings_mini_sleep_after_song">🌙 אחרי השיר הזה</string>
+    <string name="settings_mini_sleep_minutes">🌙 %1$d דק׳</string>
+    <string name="settings_mini_playing">מתנגן</string>
+    <string name="settings_mini_paused">מושהה</string>
+    <string name="settings_sleep_timer_off">טיימר שינה כבוי</string>
+    <string name="settings_sleep_in_minutes">שינה בעוד %1$d דק׳</string>
+    <string name="settings_sleep_after_song">שינה אחרי השיר הזה</string>
+
+    <!-- SettingsScreen: Cards section -->
+    <string name="settings_cards_empty">עדיין אין כרטיסים. הקישו על \"הוספת כרטיס\" והצמידו כל כרטיס, מדבקה או צעצוע עם NFC לגב הטלפון.</string>
+    <string name="settings_cards_hint">הקישו על כרטיס כדי לערוך אותו. גם הצמדת כרטיס פיזי לטלפון בזמן שאתם כאן תפתח אותו.</string>
+    <string name="settings_load_boop">טעינת ‎.boop</string>
+    <string name="settings_load_boop_unpacking">פותח את הקובץ…</string>
+    <string name="settings_load_boop_hint">קיבלתם קובץ ‎.boop ממישהו? פשוט פתחו אותו (WhatsApp, אימייל, קבצים…) ו-BoopBox ייקח את זה משם. אפשר גם לבחור את הקובץ כאן.</string>
+    <string name="settings_backup_title">גיבוי</string>
+    <string name="settings_backup_body">כל כרטיס, כל הגדרה, ההתחברות ל-Yoto וכל השירים והתמונות שהכרטיסים משתמשים בהם (גם אלה שנבחרו מהתיקיות של הטלפון), בקובץ אחד. עם הרבה שירים מהטלפון הקובץ יכול להיות גדול.</string>
+    <string name="settings_backup_save">שמירת גיבוי</string>
+    <string name="settings_backup_restore">שחזור מגיבוי</string>
+    <string name="settings_restore_title">לשחזר את הגיבוי הזה?</string>
+    <string name="settings_restore_body">הפעולה מחליפה את כל הכרטיסים וההגדרות בטלפון הזה באלה שבגיבוי. כל מה שמתנגן כרגע ייעצר.</string>
+    <string name="settings_restore_confirm">שחזור</string>
+    <string name="settings_your_cards">הכרטיסים שלכם</string>
+
+    <!-- SettingsScreen: Playback section -->
+    <string name="settings_volume_limit_off">הגבלת עוצמה: כבויה</string>
+    <string name="settings_volume_limit_percent">הגבלת עוצמה: %1$d%%</string>
+    <string name="settings_same_card_title">הקשה נוספת עם אותו כרטיס משהה / ממשיכה את הניגון</string>
+    <string name="settings_same_card_subtitle">כבוי = הקשה נוספת מתחילה מחדש.</string>
+    <string name="settings_default_resume_title">כרטיסים חדשים ממשיכים מהמקום שבו עצרו</string>
+    <string name="settings_default_resume_subtitle">ברירת מחדל לכרטיסים שתוסיפו מעכשיו; אפשר עדיין לשנות כל כרטיס בעורך שלו.</string>
+    <string name="settings_external_apps">Spotify, YouTube, Audible</string>
+    <string name="settings_return_title">חזרה ל-BoopBox אחרי פתיחת האפליקציה האחרת</string>
+    <string name="settings_return_subtitle">חזרה מיידית לא דורשת הרשאה. השהיה (האפליקציה האחרת מוצגת לרגע) דורשת את ההרשאה \"הצגה מעל אפליקציות אחרות\" (ראו הרשאות).</string>
+    <string name="settings_return_now">חזרה מיידית (מומלץ)</string>
+    <string name="settings_return_after">חזרה אחרי %1$d שניות</string>
+    <string name="settings_stop_autoplay_title">עצירת Spotify / YouTube Music בסיום שיר בודד</string>
+    <string name="settings_stop_autoplay_subtitle">האפליקציות האלה ממשיכות לנגן שירים אחרים בעצמן. כשיש גישה להתראות, BoopBox משהה אותן ברגע שהן עוברות מהשיר שעל הכרטיס.</string>
+    <string name="settings_keep_screen_on">להשאיר את המסך דלוק כשהנגן פתוח</string>
+    <string name="settings_yoto_title">חשבון Yoto</string>
+    <string name="settings_yoto_connected">מחובר ל-Yoto</string>
+    <string name="settings_yoto_not_connected">לא מחובר</string>
+    <string name="settings_yoto_body">מאפשר לכרטיסי \"כרטיס Yoto\" לנגן כל דבר בספריית ה-Yoto שלכם, כולל הפרק היומי של Yoto Daily. ההתחברות מתבצעת בדפדפן; BoopBox אף פעם לא רואה את הסיסמה.</string>
+    <string name="settings_yoto_waiting">ממתינים להתחברות…</string>
+    <string name="settings_yoto_connect">חיבור חשבון Yoto</string>
+    <string name="settings_yoto_disconnect">ניתוק</string>
+    <string name="settings_podcasts_title">פודקאסטים</string>
+    <string name="settings_podcasts_keep_title">שמירת פרקים שהורדו</string>
+    <string name="settings_podcasts_keep_subtitle">כשיש חיבור לאינטרנט, כרטיסי פודקאסט וכרטיסי Yoto שומרים בטלפון את הפרק החדש ביותר (שאר כרטיסי Yoto שומרים את כל הקטעים שלהם), כך שהקשה מנגנת מיד, גם בלי אינטרנט. פרקים ישנים יותר נמחקים.</string>
+    <plurals name="settings_podcasts_downloading">
+        <item quantity="one">מורידים פרק אחד… בשימוש: %2$s MB</item>
+        <item quantity="two">מורידים שני פרקים… בשימוש: %2$s MB</item>
+        <item quantity="many">מורידים %1$d פרקים… בשימוש: %2$s MB</item>
+        <item quantity="other">מורידים %1$d פרקים… בשימוש: %2$s MB</item>
+    </plurals>
+    <string name="settings_podcasts_using">בשימוש: %1$s MB</string>
+    <string name="settings_podcasts_refresh">רענון עכשיו</string>
+    <string name="settings_podcasts_delete">מחיקת ההורדות</string>
+    <string name="settings_youtube_title">YouTube ו-YouTube Music</string>
+    <string name="settings_youtube_keep_title">שמירת הצליל של הכרטיסים בטלפון</string>
+    <string name="settings_youtube_keep_subtitle">כרטיסי YouTube ו-YouTube Music מורידים את הצליל שלהם כשהם נשמרים (או בהקשה הראשונה). מרגע שהוא בטלפון, הכרטיס מתנגן בתוך BoopBox: בלי מעבר לאפליקציה, בלי פרסומות, ממשיך ברקע ועובד בלי אינטרנט. עד אז הוא פותח את האפליקציה כמו קודם.</string>
+    <string name="yt_cache_saved">שמור בטלפון · מתנגן ב-BoopBox</string>
+    <string name="yt_cache_downloading">מוריד %1$d%%…</string>
+    <string name="yt_cache_missing">עוד לא נשמר · נפתח ב-%1$s עד אז</string>
+    <string name="yt_cache_off">לא נשמר (כבוי בהגדרות) · נפתח ב-%1$s</string>
+    <string name="yt_cache_download_now">הורדה עכשיו</string>
+    <plurals name="settings_youtube_downloading">
+        <item quantity="one">מורידים כרטיס אחד… בשימוש: %2$s MB</item>
+        <item quantity="two">מורידים שני כרטיסים… בשימוש: %2$s MB</item>
+        <item quantity="many">מורידים %1$d כרטיסים… בשימוש: %2$s MB</item>
+        <item quantity="other">מורידים %1$d כרטיסים… בשימוש: %2$s MB</item>
+    </plurals>
+
+    <!-- SettingsScreen: Toddler safety section -->
+    <string name="settings_child_lock_title">נעילת ילדים (הצמדת BoopBox למסך)</string>
+    <string name="settings_child_lock_subtitle">כפתורי הבית, החזרה והאפליקציות האחרונות מפסיקים לפעול. בפעם הראשונה Android יבקש מכם לאשר. כרטיסי Spotify / YouTube משחררים את ההצמדה בזמן שהאפליקציה האחרת נפתחת.</string>
+    <string name="settings_unpin_now">ביטול הצמדה עכשיו (יציאה מ-BoopBox)</string>
+    <string name="settings_gear_taps_title">כפתור גלגל השיניים: מספר הקשות לפתיחת ההגדרות</string>
+    <string name="settings_gear_taps_hint">הקשה כפולה קשה יותר לפעוטות להפעיל בטעות.</string>
+    <string name="settings_gear_double">הקשה כפולה</string>
+    <string name="settings_gear_single">הקשה אחת</string>
+    <string name="settings_password_title">קוד PIN להגדרות</string>
+    <string name="settings_password_on">פעיל. גלגל השיניים יבקש אותו לפני פתיחת ההגדרות.</string>
+    <string name="settings_password_off">כבוי. כל מי שמקיש על גלגל השיניים נכנס.</string>
+    <string name="settings_password_change">שינוי קוד PIN</string>
+    <string name="settings_password_set">הגדרת קוד PIN</string>
+    <string name="settings_card_removed_override_title">כל הכרטיסים: כשהכרטיס מורם מהטלפון</string>
+    <string name="settings_card_removed_override_hint">גובר על הבחירה של כל כרטיס.</string>
+    <string name="settings_card_removed_override_none">ללא עקיפה</string>
+    <string name="settings_card_removed_title">כרטיסים חדשים: כשהכרטיס מורם מהטלפון</string>
+    <string name="settings_card_removed_hint">לכל כרטיס יש בחירה משלו בהגדרות שלו (למשל ספרי שמע נעצרים, מוזיקה ממשיכה לנגן). זה מה שכרטיסים חדשים מתחילים איתו.</string>
+    <string name="settings_card_removed_stop">עצירה</string>
+    <string name="settings_card_removed_pause">השהיה</string>
+    <string name="settings_card_removed_keep">המשך ניגון</string>
+    <string name="settings_card_removed_grace">כרטיסים שעוצרים או משהים ממשיכים לנגן %1$d שניות אחרי שמרימים אותם. אם מחזירים את הכרטיס בזמן, הניגון ממשיך.</string>
+    <string name="settings_gate_title">נדרשת הקשה כפולה כדי להגדיר כרטיס חדש</string>
+    <string name="settings_gate_subtitle">מונע מאצבעות קטנות להסתובב אל מסך ההגדרה.</string>
+    <string name="settings_grip_title">הגנה מאחיזה</string>
+    <string name="settings_grip_body">מתעלמת מידיים שרק מחזיקות את הטלפון: אצבעות סביב הקצוות, אצבעות שנחות על המסך, כפות ידיים והחלקות. ברמה חזקה צריך גם להחזיק את התמונה זמן ארוך יותר כדי לעצור, והדילוג איטי יותר.</string>
+    <string name="settings_grip_normal">רגילה</string>
+    <string name="settings_grip_strong">חזקה</string>
+    <string name="settings_picture_only_title">רק התמונה פועלת</string>
+    <string name="settings_picture_only_subtitle">מכבה את חזק יותר / שקט יותר / דילוג במסך הנגן. הקישו על התמונה כדי לנגן או להשהות; כפתורי העוצמה של הטלפון ממשיכים לפעול.</string>
+    <string name="settings_scrub_title">גרירה הצידה כדי לנוע בתוך שיר</string>
+    <string name="settings_scrub_subtitle">גוררים ימינה כדי להתקדם ושמאלה כדי לחזור; הקפיצה קורית כשמרימים את האצבע. החלקה למעלה תוך כדי גרירה = מהר יותר, למטה = עדין יותר. הטלה מהירה, כף יד או אצבע שנייה מבטלות.</string>
+    <string name="settings_flash_title">הבהוב המסך בכל הקשה</string>
+    <string name="settings_flash_subtitle">חם = חזק יותר, כחול = שקט יותר, טורקיז = דילוג, לבן = ניגון/השהיה.</string>
+    <string name="settings_buzz_title">רטט בכל הקשה</string>
+    <string name="settings_buzz_subtitle">רטט קטן בהקשות על הנגן, בעצירה בהחזקה וכשגלגל השיניים נפתח.</string>
+
+    <!-- SettingsScreen: Bedtime & sleep section -->
+    <string name="settings_sleep_state_after_song">טיימר שינה: אחרי השיר הזה</string>
+    <string name="settings_sleep_state_left">טיימר שינה: נותרו %1$d דק׳ ו-%2$d שנ׳</string>
+    <string name="settings_sleep_state_off">טיימר שינה: כבוי</string>
+    <string name="settings_sleep_hint">הקול נחלש בהדרגה ב-20 השניות האחרונות ואז הניגון מושהה. הפעוט רואה ירח קטן בנגן.</string>
+    <string name="settings_song_end">סוף השיר</string>
+    <string name="settings_bedtime_hours">שעות שינה</string>
+    <string name="settings_bedtime_hours_hint">הגבלת עוצמה שקטה יותר, טיימר שינה אוטומטי ואור לילה בין השעות האלה.</string>
+    <string name="settings_bedtime_starts">התחלה</string>
+    <string name="settings_bedtime_ends">סיום</string>
+    <string name="settings_time_stepper">%1$s: %2$s</string>
+    <string name="settings_bedtime_now">עכשיו שעת שינה.</string>
+    <string name="settings_bedtime_not_now">עכשיו לא שעת שינה.</string>
+    <string name="settings_bedtime_volume">הגבלת עוצמה בשעת שינה: %1$d%%</string>
+    <string name="settings_bedtime_card_sleep_off">טיימר שינה כשמקישים עם כרטיס בשעת שינה: כבוי</string>
+    <string name="settings_bedtime_card_sleep_minutes">טיימר שינה כשמקישים עם כרטיס בשעת שינה: %1$d דק׳</string>
+
+    <!-- SettingsScreen: Look & idle screen section -->
+    <string name="settings_theme_title">ערכת נושא</string>
+    <string name="settings_theme_system">כמו הטלפון</string>
+    <string name="settings_theme_light">בהיר</string>
+    <string name="settings_theme_dark">כהה</string>
+    <string name="settings_pixel_art_title">תמונות פיקסל ארט</string>
+    <string name="settings_pixel_art_subtitle">התמונות מצוירות בפיקסלים גדולים, כמו במשחק רטרו. כבוי = תמונות רגילות.</string>
+    <string name="settings_battery_title">אחוז סוללה</string>
+    <string name="settings_battery_hint">סוללה קטנה עם אחוז הטעינה, בפינה העליונה של הנגן.</string>
+    <string name="settings_battery_low">כשחלשה או בטעינה</string>
+    <string name="settings_battery_always">תמיד</string>
+    <string name="settings_taps">הקשות</string>
+    <string name="settings_idle_screen">מסך המתנה</string>
+    <string name="settings_show_clock">הצגת השעון</string>
+    <string name="settings_night_light">אור לילה</string>
+    <string name="settings_night_light_hint">מעמעם את כל הנגן לצבע רך, כמו מנורת לילה.</string>
+    <string name="settings_night_light_bedtime">בשעת שינה</string>
+    <string name="settings_brightness">בהירות: %1$d%%</string>
+
+    <!-- SettingsScreen: Permissions section -->
+    <string name="settings_perm_nfc_title">NFC</string>
+    <string name="settings_perm_nfc_missing">בטלפון הזה אין קורא NFC, ולכן אי אפשר לקרוא בו כרטיסים.</string>
+    <string name="settings_perm_nfc_off">כרטיסים נקראים באמצעות NFC והוא כבוי כרגע, ולכן הקשה עם כרטיס לא תעשה כלום.</string>
+    <string name="settings_perm_nfc_on">כרטיסים נקראים באמצעות NFC.</string>
+    <string name="settings_perm_nfc_action">הפעלת NFC</string>
+    <string name="settings_perm_notif_title">גישה להתראות</string>
+    <string name="settings_perm_notif_why">מאפשר ל-BoopBox לראות את מצב הניגון האמיתי, שם השיר, התמונה וההתקדמות של Spotify / YouTube, לשלוט בהן ישירות, לדלג בין שירים בסרטון ארוך ולעצור את הניגון האוטומטי שלהן.</string>
+    <string name="settings_perm_notif_action">אישור גישה להתראות</string>
+    <string name="settings_perm_overlay_title">הצגה מעל אפליקציות אחרות</string>
+    <string name="settings_perm_overlay_needed">נדרש ל\"חזרה ל-BoopBox\" המושהית. בלעדיו האפליקציה משתמשת בחלון של תמונה בתוך תמונה.</string>
+    <string name="settings_perm_overlay_not_needed">נדרש רק אם קבעתם השהיה לחזרה תחת ניגון. לא נדרש כרגע.</string>
+    <string name="settings_perm_overlay_action">אישור \"הצגה מעל אפליקציות אחרות\"</string>
+    <string name="settings_perm_xiaomi_title">Xiaomi: חלונות קופצים ברקע</string>
+    <string name="settings_perm_xiaomi_why">ב-HyperOS / MIUI יש מתג נוסף (\"הצגת חלונות קופצים בזמן הפעלה ברקע\") ש-BoopBox צריך כדי לחזור לחזית. הוא נמצא תחת הרשאות אחרות.</string>
+    <string name="settings_perm_xiaomi_action">פתיחת ההרשאות של BoopBox</string>
+    <string name="settings_perm_battery_title">סוללה: ללא הגבלות</string>
+    <string name="settings_perm_battery_why">בחלק מהטלפונים (במיוחד Xiaomi) אפליקציות ברקע נסגרות. הגדירו את חיסכון הסוללה של BoopBox ל\"ללא הגבלות\" כדי שהניגון והחזרה לחזית יעבדו באופן אמין.</string>
+    <string name="settings_perm_battery_action">פתיחת הגדרות האפליקציה</string>
+
+    <!-- SettingsScreen: Help section -->
+    <string name="settings_help_player_title">נגן</string>
+    <string name="settings_help_player_body">הקשה באמצע = ניגון / השהיה. החזקה באמצע = עצירה. למעלה = חזק יותר, למטה = שקט יותר. ימין = השיר הבא, שמאל = השיר הקודם. בכרטיסים עם שיר אחד ימין / שמאל לא עושים כלום.</string>
+    <string name="settings_help_cards_title">כרטיסים</string>
+    <string name="settings_help_cards_body">כל דבר עם NFC מתאים: מדבקות NTAG ריקות, כרטיסי מפתח ישנים של מלונות, Amiibo, כרטיסי תחבורה. נעשה שימוש רק במזהה של הכרטיס, אלא אם בוחרים \"כתיבה לכרטיס\" כדי לשתף אותו.</string>
+    <string name="settings_help_pictures_title">תמונות</string>
+    <string name="settings_help_pictures_body">לכל שיר יש תמונה משלו: עטיפת אלבום, סמל פיקסלים מ-yotoicons.com או יצור פיקסלים שנוצר אוטומטית. בוחרים אותן לכל קטע בעורך הכרטיס.</string>
+    <string name="settings_help_songs_title">שירים בקובץ או בסרטון אחד</string>
+    <string name="settings_help_songs_body">כרטיסי קובץ: \"חלוקה לשירים\" מוצאת את ההפסקות. כרטיסי YouTube: הפרקים של הסרטון או רשימת השירים שבתיאור נקראים אוטומטית.</string>
+    <string name="settings_help_apps_title">Spotify / YouTube / Audible</string>
+    <string name="settings_help_apps_body">הן נפתחות באפליקציה שלהן; BoopBox חוזר לחזית ושולט בהן. YouTube (ו-YouTube Music החינמי) נעצר כשהאפליקציה שלו לא על המסך. ב-Audible הספר נפתח ו-BoopBox לוחץ על ניגון; אם הוא לא מתחיל, לחצו על ניגון פעם אחת ב-Audible.</string>
+    <string name="settings_help_gear_title">איך מגיעים לכאן</string>
+    <string name="settings_help_gear_body">הקישו פעמיים על גלגל השיניים הדהוי בפינה העליונה של הנגן. כשנעילת הילדים פעילה, זו הדרך היחידה לצאת.</string>
+
+    <!-- ==== 30_editor.he.xml ==== -->
+    <!-- Card editor: card types (Category enum) -->
+    <string name="editor_cat_link">קישור למוזיקה / סרטון</string>
+    <string name="editor_cat_link_hint">Spotify, YouTube Music, YouTube או כל קישור לאפליקציה</string>
+    <string name="editor_cat_video">סרטון (Netflix / Disney+)</string>
+    <string name="editor_cat_video_hint">סדרה או סרט ב-Netflix או ב-Disney+</string>
+    <string name="editor_cat_audible">ספר שמע (Audible)</string>
+    <string name="editor_cat_audible_hint">קישור לספר באפליקציית Audible</string>
+    <string name="editor_cat_podcast">פודקאסט</string>
+    <string name="editor_cat_podcast_hint">כתובת של עדכון RSS</string>
+    <string name="editor_cat_file_hint">MP3, M4B, FLAC, OGG, סרטון… כל מה שהטלפון יודע לנגן</string>
+    <string name="editor_cat_folder_hint">מנגן כל קובץ שמע בתיקייה, לפי סדר השמות</string>
+    <string name="editor_cat_playlist">רשימת השמעה</string>
+    <string name="editor_cat_playlist_hint">בחרו שירים מהטלפון (וכתובות שידור), סדרו אותם, ותנו לכל שיר תמונה משלו</string>
+    <string name="editor_cat_yoto_hint">כרטיס מספריית Yoto שלכם: Yoto Daily, כרטיסים שנקנו, Yoto Club</string>
+    <string name="editor_cat_stream">שידור שמע</string>
+    <string name="editor_cat_stream_hint">כתובת ישירה של MP3 / שידור</string>
+
+    <!-- Card editor: default titles stored with the card -->
+    <string name="editor_default_song_title">שיר</string>
+    <string name="editor_default_stream_title">שידור</string>
+
+    <!-- Card editor: status / error lines -->
+    <string name="editor_status_no_details">לא הצלחנו להביא פרטים על הקישור הזה. עדיין אפשר לשמור אותו.</string>
+    <string name="editor_status_feed_empty">העדכון נטען, אבל אין בו פרקים שאפשר לנגן.</string>
+    <string name="editor_status_feed_failed">לא הצלחנו לטעון את העדכון: %1$s</string>
+    <string name="editor_status_playlist_empty">קודם הוסיפו לרשימת ההשמעה לפחות שיר אחד.</string>
+    <string name="editor_status_choose_source">קודם בחרו מה הכרטיס הזה ינגן.</string>
+    <string name="editor_status_not_stream">זה קישור (%1$s), לא שידור שמע. השתמשו בסוג \"קישור למוזיקה / סרטון\" בשבילו.</string>
+    <string name="editor_status_playlist_external">זה קישור (%1$s). ברשימת השמעה אפשר לשים רק קבצים מהטלפון ושידורי שמע ישירים (&#x200E;.mp3 או כתובת של רדיו). הכינו לזה כרטיס נפרד.</string>
+    <string name="editor_status_downloading_newest">מורידים את הפרק החדש…</string>
+    <string name="editor_status_feed_unreachable">לא הצלחנו להגיע לעדכון.</string>
+    <string name="editor_status_downloaded">הורד: %1$s</string>
+    <string name="editor_newest_episode_fallback">הפרק החדש</string>
+
+    <!-- Card editor: leave dialog, bars -->
+    <string name="editor_leave_title">לשמור את השינויים בכרטיס?</string>
+    <string name="editor_leave_unsaved">הכרטיס הזה עדיין לא נשמר.</string>
+    <string name="editor_leave_changed">שיניתם את הכרטיס הזה.</string>
+    <string name="editor_leave_discard">ביטול שינויים</string>
+    <string name="editor_leave_keep">המשך עריכה</string>
+    <string name="editor_title_new">הגדרת כרטיס</string>
+    <string name="editor_title_edit">עריכת כרטיס</string>
+    <string name="editor_delete_card_cd">מחיקת כרטיס</string>
+    <string name="editor_save_and_play">שמירה וניגון</string>
+
+    <!-- Card editor: preview -->
+    <string name="editor_untitled">כרטיס ללא שם</string>
+    <string name="editor_card_id">מזהה כרטיס %1$s</string>
+    <string name="editor_read_from_shared">נקרא מכרטיס משותף. שמרו אותו כדי שיישאר.</string>
+
+    <!-- Card editor: what should it play -->
+    <string name="editor_section_play">מה הכרטיס ינגן?</string>
+    <string name="editor_card_type">סוג כרטיס</string>
+    <string name="editor_paste_link">הדביקו קישור (באפליקציה: שיתוף ← העתקת קישור)</string>
+    <string name="editor_paste_video">הדביקו קישור מ-Netflix או מ-Disney+ (שיתוף ← העתקת קישור)</string>
+    <string name="editor_video_unknown">זה לא קישור של Netflix או Disney+</string>
+    <string name="editor_video_note">נפתח באפליקציה ונשאר בה: האפליקציות האלה עוצרות כש-BoopBox חוזרת.</string>
+    <string name="editor_paste_audible">הדביקו קישור לספר ב-Audible</string>
+    <string name="editor_stream_url">כתובת שידור</string>
+    <string name="editor_will_open_in">ייפתח ב-%1$s</string>
+    <string name="editor_will_open_in_other">ייפתח באפליקציה אחרת</string>
+    <string name="editor_scanning_tracklist">מחפשים רשימת שירים בסרטון…</string>
+    <!-- Always 2 or more songs here, so no plural. -->
+    <string name="editor_found_songs">נמצאו %1$d שירים בסרטון הזה. הצד הימני והשמאלי של המסך מדלגים ביניהם.</string>
+    <string name="editor_no_tracklist">לא נמצאה רשימת שירים: יתנגן כשיר אחד.</string>
+    <string name="editor_rescan">סריקה חוזרת</string>
+    <string name="editor_trim_hint">פתיח עם דיבורים או סוף ארוך? בחרו איפה השיר מתחיל ונגמר.</string>
+    <string name="editor_trim_done">מנגן %1$s ← %2$s</string>
+    <string name="editor_trim">חיתוך השיר הזה</string>
+    <string name="editor_trim_remove">ניגון הכול</string>
+    <string name="editor_trim_end">הסוף</string>
+    <string name="editor_skip_needs_access">כדי לדלג בין השירים צריך גישה להתראות (בהגדרות למבוגרים).</string>
+    <string name="editor_audible_note">אי אפשר להפעיל את Audible בעזרת קישור, ולכן אפליקציית BoopBox פותחת את הספר ולוחצת על ניגון במקומכם. אם הוא לא מתחיל, לחצו פעם אחת על ניגון ב-Audible; מכאן והלאה הכרטיס ימשיך אותו.</string>
+
+    <!-- Card editor: podcast -->
+    <string name="editor_rss_address">כתובת עדכון RSS</string>
+    <string name="editor_load_feed">טעינת העדכון</string>
+    <string name="editor_download_newest">הורדת הפרק החדש</string>
+    <plurals name="editor_feed_summary">
+        <item quantity="one">%1$s · פרק אחד</item>
+        <item quantity="two">%1$s · %2$d פרקים</item>
+        <item quantity="many">%1$s · %2$d פרקים</item>
+        <item quantity="other">%1$s · %2$d פרקים</item>
+    </plurals>
+    <string name="editor_episode_chosen">נבחר: %1$s (טענו את העדכון כדי לשנות)</string>
+    <string name="editor_episode_load_feed">טענו את העדכון כדי לבחור פרק.</string>
+
+    <!-- Card editor: file / folder -->
+    <string name="editor_choose_file">בחירת קובץ</string>
+    <string name="editor_file_chosen">נבחר קובץ</string>
+    <string name="editor_no_file">עדיין אין קובץ</string>
+    <string name="editor_songs_inside">שירים בתוך הקובץ הזה</string>
+    <!-- Always 2 or more songs here, so no plural. -->
+    <string name="editor_split_done">הקובץ חולק ל-%1$d שירים. הצד הימני והשמאלי של המסך מדלגים ביניהם, ולכל שיר יכולה להיות תמונה משלו.</string>
+    <string name="editor_split_hint">קובץ ארוך אחד עם כמה שירים בתוכו, או שיר עם פתיח של דיבורים? חלקו אותו בהפסקות, או חתכו את ההתחלה והסוף.</string>
+    <string name="editor_edit_songs">עריכת השירים</string>
+    <string name="editor_split_into_songs">חלוקה או חיתוך</string>
+    <string name="editor_remove_split">הסרת הפיצול</string>
+    <plurals name="editor_file_has_chapters">
+        <item quantity="one">בקובץ הזה יש סימון פרק אחד משלו.</item>
+        <item quantity="two">בקובץ הזה יש %d סימוני פרקים משלו.</item>
+        <item quantity="many">בקובץ הזה יש %d סימוני פרקים משלו.</item>
+        <item quantity="other">בקובץ הזה יש %d סימוני פרקים משלו.</item>
+    </plurals>
+    <string name="editor_use_file_chapters">להשתמש בהם</string>
+
+    <!-- ספרי שמע שהורדו -->
+    <string name="editor_cat_book">ספר שמע בטלפון הזה</string>
+    <string name="editor_cat_book_hint">ספר שהורד: קובץ M4B / MP3 אחד או תיקייה של קובצי פרקים. זוכר איפה עצרנו; ימין ושמאל מדלגים בין הפרקים.</string>
+    <string name="editor_book_choose_file">קובץ ספר</string>
+    <string name="editor_book_choose_folder">תיקיית ספר</string>
+    <string name="editor_book_note">ספרים מוגנים (Audible, Apple Books, Libby) מתנגנים רק באפליקציות שלהם. ספרים שהורדו בלי הגנה וספרי LibriVox עובדים כאן.</string>
+    <string name="editor_book_reading">קורא את הספר…</string>
+    <plurals name="editor_book_chapters">
+        <item quantity="one">פרק אחד. ימין ושמאל במסך הנגן מדלגים בין הפרקים.</item>
+        <item quantity="two">%d פרקים. ימין ושמאל במסך הנגן מדלגים בין הפרקים.</item>
+        <item quantity="many">%d פרקים. ימין ושמאל במסך הנגן מדלגים בין הפרקים.</item>
+        <item quantity="other">%d פרקים. ימין ושמאל במסך הנגן מדלגים בין הפרקים.</item>
+    </plurals>
+    <string name="editor_book_no_chapters">אין בקובץ הזה סימוני פרקים, אז הוא מתנגן כקטע ארוך אחד. אפשר לסמן פרקים ידנית.</string>
+    <plurals name="editor_book_parts">
+        <item quantity="one">חלק אחד.</item>
+        <item quantity="two">%d חלקים, לפי סדר המספרים (1, 2 … 10, 11). ימין ושמאל מדלגים ביניהם.</item>
+        <item quantity="many">%d חלקים, לפי סדר המספרים (1, 2 … 10, 11). ימין ושמאל מדלגים ביניהם.</item>
+        <item quantity="other">%d חלקים, לפי סדר המספרים (1, 2 … 10, 11). ימין ושמאל מדלגים ביניהם.</item>
+    </plurals>
+    <string name="editor_book_edit_chapters">עריכת הפרקים</string>
+    <string name="editor_book_mark_chapters">סימון פרקים</string>
+    <string name="editor_book_progress_title">איפה עצרנו</string>
+    <string name="editor_book_at_chapter">פרק %1$d מתוך %2$d (%3$s), אחרי %4$s</string>
+    <string name="editor_book_at_part">חלק %1$d מתוך %2$d (%3$s), אחרי %4$s</string>
+    <string name="editor_book_at_time">אחרי %1$s</string>
+    <string name="editor_book_start_over">להתחיל מחדש</string>
+    <string name="editor_book_play_from_cd">לנגן מכאן</string>
+    <string name="book_chapter_number">פרק %1$d</string>
+    <string name="editor_speed_title">מהירות</string>
+    <string name="editor_speed_note">לאט יותר עוזר לקטנטנים לעקוב אחרי הסיפור.</string>
+    <string name="editor_speed_normal">רגיל</string>
+    <string name="editor_choose_folder">בחירת תיקייה</string>
+    <string name="editor_folder_chosen">נבחרה תיקייה</string>
+    <string name="editor_no_folder">עדיין אין תיקייה</string>
+
+    <!-- Card editor: Yoto -->
+    <string name="editor_yoto_signin_note">התחברו פעם אחת עם חשבון ה-Yoto של המשפחה, ואז אפשר יהיה לנגן ב-BoopBox כל דבר מספריית ה-Yoto שלכם, כולל הפרק היומי של Yoto Daily. כרטיסי Yoto אמיתיים לא דורשים התחברות: פשוט הצמידו כרטיס כזה לטלפון כשמסך הנגן פתוח.</string>
+    <string name="editor_yoto_waiting">ממתינים להתחברות ל-Yoto…</string>
+    <string name="editor_yoto_connect">חיבור חשבון Yoto</string>
+    <string name="editor_yoto_choose">בחירה מספריית ה-Yoto שלי</string>
+    <string name="editor_yoto_change">החלפת כרטיס Yoto</string>
+    <string name="editor_yoto_none">עדיין לא נבחר כרטיס</string>
+    <string name="editor_yoto_real_card">כרטיס Yoto אמיתי: %1$s</string>
+    <string name="editor_yoto_plays_from_card">מנגן ישירות מהכרטיס</string>
+    <plurals name="editor_yoto_chapters_note">
+        <item quantity="one">פרק אחד. כרטיסי פודקאסט (Yoto Daily) מנגנים את הפרק החדש ואז עוצרים, בדיוק כמו בנגן של Yoto.</item>
+        <item quantity="two">%d פרקים. כרטיסי פודקאסט (Yoto Daily) מנגנים את הפרק החדש ואז עוצרים, בדיוק כמו בנגן של Yoto.</item>
+        <item quantity="many">%d פרקים. כרטיסי פודקאסט (Yoto Daily) מנגנים את הפרק החדש ואז עוצרים, בדיוק כמו בנגן של Yoto.</item>
+        <item quantity="other">%d פרקים. כרטיסי פודקאסט (Yoto Daily) מנגנים את הפרק החדש ואז עוצרים, בדיוק כמו בנגן של Yoto.</item>
+    </plurals>
+    <string name="editor_downloading_percent">מורידים %1$d%%</string>
+    <string name="editor_download_offline">הורדה לשימוש ללא אינטרנט</string>
+    <string name="editor_nothing_downloaded">עדיין לא הורד כלום</string>
+    <plurals name="editor_tracks_on_phone">
+        <item quantity="one">קטע אחד בטלפון</item>
+        <item quantity="two">%d קטעים בטלפון</item>
+        <item quantity="many">%d קטעים בטלפון</item>
+        <item quantity="other">%d קטעים בטלפון</item>
+    </plurals>
+    <string name="editor_yoto_library_title">ספריית ה-Yoto שלכם</string>
+    <string name="editor_yoto_library_empty">ספריית ה-Yoto שלכם ריקה. באפליקציית Yoto פתחו את Discover, מצאו את Yoto Daily (או כל כרטיס אחר) והקישו על \"Add to library\".</string>
+    <string name="editor_loading">טוענים…</string>
+    <string name="editor_reload">טעינה מחדש</string>
+
+    <!-- Card editor: playlist -->
+    <string name="editor_add_songs">הוספת שירים מהטלפון</string>
+    <string name="editor_no_songs">עדיין אין שירים</string>
+    <plurals name="editor_song_count">
+        <item quantity="one">שיר אחד</item>
+        <item quantity="two">%d שירים</item>
+        <item quantity="many">%d שירים</item>
+        <item quantity="other">%d שירים</item>
+    </plurals>
+    <string name="editor_add_stream_label">או הוסיפו כתובת של שידור / MP3</string>
+    <string name="editor_playlist_hint">השתמשו בחצים כדי לסדר את השירים. כל שיר מקבל למטה תמונה משלו.</string>
+
+    <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
+    <string name="editor_fetching">מביאים פרטים…</string>
+    <string name="editor_tap_again_title">כשמצמידים את הכרטיס שוב, בהמשך</string>
+    <string name="editor_resume_continue">להמשיך מהמקום שבו עצרנו (ספרי שמע, פודקאסטים)</string>
+    <string name="editor_resume_restart">להתחיל מההתחלה (שירים, אלבומים)</string>
+    <string name="editor_shuffle">ערבוב</string>
+    <string name="editor_lifted_title">כשמרימים את הכרטיס מהטלפון</string>
+    <string name="editor_lifted_stop">עצירה</string>
+    <string name="editor_lifted_pause">השהיה (הצמידו שוב כדי להמשיך)</string>
+    <string name="editor_lifted_nothing">להמשיך לנגן</string>
+    <string name="editor_sleep_title">טיימר שינה כשמצמידים את הכרטיס הזה (בדקות)</string>
+    <string name="editor_sleep_note">לסיפורי לילה טוב: הצליל נחלש ומושהה אחרי הזמן הזה, בכל פעם שמצמידים את הכרטיס. כבוי = חל רק הטיימר של שעות השינה.</string>
+    <string name="editor_sleep_off">כבוי</string>
+
+    <!-- Card editor: looks -->
+    <string name="editor_section_looks">מראה</string>
+    <string name="editor_name">שם</string>
+    <string name="editor_picture">תמונה</string>
+    <string name="editor_picture_note">מוצגת בגדול באמצע הנגן. בחרו סמל פיקסלים (yotoicons.com) או עטיפת אלבום, או הדביקו קישור לכל תמונה שתרצו. בלי תמונה, כל קטע מקבל יצור פיקסלים קטן משלו.</string>
+    <string name="editor_find_picture">חיפוש תמונה</string>
+    <string name="editor_change_picture">החלפת תמונה</string>
+    <string name="editor_tracks_songs_title">שירים והתמונות שלהם</string>
+    <string name="editor_tracks_each_title">תמונה לכל קטע</string>
+    <string name="editor_tracks_note">כדי שהקטנטנים יראו איזה קטע מתנגן. קטעים בלי תמונה משתמשים בעטיפה שבתוך הקובץ או ביצור פיקסלים משלהם.</string>
+    <string name="editor_drag_cd">גררו כדי לשנות סדר</string>
+    <string name="editor_remove_song_cd">הסרת שיר</string>
+    <string name="editor_remove_picture_cd">הסרת תמונה</string>
+    <string name="editor_pick">בחירה</string>
+    <string name="editor_drag_hint">גררו את הידית ≡ כדי לשנות סדר. הקישו על התמונה של שיר כדי לבחור לו סמל.</string>
+    <string name="editor_first_80">מוצגים 80 הקטעים הראשונים.</string>
+    <string name="editor_icon_title">סמל קטן לרשימת הכרטיסים</string>
+    <string name="editor_colour">צבע</string>
+    <string name="editor_artwork_url">כתובת תמונה (לא חובה)</string>
+
+    <!-- Card editor: another tag, sharing -->
+    <string name="editor_section_tag">תג אחר</string>
+    <string name="editor_tag_note">המדבקה אבדה או נשחקה? העבירו את הכרטיס הזה לתג NFC אחר. או העתיקו אותו, כך ששני תגים ינגנו אותו דבר.</string>
+    <string name="editor_move_tag">העברה לתג אחר</string>
+    <string name="editor_copy_tag">העתקה לתג אחר</string>
+    <string name="editor_section_share">שיתוף הכרטיס</string>
+    <string name="editor_share_local_only">אי אפשר לשתף בכרטיס קבצים, תיקיות ורשימות השמעה שנמצאים בטלפון הזה. קישורים, פודקאסטים ושידורים אפשר.</string>
+    <string name="editor_share_note">כתיבת פרטי הכרטיס על תג ה-NFC עצמו. מי שיש לו BoopBox יכול אז להצמיד את התג, והכרטיס יתווסף לטלפון שלו אוטומטית. נדרש תג שאפשר לכתוב עליו (מדבקות NTAG213/215/216 מתאימות).</string>
+    <string name="editor_write_to_card">כתיבה לכרטיס</string>
+    <string name="editor_boop_note">או שלחו אותו כקובץ &#x200E;.boop (WhatsApp, אימייל, Drive…). הוא נושא הכול: גם שירים ותמונות מהטלפון הזה. מי שמקבל פשוט פותח את הקובץ ומצמיד כרטיס ריק לטלפון.</string>
+    <string name="editor_send_file">שליחת %1$s</string>
+    <string name="editor_send_boop">שליחת &#x200E;.boop</string>
+    <string name="editor_save_boop">שמירת &#x200E;.boop</string>
+    <string name="boop_share_text">כרטיס BoopBox. פתחו את הקובץ עם BoopBox והצמידו כרטיס ריק לטלפון.</string>
+
+    <!-- Card editor: write-to-tag dialogs -->
+    <string name="editor_write_hold">החזיקו את הכרטיס על הטלפון</string>
+    <string name="editor_writing">כותבים את \"%1$s\". החזיקו את הכרטיס במקום עד שהחלון הזה ייסגר.</string>
+    <string name="editor_written">נכתב ✓</string>
+    <string name="editor_written_body">הכרטיס הזה נושא עכשיו את \"%1$s\". הצמידו אותו לכל טלפון שיש בו BoopBox והוא ינגן.</string>
+    <string name="editor_write_failed">הכתיבה נכשלה</string>
+    <string name="editor_try_again">ניסיון נוסף</string>
+
+    <!-- Card editor: move / copy dialogs -->
+    <string name="editor_copy_hold">החזיקו את התג השני על הטלפון</string>
+    <string name="editor_move_hold">החזיקו את התג החדש על הטלפון</string>
+    <string name="editor_copy_waiting">גם התג ההוא ינגן את \"%1$s\".</string>
+    <string name="editor_move_waiting">\"%1$s\" עובר לתג ההוא; התג הזה יישכח.</string>
+    <string name="editor_copied">הועתק ✓</string>
+    <string name="editor_moved">הועבר ✓</string>
+    <string name="editor_copy_done">שני התגים מנגנים עכשיו את \"%1$s\".</string>
+    <string name="editor_move_done">\"%1$s\" נמצא עכשיו בתג החדש.</string>
+    <string name="editor_copy_failed">ההעתקה נכשלה</string>
+    <string name="editor_move_failed">ההעברה נכשלה</string>
+
+    <!-- Card editor: delete dialog -->
+    <string name="editor_delete_title">למחוק את הכרטיס הזה?</string>
+    <string name="editor_delete_body">הכרטיס הפיזי ימשיך לעבוד, אבל לא ינגן כלום עד שתגדירו אותו מחדש.</string>
+
+    <!-- ==== 40_art.he.xml ==== -->
+    <!-- Artwork picker (ArtworkPicker.kt) -->
+    <string name="art_title">חיפוש תמונה</string>
+    <string name="art_source_icons">סמלי פיקסלים</string>
+    <string name="art_source_album">עטיפת אלבום</string>
+    <string name="art_search_icons_hint">חיפוש סמלים באנגלית (למשל dinosaur, train, moon)</string>
+    <string name="art_search_album_hint">אלבום, שיר, פודקאסט או ספר</string>
+    <string name="art_find">חיפוש</string>
+    <string name="art_searching">מחפשים…</string>
+    <string name="art_nothing_found">לא נמצא כלום. נסו מילה אחרת.</string>
+    <plurals name="art_icon_count">
+        <item quantity="one">סמל אחד</item>
+        <item quantity="two">%d סמלים</item>
+        <item quantity="many">%d סמלים</item>
+        <item quantity="other">%d סמלים</item>
+    </plurals>
+    <string name="art_loading">טוענים…</string>
+    <string name="art_more_icons">עוד סמלים</string>
+    <string name="art_credit_icons">הסמלים צוירו על ידי קהילת yotoicons.com</string>
+    <string name="art_credit_album">תמונות דרך iTunes Search</string>
+
+    <!-- ==== 41_split.he.xml ==== -->
+    <!-- Split-into-songs editor (SplitEditorDialog.kt) -->
+    <string name="split_title">חלוקה וחיתוך</string>
+    <string name="split_reading">קוראים את הקובץ…</string>
+    <string name="split_reading_progress">קוראים את הקובץ… %1$d%% (אפשר כבר לכוונן את המחוונים)</string>
+    <string name="split_error_read">לא הצלחנו לקרוא את הקובץ: %1$s</string>
+    <string name="split_error_unknown">שגיאה לא ידועה</string>
+    <string name="split_time_playing">"%1$s  ▶"</string>
+    <string name="split_time_idle">"%1$s  · הקישו על הגל כדי להאזין"</string>
+    <string name="split_stop">עצירה</string>
+    <string name="split_here">חיתוך כאן</string>
+    <string name="split_stop_checking">עצירת הבדיקה</string>
+    <string name="split_hear_cuts">האזנה לכל חיתוך (שנייה וחצי לפני, 3 שניות אחרי)</string>
+    <string name="split_auto">חלוקה אוטומטית בשקטים</string>
+    <string name="split_threshold">שקט יותר מ־%1$s נחשב לשקט</string>
+    <string name="split_min_silence">שקט באורך %1$s שניות לפחות</string>
+    <string name="split_min_song">שירים באורך %1$d שניות לפחות</string>
+    <plurals name="split_will_make">
+        <item quantity="one">ייווצר שיר אחד</item>
+        <item quantity="two">ייווצרו שני שירים</item>
+        <item quantity="many">ייווצרו %d שירים</item>
+        <item quantity="other">ייווצרו %d שירים</item>
+    </plurals>
+    <string name="split_no_split">עדיין אין חלוקה: קצרו את אורך השקט, הגדילו את ערך ה-dB או הוסיפו חיתוכים ידנית</string>
+    <string name="split_cd_listen">האזנה לתחילת השיר הזה</string>
+    <string name="split_cd_remove_cut">הסרת החיתוך הזה</string>
+    <string name="split_use_songs">שימוש בשירים האלה</string>
+    <string name="trim_title">חיתוך השיר</string>
+    <string name="split_trim_hint">הידיות הכתומות: איפה מתחילים ואיפה עוצרים (גוררים, ומשחררים כדי לשמוע). הקווים הכתומים: איפה שיר אחד נגמר והבא מתחיל. נגיעה בגל מנגנת מכל מקום.</string>
+    <string name="trim_youtube_no_preview">יוטיוב לא מנגן את הסרטון הזה מחוץ לאפליקציה שלו, אז אי אפשר לשמוע אותו כאן. אפשר עדיין לגרור את הידיות ולבדוק את החיתוך בניגון הכרטיס.</string>
+    <string name="split_no_split_manual">עוד אין חלוקה: האזינו ואז הקישו «חיתוך כאן» בין השירים</string>
+    <string name="trim_hint">גררו את הידיות הכתומות למקום שבו השיר צריך להתחיל ולהיגמר. כשמשחררים שומעים את החיתוך; נגיעה בגל מנגנת מכל מקום.</string>
+    <string name="trim_reading">קורא את השיר… %1$d%%</string>
+    <string name="trim_start">מתחיל %1$s</string>
+    <string name="trim_end">נגמר %1$s</string>
+    <string name="trim_length">מנגן %1$s מתוך %2$s</string>
+    <string name="trim_play">ניגון החיתוך</string>
+    <string name="trim_reset">כל השיר</string>
+    <string name="trim_use">שימוש בחיתוך הזה</string>
+    <string name="trim_earlier">קצת מוקדם יותר</string>
+    <string name="trim_later">קצת מאוחר יותר</string>
+    <string name="trim_listen">האזנה כאן</string>
+
+    <!-- ==== 50_lead.he.xml ==== -->
+    <!-- PendingCardScreen -->
+    <string name="pending_header">מוכן לכרטיס</string>
+    <string name="pending_header_position">"מוכן לכרטיס  ·  %1$d מתוך %2$d"</string>
+    <string name="pending_sent_from_computer">נשלח מהמחשב</string>
+    <string name="pending_shared_with_you">מישהו שיתף איתכם</string>
+    <string name="pending_from_link">שותף מ־%1$s</string>
+    <plurals name="pending_track_count">
+        <item quantity="one">קטע אחד</item>
+        <item quantity="two">%1$d קטעים</item>
+        <item quantity="many">%1$d קטעים</item>
+        <item quantity="other">%1$d קטעים</item>
+    </plurals>
+    <string name="pending_hold_card">הצמידו כרטיס לטלפון</string>
+    <string name="pending_will_get">הכרטיס יקבל את השירים האלה והם יתחילו להתנגן</string>
+    <string name="pending_double_tap">הקשה כפולה</string>
+    <string name="pending_replace_title">הכרטיס הזה כבר מנגן את \"%1$s\"</string>
+    <string name="pending_replace_body">לשים עליו את \"%1$s\" במקום?</string>
+    <string name="pending_replace">החלפה</string>
+    <string name="pending_keep">להשאיר</string>
+    <!-- ReceivingOverlay: a shared .boop being opened -->
+    <string name="receive_opening">פותח את הכרטיס…</string>
+    <string name="receive_opening_hint">פורק את השירים והתמונות שלו</string>
+    <string name="receive_fetching_link_hint">מביא את השם והתמונה שלו</string>
+    <string name="receive_failed_title">לא הצלחנו לפתוח את הקובץ</string>
+
+    <!-- ScanScreen -->
+    <string name="scan_title">הוספת כרטיס</string>
+    <string name="scan_hold_card">הצמידו כרטיס לגב הטלפון</string>
+    <string name="scan_hint">כל כרטיס, מדבקה או צעצוע עם NFC יתאימו. אנטנת ה-NFC נמצאת בדרך כלל ליד המצלמה.</string>
+
+    <!-- Settings password dialogs (SettingsLock) -->
+    <string name="lock_title">למבוגרים בלבד</string>
+    <string name="lock_password">קוד PIN</string>
+    <string name="lock_wrong_password">קוד PIN שגוי</string>
+    <string name="lock_use_letters">סיסמה ישנה עם אותיות? למקלדת המלאה</string>
+    <string name="lock_set_title">הגדרת קוד PIN להגדרות</string>
+    <string name="lock_new_password">קוד PIN חדש (4 ספרות לפחות)</string>
+    <string name="lock_type_again">הקלידו שוב</string>
+    <string name="lock_mismatch">לא תואם</string>
+    <string name="lock_forgot_hint">אם שוכחים אותו, הדרך היחידה להיכנס שוב היא לנקות את נתוני האפליקציה.</string>
+
+    <!-- Notices flashed on the player (MainViewModel, PendingCards, PlayerController) -->
+    <string name="msg_move_same_card">זה אותו כרטיס. הצמידו לטלפון כרטיס אחר.</string>
+    <string name="msg_move_card_in_use">הכרטיס הזה כבר מנגן את \"%1$s\". מחקו קודם את הכרטיס ההוא, או השתמשו בכרטיס אחר.</string>
+    <string name="msg_added_from_card">\"%1$s\" נוסף מהכרטיס</string>
+    <string name="msg_card_set_up">הכרטיס הוגדר: \"%1$s\"</string>
+    <string name="msg_updated_card">\"%1$s\" עודכן</string>
+    <string name="msg_added_card">\"%1$s\" נוסף</string>
+    <string name="msg_card_ready">\"%1$s\" מוכן: הצמידו כרטיס חדש</string>
+    <string name="msg_something_went_wrong">משהו השתבש</string>
+    <string name="msg_unknown_error">שגיאה לא ידועה</string>
+    <string name="msg_cant_write_there">אי אפשר לכתוב לשם</string>
+    <string name="msg_cant_open_file">אי אפשר לפתוח את הקובץ הזה</string>
+    <string name="msg_boop_make_failed">לא הצלחנו ליצור את קובץ ‎.boop: %1$s</string>
+    <string name="msg_saved_file">%1$s נשמר</string>
+    <string name="msg_save_failed">השמירה נכשלה: %1$s</string>
+    <string name="msg_load_failed">הטעינה נכשלה: %1$s</string>
+    <string name="msg_backup_saved">הגיבוי נשמר</string>
+    <string name="msg_backup_failed">שמירת הגיבוי נכשלה: %1$s</string>
+    <plurals name="msg_restored_cards">
+        <item quantity="one">שוחזר כרטיס אחד</item>
+        <item quantity="two">שוחזרו %1$d כרטיסים</item>
+        <item quantity="many">שוחזרו %1$d כרטיסים</item>
+        <item quantity="other">שוחזרו %1$d כרטיסים</item>
+    </plurals>
+    <string name="msg_restore_failed">השחזור נכשל: %1$s</string>
+
+    <!-- .boop files and backups (BoopFile, Backup) -->
+    <string name="msg_boop_empty_folder">אין שירים בתיקייה</string>
+    <string name="msg_boop_cant_read">אי אפשר לקרוא יותר את \"%1$s\"</string>
+    <string name="msg_boop_unnamed_file">קובץ</string>
+    <string name="msg_boop_not_boop">הקובץ הזה אינו קובץ ‎.boop</string>
+    <string name="msg_boop_download_failed">ההורדה נכשלה (HTTP %1$d)</string>
+    <string name="msg_boop_packing">אורז את \"%1$s\"…</string>
+    <string name="msg_boop_damaged_or_newer">קובץ ה-‎.boop הזה פגום או מגרסה חדשה יותר של BoopBox</string>
+    <string name="msg_boop_damaged">קובץ ה-‎.boop הזה פגום</string>
+    <string name="msg_backup_not_backup">הקובץ הזה אינו גיבוי של BoopBox</string>
+    <string name="msg_backup_damaged_or_newer">הגיבוי הזה פגום או מגרסה חדשה יותר של BoopBox</string>
+
+    <!-- Writing a card onto an NFC tag (CardTag) -->
+    <string name="msg_tag_not_shareable">אי אפשר לשתף על כרטיס קבצים ותיקיות מהטלפון הזה.</string>
+    <string name="msg_tag_read_only">הכרטיס הזה הוא לקריאה בלבד.</string>
+    <string name="msg_tag_too_small">הכרטיס קטן מדי: נדרשים %1$d בייטים, ובכרטיס הזה יש מקום ל-%2$d. השתמשו במדבקת NTAG215/216.</string>
+    <string name="msg_tag_write_failed">הכתיבה נכשלה: %1$s. החזיקו את הכרטיס בלי להזיז ונסו שוב.</string>
+    <string name="msg_tag_lost_contact">הקשר עם הכרטיס אבד</string>
+    <string name="msg_tag_format_failed">לא הצלחנו לאתחל את הכרטיס הזה: %1$s.</string>
+    <string name="msg_tag_no_ndef">הכרטיס הזה לא יכול להכיל מידע (זה לא תג NDEF). מדבקות NTAG213/215/216 עובדות.</string>
+
+    <!-- Playback (PlayerController) -->
+    <string name="msg_sleep_timer_finished">טיימר השינה הסתיים</string>
+    <string name="msg_sleep_song_finished">שינה: השיר הסתיים</string>
+    <string name="msg_cant_play_card">אי אפשר לנגן את %1$s: %2$s</string>
+    <string name="msg_need_notification_access">הפעילו גישה להתראות בהגדרות למבוגרים כדי לדלג בין השירים בסרטון הזה.</string>
+    <string name="msg_err_yoto_not_connected">חברו את חשבון Yoto בהגדרות למבוגרים</string>
+    <string name="msg_err_yoto_unreachable">אי אפשר להתחבר ל-Yoto</string>
+    <string name="msg_err_yoto_needs_internet">צריך אינטרנט (שירי Yoto לא נשמרים בטלפון)</string>
+    <string name="msg_err_yoto_no_chapters">בכרטיס Yoto הזה אין פרקים לניגון</string>
+    <string name="msg_part_number">חלק %1$d</string>
+    <string name="msg_err_playlist_empty">ברשימת ההשמעה הזו עדיין אין שירים</string>
+    <string name="msg_err_no_saved_episode">אין אינטרנט ואין פרק שמור</string>
+    <string name="msg_err_unsupported_source">מקור לא נתמך</string>
+    <string name="msg_err_nothing_to_play">אין מה לנגן</string>
+    <string name="msg_err_no_app_for_link">אין אפליקציה מותקנת שיכולה לפתוח את הקישור הזה</string>
+    <string name="msg_err_player_service">שירות הנגן לא זמין</string>
+    <string name="msg_playing_in">מנגן ב-%1$s</string>
+    <string name="msg_finished">הסתיים</string>
+    <string name="msg_another_app">אפליקציה אחרת</string>
+    <string name="msg_play_err_not_audio">זה לא קובץ שמע או שידור ש-BoopBox מכיר (דף של YouTube או Spotify הוא לא שמע; השתמשו בשביל זה בכרטיס קישור)</string>
+    <string name="msg_play_err_cant_open">אי אפשר לפתוח אותו יותר. ייתכן שהקובץ הועבר או נמחק; בחרו אותו שוב בעורך הכרטיס</string>
+    <string name="msg_play_err_offline">צריך אינטרנט, ועכשיו אין</string>
+    <string name="msg_play_err_gone">הוא כבר לא שם (השרת סירב)</string>
+    <string name="msg_play_err_format">הפורמט שלו לא נתמך בטלפון הזה (WMA וכמה קודקים נדירים לא נתמכים)</string>
+    <string name="msg_play_err_other">אי אפשר היה לנגן אותו (%1$s)</string>
+    <string name="msg_cant_play_titled">אי אפשר לנגן את \"%1$s\": %2$s.</string>
+    <string name="msg_cant_play_this">אי אפשר לנגן את זה: %1$s.</string>
+    <string name="msg_opened_in_no_access">נפתח ב-%1$s. אשרו גישה להתראות כדי לראות את מצב הניגון האמיתי.</string>
+
+    <!-- ==== 60_polish.he.xml ==== -->
+    <!-- Card editor: paste, type change, podcast search, folder count -->
+    <string name="editor_paste">הדבקה</string>
+    <string name="editor_clipboard_hint">יש משהו בלוח: הקישו על הדבקה כדי להשתמש בו.</string>
+    <string name="editor_type_change_title">לשנות את סוג הכרטיס?</string>
+    <string name="editor_type_change_body">מה שהכרטיס מנגן יימחק, ותבחרו אותו מחדש בשביל \"%1$s\".</string>
+    <string name="editor_type_change_confirm">שינוי</string>
+    <string name="editor_episode_search">חיפוש פרקים</string>
+    <string name="editor_episode_none_match">אין פרק שמתאים.</string>
+    <plurals name="editor_folder_track_count">
+        <item quantity="one">קטע אחד</item>
+        <item quantity="two">%d קטעים</item>
+        <item quantity="many">%d קטעים</item>
+        <item quantity="other">%d קטעים</item>
+    </plurals>
+
+    <!-- Artwork picker: paste a link -->
+    <string name="art_source_url">הדבקת קישור</string>
+    <string name="art_url_hint">כתובת של תמונה (https://…)</string>
+    <string name="art_use_url">שימוש בתמונה הזו</string>
+    <string name="art_url_note">כל תמונה ברשת: העתיקו את הקישור שלה והדביקו אותו כאן.</string>
+
+    <!-- Settings: accounts section, card list sorting, bedtime times -->
+    <string name="settings_section_accounts_title">חשבונות והורדות</string>
+    <string name="settings_section_accounts_blurb">חשבון Yoto, הורדות פודקאסטים</string>
+    <string name="settings_status_yoto_connected">Yoto מחובר</string>
+    <string name="settings_status_yoto_not_connected">Yoto לא מחובר</string>
+    <string name="settings_sort_recent">נוגנו לאחרונה</string>
+    <string name="settings_sort_name">לפי שם</string>
+    <string name="settings_sort_added">החדשים קודם</string>
+    <string name="settings_search_cards">חיפוש כרטיסים</string>
+    <string name="settings_no_matching_cards">אין כרטיס שמתאים.</string>
+    <string name="settings_played_ago">נוגן %1$s</string>
+    <string name="settings_change_time">שינוי</string>
+
+    <!-- Scan screen -->
+    <string name="scan_existing_hint">הצמדת כרטיס שכבר מוגדר פותחת אותו לעריכה.</string>
+    <string name="scan_nfc_off">ה־NFC כבוי, ולכן אי אפשר לקרוא כלום כרגע.</string>
+    <string name="msg_no_link_shared">לא היה קישור במה ששותף.</string>
+
+    <!-- BoopBox Plus -->
+    <string name="plus_title">BoopBox Plus</string>
+    <string name="plus_reason_cards">בגרסה החינמית אפשר להגדיר עד %1$d כרטיסים משלכם. ב־Plus אין הגבלה.</string>
+    <string name="plus_reason_split">חלוקת קובץ לשירים וסימון פרקים בספר שמע הם חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_bedtime">שעות השינה הן חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_night_light">הצבעים והבהירות של מנורת הלילה הם חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_card_sleep">טיימר שינה לכל כרטיס הוא חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_speed">מהירות ניגון לכל כרטיס היא חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_trim">חיתוך ההתחלה והסוף של שיר הוא חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_general">פתיחת כל הכרטיסים וכל התוספות להורים.</string>
+    <string name="plus_includes">מה יש ב־Plus</string>
+    <string name="plus_feature_cards">כמה כרטיסים שתרצו</string>
+    <string name="plus_feature_split">חלוקת קובץ לשירים, חיתוך התחלה וסוף של שיר, סימון פרקים בספר שמע</string>
+    <string name="plus_feature_bedtime">שעות שינה: שקט יותר, טיימר שינה ומנורת לילה מעצמם</string>
+    <string name="plus_feature_night_light">צבעים ובהירות למנורת הלילה</string>
+    <string name="plus_feature_card_extras">טיימר שינה ומהירות לכל כרטיס</string>
+    <string name="plus_once">רכישה אחת, שלכם לתמיד. בלי מנוי. כרטיסים ששותפו איתכם תמיד עובדים.</string>
+    <string name="plus_buy">לפתוח ב־%1$s</string>
+    <string name="plus_buy_no_price">לפתוח את Plus</string>
+    <string name="plus_restore">שחזור רכישה</string>
+    <string name="plus_active">Plus פועל. תודה!</string>
+    <string name="plus_store_unavailable">Google Play לא זמין כרגע. נסו שוב עוד רגע.</string>
+    <string name="plus_restored">BoopBox Plus שוחזר.</string>
+    <string name="plus_nothing_to_restore">לא נמצאה רכישה של BoopBox Plus בחשבון Google הזה.</string>
+    <string name="plus_thanks">תודה! BoopBox Plus פועל.</string>
+    <string name="plus_pending">התשלום ממתין. Plus יופעל כשהוא יעבור.</string>
+    <string name="plus_buy_failed">הרכישה לא הצליחה: %1$s</string>
+    <string name="plus_badge">Plus</string>
+    <string name="plus_locked">חלק מ־BoopBox Plus. הקישו כדי לפתוח.</string>
+    <string name="plus_pretend_title">להעמיד פנים ש־Plus נקנה</string>
+    <string name="plus_pretend_subtitle">רק בגרסאות בדיקה, כדי לנסות את שתי הגרסאות.</string>
+    <string name="plus_cards_used">%1$d מתוך %2$d כרטיסים חינמיים בשימוש</string>
+    <string name="settings_section_plus_title">BoopBox Plus</string>
+    <string name="settings_section_plus_blurb">כרטיסים ללא הגבלה ותוספות להורים</string>
+    <string name="settings_status_plus_on">פועל, תודה!</string>
+    <string name="settings_status_plus_off">גרסה חינמית</string>
+</resources>
