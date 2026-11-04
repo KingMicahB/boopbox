@@ -6,7 +6,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.cardplayer.util.FirstRun
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cardplayer.MainViewModel
 import com.cardplayer.Screen
@@ -46,6 +51,17 @@ fun AppRoot(
     val saveable = rememberSaveableStateHolder()
     // Back on the player: the next trip into settings starts at its home page again.
     LaunchedEffect(isPlayer) { if (isPlayer) saveable.removeState("settings") }
+
+    // First launch: walk through every permission before anything else. Cards shared meanwhile wait behind it.
+    val context = LocalContext.current
+    var setupDone by rememberSaveable { mutableStateOf(FirstRun.permissionsDone(context)) }
+    if (!setupDone) {
+        PermissionSetupScreen(nfc = nfc) {
+            FirstRun.markPermissionsDone(context)
+            setupDone = true
+        }
+        return
+    }
 
     when (val s = screen) {
         Screen.Player -> Box {

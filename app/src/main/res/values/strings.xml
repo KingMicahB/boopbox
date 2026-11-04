@@ -289,6 +289,12 @@
     <string name="settings_perm_battery_title">Battery: no restrictions</string>
     <string name="settings_perm_battery_why">Some phones (Xiaomi especially) kill background apps. Set BoopBox\'s battery saver to \"No restrictions\" so playback and the come-back work reliably.</string>
     <string name="settings_perm_battery_action">Open app settings</string>
+    <string name="setup_title">Set up BoopBox</string>
+    <string name="setup_body">BoopBox works best with a few permissions. Tap each button, allow it, then come back here.</string>
+    <string name="setup_perm_post_notif_title">Notifications</string>
+    <string name="setup_perm_post_notif_why">Shows what\'s playing, with play / pause, on the lock screen and in the notification shade.</string>
+    <string name="setup_perm_post_notif_action">Allow notifications</string>
+    <string name="setup_later_hint">You can change any of these later in Settings → Permissions.</string>
 
     <!-- SettingsScreen: Help section -->
     <string name="settings_help_player_title">Player</string>

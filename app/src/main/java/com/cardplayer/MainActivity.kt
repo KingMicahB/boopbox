@@ -34,6 +34,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.cardplayer.nfc.NfcReader
 import com.cardplayer.ui.AppRoot
 import com.cardplayer.ui.theme.BoopBoxTheme
+import com.cardplayer.util.FirstRun
 
 class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
 
@@ -267,6 +268,8 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
     }
 
     private fun requestNotificationPermissionIfNeeded() {
+        // On the first launch the permission setup screen asks for it, along with everything else.
+        if (!FirstRun.permissionsDone(this)) return
         if (Build.VERSION.SDK_INT >= 33) {
             val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED

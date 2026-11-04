@@ -293,6 +293,12 @@
     <string name="settings_perm_battery_title">סוללה: ללא הגבלות</string>
     <string name="settings_perm_battery_why">בחלק מהטלפונים (במיוחד Xiaomi) אפליקציות ברקע נסגרות. הגדירו את חיסכון הסוללה של BoopBox ל\"ללא הגבלות\" כדי שהניגון והחזרה לחזית יעבדו באופן אמין.</string>
     <string name="settings_perm_battery_action">פתיחת הגדרות האפליקציה</string>
+    <string name="setup_title">הגדרת BoopBox</string>
+    <string name="setup_body">BoopBox עובדת הכי טוב עם כמה הרשאות. הקישו על כל כפתור, אשרו, וחזרו לכאן.</string>
+    <string name="setup_perm_post_notif_title">התראות</string>
+    <string name="setup_perm_post_notif_why">מציג מה מתנגן, עם הפעלה / השהיה, במסך הנעילה ובמגירת ההתראות.</string>
+    <string name="setup_perm_post_notif_action">אישור התראות</string>
+    <string name="setup_later_hint">אפשר לשנות כל אחת מאלה מאוחר יותר בהגדרות ← הרשאות.</string>
 
     <!-- SettingsScreen: Help section -->
     <string name="settings_help_player_title">נגן</string>

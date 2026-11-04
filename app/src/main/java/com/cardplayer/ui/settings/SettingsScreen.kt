@@ -277,7 +277,9 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(Section.entries, key = { it.name }) { s ->
+                    // Once Plus is bought there is nothing left to sell: drop its tile. Debug builds keep it for the pretend switch.
+                    val sections = Section.entries.filter { it != Section.PLUS || !plus || Plus.canPretend }
+                    items(sections, key = { it.name }) { s ->
                         SectionTile(
                             section = s,
                             status = statusFor(s),
@@ -1114,7 +1116,7 @@ private fun ChipGroup(options: List<Pair<String, String>>, selected: String, onS
 }
 
 @Composable
-private fun PermissionRow(title: String, granted: Boolean?, why: String, action: String, onAction: () -> Unit) {
+internal fun PermissionRow(title: String, granted: Boolean?, why: String, action: String, onAction: () -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1137,13 +1139,13 @@ private fun PermissionRow(title: String, granted: Boolean?, why: String, action:
     }
 }
 
-private fun isXiaomi(): Boolean {
+internal fun isXiaomi(): Boolean {
     val m = (Build.MANUFACTURER + " " + Build.BRAND).lowercase()
     return m.contains("xiaomi") || m.contains("redmi") || m.contains("poco")
 }
 
 /** Opens MIUI/HyperOS's per-app "Other permissions" page, which holds the background pop-up toggle. */
-private fun openXiaomiPermissionEditor(context: Context) {
+internal fun openXiaomiPermissionEditor(context: Context) {
     val attempts = listOf(
         Intent("miui.intent.action.APP_PERM_EDITOR").apply {
             setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
