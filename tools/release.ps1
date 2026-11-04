@@ -1,6 +1,7 @@
 # Builds a release APK of BoopBox (com.boopboxapp, same app as on Google Play) and signs it with the
-# release key, for handing out directly. Google Play itself gets .\tools\release-aab.ps1. apksigner asks for the key password in this terminal; the
-# password is never written to disk or passed on the command line.
+# release key, for handing out directly. Google Play itself gets .\tools\release-aab.ps1. The key password comes
+# from .\tools\save-key-password.ps1 if it was saved, else apksigner asks for it in this terminal; it is never
+# passed on the command line.
 #
 #   .\tools\release.ps1                      -> BoopBox-release.apk in the project root
 #   .\tools\release.ps1 -Keystore D:\keys\boopbox-release.jks
@@ -48,8 +49,17 @@ if ($LASTEXITCODE -ne 0) { throw "zipalign failed" }
 
 Write-Host ""
 Write-Host "Signing with $Keystore (alias $Alias)."
-& "$buildTools\apksigner.bat" sign --ks $Keystore --ks-key-alias $Alias --v4-signing-enabled false --out $out $aligned
-if ($LASTEXITCODE -ne 0) { throw "Signing failed (wrong password?)" }
+. "$PSScriptRoot\key-password.ps1"
+try {
+    if (Use-SavedKeyPassword) {
+        & "$buildTools\apksigner.bat" sign --ks $Keystore --ks-key-alias $Alias --ks-pass "env:$KeyPasswordEnv" --key-pass "env:$KeyPasswordEnv" --v4-signing-enabled false --out $out $aligned
+    } else {
+        & "$buildTools\apksigner.bat" sign --ks $Keystore --ks-key-alias $Alias --v4-signing-enabled false --out $out $aligned
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Signing failed (wrong password?)" }
+} finally {
+    Clear-SavedKeyPassword
+}
 Remove-Item $aligned
 
 $certs = & "$buildTools\apksigner.bat" verify --print-certs $out

@@ -1,6 +1,7 @@
 # Builds a release App Bundle (.aab) of BoopBox (com.boopboxapp) for Google Play (internal testing
-# track and up). Signs it with the release key, which acts as the Play upload key. jarsigner asks for the
-# key password in this terminal; the password is never written to disk or passed on the command line.
+# track and up). Signs it with the release key, which acts as the Play upload key. The key password comes
+# from .\tools\save-key-password.ps1 if it was saved, else jarsigner asks for it in this terminal; it is never
+# passed on the command line.
 #
 #   .\tools\release-aab.ps1                      -> BoopBox-release.aab in the project root
 #   .\tools\release-aab.ps1 -Keystore D:\keys\boopbox-release.jks
@@ -42,8 +43,17 @@ try {
 
 Write-Host ""
 Write-Host "Signing with $Keystore (alias $Alias)."
-& "$jdk\bin\jarsigner.exe" -keystore $Keystore -sigalg SHA256withRSA -digestalg SHA-256 -signedjar $out $bundle $Alias
-if ($LASTEXITCODE -ne 0) { throw "Signing failed (wrong password?)" }
+. "$PSScriptRoot\key-password.ps1"
+try {
+    if (Use-SavedKeyPassword) {
+        & "$jdk\bin\jarsigner.exe" -keystore $Keystore -storepass:env $KeyPasswordEnv -keypass:env $KeyPasswordEnv -sigalg SHA256withRSA -digestalg SHA-256 -signedjar $out $bundle $Alias
+    } else {
+        & "$jdk\bin\jarsigner.exe" -keystore $Keystore -sigalg SHA256withRSA -digestalg SHA-256 -signedjar $out $bundle $Alias
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Signing failed (wrong password?)" }
+} finally {
+    Clear-SavedKeyPassword
+}
 
 $certs = & "$jdk\bin\keytool.exe" -printcert -jarfile $out
 if ($LASTEXITCODE -ne 0) { throw "Signature check failed" }
