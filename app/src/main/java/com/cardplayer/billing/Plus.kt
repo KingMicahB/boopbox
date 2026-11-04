@@ -3,6 +3,9 @@ package com.cardplayer.billing
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import androidx.annotation.StringRes
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.lang.ref.WeakReference
 
 /** Why the "BoopBox Plus" sheet was opened: picks the line at its top. */
 enum class PlusReason(@param:StringRes val textRes: Int) {
@@ -44,6 +48,8 @@ enum class PlusReason(@param:StringRes val textRes: Int) {
  */
 object Plus {
     const val PRODUCT_ID = "boopbox_plus"
+    private const val TAG = "BoopBoxPlus"
+    private val main = Handler(Looper.getMainLooper())
 
     /** Cards a free install can set up itself. Cards that arrive ready-made (Yoto, written tags, .boop) don't stop at this. */
     const val FREE_CARD_LIMIT = 5
@@ -102,18 +108,67 @@ object Plus {
     /** True when one more card of the grown-up's own may be set up next to [cardCount] existing ones. */
     fun canAddCard(cardCount: Int): Boolean = isActive || cardCount < FREE_CARD_LIMIT
 
-    /** Opens Google Play's purchase sheet. */
+    /**
+     * Opens Google Play's purchase sheet. If the product hasn't loaded yet (Play was slow, offline at launch, or an
+     * earlier query failed), it connects and asks Play again first, then opens the sheet or says exactly why it can't.
+     */
     fun buy(activity: Activity) {
         val d = details
-        if (d == null || !client.isReady) {
-            _messages.tryEmit(appContext.getString(R.string.plus_store_unavailable))
-            connect()
+        if (d != null && client.isReady) {
+            launch(activity, d)
             return
         }
+        val ref = WeakReference(activity)
+        withProduct { problem ->
+            main.post {
+                val a = ref.get()
+                val found = details
+                if (problem == null && found != null && a != null && !a.isFinishing) launch(a, found)
+                else _messages.tryEmit(problem ?: appContext.getString(R.string.plus_store_unavailable))
+            }
+        }
+    }
+
+    private fun launch(activity: Activity, d: ProductDetails) {
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(d).build()))
             .build()
-        client.launchBillingFlow(activity, params)
+        val result = client.launchBillingFlow(activity, params)
+        if (result.responseCode != BillingResponseCode.OK) {
+            Log.w(TAG, "launchBillingFlow: ${result.responseCode} ${result.debugMessage}")
+            _messages.tryEmit(appContext.getString(R.string.plus_store_error, describe(result)))
+        }
+    }
+
+    /** Connects if needed and loads [PRODUCT_ID]; [done] gets null once [details] is set, else a reason to show. */
+    private fun withProduct(done: (String?) -> Unit) {
+        if (client.isReady) {
+            queryDetails(done)
+            return
+        }
+        client.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(result: BillingResult) {
+                if (result.responseCode != BillingResponseCode.OK) {
+                    Log.w(TAG, "billing setup: ${result.responseCode} ${result.debugMessage}")
+                    done(appContext.getString(R.string.plus_store_error, describe(result)))
+                    return
+                }
+                queryDetails(done)
+                queryPurchases(announce = false)
+            }
+
+            override fun onBillingServiceDisconnected() = Unit
+        })
+    }
+
+    private fun describe(result: BillingResult): String {
+        val what = when (result.responseCode) {
+            BillingResponseCode.BILLING_UNAVAILABLE -> "billing unavailable for this Play account or app install"
+            BillingResponseCode.SERVICE_UNAVAILABLE, BillingResponseCode.NETWORK_ERROR -> "no connection to Play"
+            BillingResponseCode.ITEM_UNAVAILABLE -> "Plus isn't available in this country or account"
+            else -> result.debugMessage.ifBlank { "error" }
+        }
+        return "$what (${result.responseCode})"
     }
 
     /** "Restore purchase": asks Play again what this account owns. */
@@ -125,7 +180,10 @@ object Plus {
         if (client.isReady) return
         client.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode != BillingResponseCode.OK) return
+                if (result.responseCode != BillingResponseCode.OK) {
+                    Log.w(TAG, "billing setup: ${result.responseCode} ${result.debugMessage}")
+                    return
+                }
                 queryDetails()
                 queryPurchases(announce = false)
             }
@@ -134,15 +192,27 @@ object Plus {
         })
     }
 
-    private fun queryDetails() {
+    private fun queryDetails(done: ((String?) -> Unit)? = null) {
         val product = QueryProductDetailsParams.Product.newBuilder()
             .setProductId(PRODUCT_ID)
             .setProductType(ProductType.INAPP)
             .build()
         client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(listOf(product)).build()) { result, found ->
-            if (result.responseCode != BillingResponseCode.OK) return@queryProductDetailsAsync
+            if (result.responseCode != BillingResponseCode.OK) {
+                Log.w(TAG, "product details: ${result.responseCode} ${result.debugMessage}")
+                done?.invoke(appContext.getString(R.string.plus_store_error, describe(result)))
+                return@queryProductDetailsAsync
+            }
             details = found.productDetailsList.firstOrNull { it.productId == PRODUCT_ID }
             _price.value = details?.oneTimePurchaseOfferDetails?.formattedPrice
+            if (details == null) {
+                // Play answered but has no such product for this app: the product isn't active in Play Console,
+                // or this install isn't the Play-signed app (sideloaded / releaseCheck build / not from a test track).
+                Log.w(TAG, "product details: '$PRODUCT_ID' not returned (unfetched=${found.unfetchedProductList.map { it.statusCode }})")
+                done?.invoke(appContext.getString(R.string.plus_not_for_sale))
+            } else {
+                done?.invoke(null)
+            }
         }
     }
 

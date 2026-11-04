@@ -809,6 +809,8 @@
     <string name="plus_restore">שחזור רכישה</string>
     <string name="plus_active">Plus פועל. תודה!</string>
     <string name="plus_store_unavailable">Google Play לא זמין כרגע. נסו שוב עוד רגע.</string>
+    <string name="plus_store_error">Google Play לא יכול למכור את Plus כרגע: %1$s</string>
+    <string name="plus_not_for_sale">Google Play לא מציע את Plus לעותק הזה של BoopBox. התקינו את BoopBox מ-Google Play (עם אותו חשבון) ונסו שוב.</string>
     <string name="plus_restored">BoopBox Plus שוחזר.</string>
     <string name="plus_nothing_to_restore">לא נמצאה רכישה של BoopBox Plus בחשבון Google הזה.</string>
     <string name="plus_thanks">תודה! BoopBox Plus פועל.</string>

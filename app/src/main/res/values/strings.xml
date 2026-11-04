@@ -781,6 +781,8 @@
     <string name="plus_restore">Restore purchase</string>
     <string name="plus_active">Plus is on. Thank you!</string>
     <string name="plus_store_unavailable">Google Play isn\'t available right now. Try again in a moment.</string>
+    <string name="plus_store_error">Google Play can\'t sell Plus right now: %1$s</string>
+    <string name="plus_not_for_sale">Google Play doesn\'t offer Plus to this copy of BoopBox. Install BoopBox from Google Play (signed in with the same account) and try again.</string>
     <string name="plus_restored">BoopBox Plus restored.</string>
     <string name="plus_nothing_to_restore">No BoopBox Plus purchase found on this Google account.</string>
     <string name="plus_thanks">Thank you! BoopBox Plus is on.</string>
