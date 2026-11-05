@@ -238,9 +238,10 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
         val message = if (!wantData) null else (ndefFromIntent ?: CardTag.readMessage(tag))
         // A BoopBox-shared card, or a real Yoto card (plays from the yoto.io link on its tag).
         val shared = CardTag.decode(message, uid) ?: CardTag.yotoCard(message, uid)
-        // A blank card being set up gets the BoopBox launch link, so a tap opens the app from anywhere.
-        if (isNew && message == null) CardTag.writeLaunchLink(tag)
         runOnUiThread { viewModel.onCardTapped(uid, shared) }
+        // Self-healing, after the tap is handed over so playback doesn't wait on it: a blank card gets the BoopBox
+        // launch link, and a card whose link names an old package (or none) is fixed, so a tap opens the app from anywhere.
+        CardTag.heal(tag, if (wantData) message else (ndefFromIntent ?: CardTag.readMessage(tag)))
     }
 
     /**

@@ -103,6 +103,67 @@ object CardTag {
      */
     private val PACKAGES = listOf("com.boopboxapp")
 
+    /** Earlier BoopBox package names. Launch links naming these are ours to fix (see [heal]). */
+    private val OLD_PACKAGES = setOf("com.cardplayer", "com.boopbox", "com.boopbox.full")
+
+    private fun launchRecords(): List<NdefRecord> = PACKAGES.map { NdefRecord.createApplicationRecord(it) }
+
+    /** The package an Android Application Record names, or null if [r] is some other record. */
+    private fun aarPackage(r: NdefRecord): String? =
+        if (r.tnf == NdefRecord.TNF_EXTERNAL_TYPE && String(r.type, Charsets.US_ASCII) == "android.com:pkg") {
+            String(r.payload, Charsets.UTF_8)
+        } else {
+            null
+        }
+
+    private fun isOurs(r: NdefRecord) = r.tnf == NdefRecord.TNF_MIME_MEDIA && String(r.type, Charsets.US_ASCII) == MIME
+
+    /**
+     * What [message] should hold so a tap launches this app, or null if it is fine as it is or isn't ours to touch.
+     * A BoopBox card keeps its card record untouched and gets its launch link(s) replaced; a tag holding only an old
+     * BoopBox launch link gets the current one. Anything else (Yoto cards, other apps' tags) is left alone.
+     */
+    fun healed(message: NdefMessage): NdefMessage? {
+        val records = message.records
+        val packages = records.mapNotNull(::aarPackage)
+        val cardRecord = records.any(::isOurs)
+        if (!cardRecord) {
+            val onlyLaunchLinks = packages.isNotEmpty() && packages.size == records.size
+            if (!onlyLaunchLinks || packages.any { it !in OLD_PACKAGES && it !in PACKAGES }) return null
+        }
+        if (packages == PACKAGES) return null
+        val fixed = records.filter { aarPackage(it) == null } + launchRecords()
+        return NdefMessage(fixed.toTypedArray())
+    }
+
+    /**
+     * Card self-healing: on every tap, if the tag's launch link names an old package (com.cardplayer, com.boopbox…)
+     * or is missing, rewrite it so the tap opens this app. Blank tags get the launch link only when they really are
+     * blank (an unreadable tag reads as null too, and must not be overwritten). Returns true if the tag was written.
+     * Safe to call from the reader-mode callback thread.
+     */
+    fun heal(tag: Tag, message: NdefMessage?): Boolean {
+        if (message == null || message.records.all { it.tnf == NdefRecord.TNF_EMPTY }) return writeLaunchLink(tag)
+        val fixed = healed(message) ?: return false
+        Ndef.get(tag)?.let { ndef ->
+            return try {
+                ndef.connect()
+                // A sticker too small for the card record plus the launch link stays as it was written.
+                if (!ndef.isWritable || fixed.byteArrayLength > ndef.maxSize) return false
+                ndef.writeNdefMessage(fixed)
+                true
+            } catch (_: Exception) {
+                false
+            } finally {
+                try {
+                    ndef.close()
+                } catch (_: Exception) {
+                }
+            }
+        }
+        return writeUltralight(tag, fixed, expect = message)
+    }
+
     /**
      * Our MIME record first (Android dispatches on the first record), then optionally an
      * Android Application Record so the tap launches BoopBox over any other NFC app.
@@ -233,7 +294,7 @@ object CardTag {
      * Safe to call from the reader-mode callback thread.
      */
     fun writeLaunchLink(tag: Tag): Boolean {
-        val msg = NdefMessage(PACKAGES.map { NdefRecord.createApplicationRecord(it) }.toTypedArray())
+        val msg = NdefMessage(launchRecords().toTypedArray())
         Ndef.get(tag)?.let { ndef ->
             return try {
                 ndef.connect()
@@ -251,14 +312,17 @@ object CardTag {
                 }
             }
         }
-        return writeUltralightIfBlank(tag, msg)
+        return writeUltralight(tag, msg, expect = null)
     }
 
     /**
      * Reader mode hides [Ndef] on most tags (see [readMessage]), so NTAG / Ultralight tags are
      * written page by page: an NDEF TLV from page 4, ended by a terminator TLV.
+     *
+     * [expect] null = write only onto a blank tag. Otherwise the tag must still hold exactly [expect] (the message
+     * just read); only the pages that change are written, last page first, so the TLV header on page 4 goes last.
      */
-    private fun writeUltralightIfBlank(tag: Tag, msg: NdefMessage): Boolean {
+    private fun writeUltralight(tag: Tag, msg: NdefMessage, expect: NdefMessage?): Boolean {
         val mu = MifareUltralight.get(tag) ?: return false
         return try {
             mu.connect()
@@ -266,7 +330,7 @@ object CardTag {
             // byte 3 high nibble 0 = writable. Pages 4..6 = start of the data area.
             val first = mu.readPages(3)
             if ((first[0].toInt() and 0xFF) != 0xE1 || (first[3].toInt() and 0xF0) != 0) return false
-            if (!isBlankTlv(first.copyOfRange(4, 16))) return false
+            if (expect == null && !isBlankTlv(first.copyOfRange(4, 16))) return false
             val bytes = msg.toByteArray()
             val tlv = ByteArrayOutputStream().apply {
                 write(0x03)
@@ -282,7 +346,23 @@ object CardTag {
             }.toByteArray()
             if (tlv.size > (first[2].toInt() and 0xFF) * 8) return false
             val padded = tlv.copyOf((tlv.size + 3) / 4 * 4)
-            for (i in padded.indices step 4) mu.writePage(4 + i / 4, padded.copyOfRange(i, i + 4))
+            if (expect == null) {
+                for (i in padded.indices step 4) mu.writePage(4 + i / 4, padded.copyOfRange(i, i + 4))
+                return true
+            }
+            // Current data area, as far as the new TLV reaches (readPages returns 4 pages = 16 bytes).
+            val current = ByteArrayOutputStream()
+            var page = 4
+            while (current.size() < padded.size) {
+                current.write(mu.readPages(page))
+                page += 4
+            }
+            val now = current.toByteArray()
+            if (ndefFromTlv(now)?.toByteArray()?.contentEquals(expect.toByteArray()) != true) return false
+            for (i in (padded.size - 4) downTo 0 step 4) {
+                val chunk = padded.copyOfRange(i, i + 4)
+                if (!chunk.contentEquals(now.copyOfRange(i, i + 4))) mu.writePage(4 + i / 4, chunk)
+            }
             true
         } catch (_: Exception) {
             false
