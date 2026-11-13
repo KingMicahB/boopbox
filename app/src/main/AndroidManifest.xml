@@ -110,6 +110,22 @@
                 <data android:mimeType="application/x-zip-compressed" />
                 <data android:mimeType="application/vnd.boopbox" />
             </intent-filter>
+            <!-- Songs, an audiobook (M4B / M4A / MP3…) or videos shared from Files, WhatsApp, Drive…: copied in and
+                 made into a new card. One file or several (several become a playlist). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="application/ogg" />
+            </intent-filter>
+            <!-- Several files of a generic type (file managers often call .m4b "octet-stream"; single ones use the .boop filter above). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
             <!-- "Share" from YouTube, YT Music, Spotify, Audible…: the link becomes a new card. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

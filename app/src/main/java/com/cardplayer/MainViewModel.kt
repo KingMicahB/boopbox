@@ -11,6 +11,7 @@ import com.cardplayer.data.Backup
 import com.cardplayer.data.BoopFile
 import com.cardplayer.data.Card
 import com.cardplayer.data.SavedPosition
+import com.cardplayer.data.SharedMedia
 import com.cardplayer.nfc.CardTag
 import com.cardplayer.playback.NowPlaying
 import com.cardplayer.link.SharedLink
@@ -517,6 +518,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { BoopFile.load(app, uri, app.pending) }
+                _receive.value = ReceiveState.Idle
+            } catch (e: Exception) {
+                _receive.value = ReceiveState.Failed(errorText(e))
+            } finally {
+                _boopBusy.value = false
+            }
+        }
+    }
+
+    /**
+     * Songs, an audiobook (M4B / M4A…) or videos shared from another app: copied into the app and made into a
+     * card that waits on the player for a tap, like a shared link.
+     */
+    fun receiveMedia(uris: List<Uri>) {
+        if (uris.isEmpty() || _boopBusy.value) return
+        _boopBusy.value = true
+        _receive.value = ReceiveState.Unpacking
+        _writeState.value = WriteState.Idle
+        _moveState.value = MoveState.Idle
+        _editPrompt.value = null
+        _replacePrompt.value = null
+        _unknownCard.value = null
+        setScreen(Screen.Player)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { SharedMedia.load(app, uris, app.pending) }
                 _receive.value = ReceiveState.Idle
             } catch (e: Exception) {
                 _receive.value = ReceiveState.Failed(errorText(e))

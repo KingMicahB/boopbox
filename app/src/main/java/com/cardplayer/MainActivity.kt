@@ -16,6 +16,7 @@ import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import com.cardplayer.nfc.CardTag
+import com.cardplayer.data.SharedMedia
 import kotlin.concurrent.thread
 import android.os.Build
 import android.os.Bundle
@@ -260,9 +261,19 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
             }
             return
         }
+        // Songs, an audiobook or videos shared from Files, WhatsApp, Drive…: they become a new card.
+        val streams: List<Uri> = when (intent?.action) {
+            Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            else -> emptyList()
+        }
+        if (streams.isNotEmpty() && streams.all { SharedMedia.isMedia(this, it, intent?.type) }) {
+            viewModel.receiveMedia(streams)
+            return
+        }
         val uri: Uri? = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme in setOf("content", "file", "http", "https") }
-            Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+            Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE -> streams.firstOrNull()
             else -> null
         }
         if (uri != null) viewModel.receiveBoop(uri)
