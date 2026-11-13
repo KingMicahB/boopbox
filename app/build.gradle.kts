@@ -14,8 +14,8 @@ android {
         applicationId = "com.boopboxapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.4"
+        versionCode = 8
+        versionName = "1.0.5"
     }
 
     buildTypes {
