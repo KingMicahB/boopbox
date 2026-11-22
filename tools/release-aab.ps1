@@ -15,7 +15,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
-$jdk = "C:\Program Files\Java\jdk-22"
+# JDK 22 if present, else the newest Eclipse Adoptium JDK (the PC was rebuilt with only JDK 21 on 2026-11-22).
+$jdk = @("C:\Program Files\Java\jdk-22") +
+    @(Get-ChildItem "C:\Program Files\Eclipse Adoptium\jdk-*" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | ForEach-Object FullName) |
+    Where-Object { Test-Path "$_\bin\jarsigner.exe" } | Select-Object -First 1
+if (-not $jdk) { throw "No JDK found (need JDK 21 or 22)" }
+# gradle.properties pins org.gradle.java.home to jdk-22; override it. Short (8.3) path: gradlew.bat breaks on spaces.
+$jdkShort = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($jdk).ShortPath
 $bundle = "$root\app\build\outputs\bundle\release\app-release.aab"
 $out = "$root\BoopBox-release.aab"
 
@@ -34,7 +40,7 @@ $env:JAVA_HOME = $jdk
 $env:JAVA_TOOL_OPTIONS = "-Djdk.net.unixdomain.tmpdir=C:/nonexistent_dir_for_uds_fallback"
 Push-Location $root
 try {
-    & .\gradlew.bat bundleRelease
+    & .\gradlew.bat "-Dorg.gradle.java.home=$jdkShort" bundleRelease
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed" }
 } finally {
     Pop-Location
