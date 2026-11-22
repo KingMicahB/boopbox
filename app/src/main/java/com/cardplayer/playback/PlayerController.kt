@@ -70,6 +70,8 @@ data class NowPlaying(
     val artworkUrl: String?,
     val isExternal: Boolean,
     val isPlaying: Boolean,
+    /** Wants to play but is still fetching audio (a podcast episode streaming in): show a spinner, not "play". */
+    val isLoading: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val status: String? = null,
@@ -743,8 +745,10 @@ class PlayerController(
                 items = tracks.map { t -> mediaItem(t.uri, t.title, artFor(t.uri, if (single || card.audiobook) card.artworkUrl else null)) }
             }
             SourceType.PODCAST -> {
-                // Fresh feed when online (short timeout), cached feed otherwise.
-                val feed = podcastCache.feedFor(card.uri)
+                // The saved episode list plays at once (and is refreshed in the background);
+                // only a card never loaded before waits for the network.
+                val cachedFeed = podcastCache.loadFeed(card.uri)
+                val feed = cachedFeed ?: podcastCache.feedFor(card.uri)
                 if (feed == null) {
                     val saved = card.episodeUrl ?: throw IllegalStateException(app.getString(R.string.msg_err_no_saved_episode))
                     val local = podcastCache.cachedFile(card.uri, saved)
@@ -767,11 +771,15 @@ class PlayerController(
                     if (card.podcastMode == PodcastMode.EPISODE && card.episodeUrl != null) {
                         startIndex = items.indexOfFirst { it.mediaId == card.episodeUrl }.coerceAtLeast(0)
                     }
-                    // Make sure the episode this card wants is on the phone for next time.
+                    // Make sure the episode this card wants is on the phone for next time. When it is streaming
+                    // right now, wait until playback has its head start so the two don't fight over the connection.
                     val download = settings.value.podcastAutoDownload
-                    scope.launch(Dispatchers.IO) {
+                    val streaming = items.getOrNull(startIndex)?.requestMetadata?.mediaUri?.scheme?.startsWith("http") == true
+                    scope.launch {
                         try {
-                            podcastCache.ensureCurrent(card, feed, download)
+                            if (streaming) withTimeoutOrNull(60_000) { while (controller?.playbackState != Player.STATE_READY) delay(500) }
+                            val fresh = if (cachedFeed != null) withContext(Dispatchers.IO) { podcastCache.feedFor(card.uri, timeoutMs = 15_000) } ?: feed else feed
+                            podcastCache.ensureCurrent(card, fresh, download)
                         } catch (_: Exception) {
                         }
                     }
@@ -830,6 +838,7 @@ class PlayerController(
             artworkUrl = first.mediaMetadata.artworkUri?.toString(),
             isExternal = false,
             isPlaying = true,
+            isLoading = c.playbackState == Player.STATE_BUFFERING || c.playbackState == Player.STATE_IDLE,
             positionMs = startPos,
             trackSeed = card.uid + first.mediaId,
             trackIndex = if (splitFile) chapterIndexAt(card, startPos + itemOffsetMs) else startIndex,
@@ -1152,7 +1161,7 @@ class PlayerController(
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (externalPlaying) return
-            _nowPlaying.update { it?.copy(isPlaying = isPlaying) }
+            _nowPlaying.update { it?.copy(isPlaying = isPlaying, isLoading = loadingNow()) }
             if (!isPlaying) saveCurrentPosition()
             // Only a real pause counts as a break (not a moment of buffering).
             pausedAt = if (isPlaying || controller?.playWhenReady == true) 0L else SystemClock.elapsedRealtime()
@@ -1202,6 +1211,7 @@ class PlayerController(
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (externalPlaying) return
+            _nowPlaying.update { it?.copy(isLoading = loadingNow()) }
             if (playbackState == Player.STATE_ENDED) {
                 // Playlist finished: nothing else starts. Back to the idle screen.
                 if (_sleepAtTrackEnd.value) cancelSleep()
@@ -1212,7 +1222,13 @@ class PlayerController(
             }
         }
 
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (externalPlaying) return
+            _nowPlaying.update { it?.copy(isLoading = loadingNow()) }
+        }
+
         override fun onPlayerError(error: PlaybackException) {
+            _nowPlaying.update { it?.copy(isPlaying = false, isLoading = false) }
             val title = _nowPlaying.value?.title
             val reason = when (error.errorCode) {
                 PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
@@ -1236,6 +1252,12 @@ class PlayerController(
             else app.getString(R.string.msg_cant_play_this, reason)
             _messages.tryEmit(Notice(text, error = true))
         }
+    }
+
+    /** Asked to play, but the audio isn't there yet. */
+    private fun loadingNow(): Boolean {
+        val c = controller ?: return false
+        return c.playWhenReady && c.playbackState == Player.STATE_BUFFERING
     }
 
     private fun startProgressLoop() {

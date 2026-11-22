@@ -1179,7 +1179,21 @@ private fun ArtBox(np: NowPlaying, pixel: Boolean, dim: Boolean, size: Dp, scale
                     .background(Color.Black.copy(alpha = 0.55f))
             )
         }
-        if (!np.isPlaying) {
+        if (np.isLoading) {
+            // Still fetching the audio (a podcast episode streaming in): say so, rather than offer a "play" that can't.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Ink.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    strokeWidth = 6.dp,
+                    modifier = Modifier.size(size * 0.3f)
+                )
+            }
+        } else if (!np.isPlaying) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

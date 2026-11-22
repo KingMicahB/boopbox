@@ -263,7 +263,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * @param shared card definition read from the tag itself (see [CardTag]), if it had one.
      */
-    fun onCardTapped(uid: String, shared: Card? = null) {
+    /** [openedApp] = this card brought the app to the front: it's for playing, not for the screen left open. */
+    fun onCardTapped(uid: String, shared: Card? = null, openedApp: Boolean = false) {
         val now = System.currentTimeMillis()
         if (uid == lastTapUid && now - lastTapAt < 1500) return
         lastTapUid = uid
@@ -273,6 +274,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         (_moveState.value as? MoveState.Waiting)?.let { mv ->
             _moveState.value = landMove(mv, uid)
             return
+        }
+
+        // Tapped from outside the app with settings (or "add a card") left open: the child wants it played.
+        // The card editor stays put, so unsaved changes there aren't lost.
+        if (openedApp && (_screen.value == Screen.Settings || _screen.value == Screen.Scan)) {
+            _editPrompt.value = null
+            setScreen(Screen.Player)
         }
 
         when (_screen.value) {

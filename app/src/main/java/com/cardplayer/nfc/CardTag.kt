@@ -5,6 +5,8 @@ import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.Tag
 import android.nfc.tech.MifareUltralight
+import android.nfc.tech.NfcA
+import android.util.Log
 import android.nfc.tech.Ndef
 import android.nfc.tech.NdefFormatable
 import com.cardplayer.R
@@ -25,6 +27,7 @@ import java.io.IOException
  */
 object CardTag {
     const val MIME = "application/vnd.cardplayer"
+    private const val TAG = "CardTag"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -143,16 +146,28 @@ object CardTag {
      * Safe to call from the reader-mode callback thread.
      */
     fun heal(tag: Tag, message: NdefMessage?): Boolean {
-        if (message == null || message.records.all { it.tnf == NdefRecord.TNF_EMPTY }) return writeLaunchLink(tag)
-        val fixed = healed(message) ?: return false
+        val techs = tag.techList.joinToString { it.substringAfterLast('.') }
+        if (message == null || message.records.all { it.tnf == NdefRecord.TNF_EMPTY }) {
+            return writeLaunchLink(tag).also { Log.i(TAG, "heal: blank/unreadable tag [$techs] -> launch link written=$it") }
+        }
+        val fixed = healed(message)
+        if (fixed == null) {
+            Log.i(TAG, "heal: already fine or not ours [$techs], records=${message.records.map { aarPackage(it) ?: String(it.type, Charsets.US_ASCII) }}")
+            return false
+        }
         Ndef.get(tag)?.let { ndef ->
             return try {
                 ndef.connect()
                 // A sticker too small for the card record plus the launch link stays as it was written.
-                if (!ndef.isWritable || fixed.byteArrayLength > ndef.maxSize) return false
+                if (!ndef.isWritable || fixed.byteArrayLength > ndef.maxSize) {
+                    Log.i(TAG, "heal: Ndef can't take it (writable=${ndef.isWritable}, need=${fixed.byteArrayLength}, max=${ndef.maxSize})")
+                    return false
+                }
                 ndef.writeNdefMessage(fixed)
+                Log.i(TAG, "heal: launch link fixed via Ndef")
                 true
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.i(TAG, "heal: Ndef write failed", e)
                 false
             } finally {
                 try {
@@ -161,7 +176,7 @@ object CardTag {
                 }
             }
         }
-        return writeUltralight(tag, fixed, expect = message)
+        return writeUltralight(tag, fixed, expect = message).also { Log.i(TAG, "heal: Ultralight fix [$techs] written=$it") }
     }
 
     /**
@@ -227,7 +242,7 @@ object CardTag {
     }
 
     private fun readUltralight(tag: Tag): NdefMessage? {
-        val mu = MifareUltralight.get(tag) ?: return null
+        val mu = type2(tag) ?: return null
         return try {
             mu.connect()
             // Pages 3..6: capability container (byte 2 = data area size / 8), then the first data bytes.
@@ -300,10 +315,14 @@ object CardTag {
                 ndef.connect()
                 val current = ndef.ndefMessage
                 val blank = current == null || current.records.all { it.tnf == NdefRecord.TNF_EMPTY }
-                if (!blank || !ndef.isWritable || msg.byteArrayLength > ndef.maxSize) return false
+                if (!blank || !ndef.isWritable || msg.byteArrayLength > ndef.maxSize) {
+                    Log.i(TAG, "launch link: Ndef skip (blank=$blank, writable=${ndef.isWritable}, max=${ndef.maxSize})")
+                    return false
+                }
                 ndef.writeNdefMessage(msg)
                 true
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.i(TAG, "launch link: Ndef write failed", e)
                 false
             } finally {
                 try {
@@ -323,28 +342,26 @@ object CardTag {
      * just read); only the pages that change are written, last page first, so the TLV header on page 4 goes last.
      */
     private fun writeUltralight(tag: Tag, msg: NdefMessage, expect: NdefMessage?): Boolean {
-        val mu = MifareUltralight.get(tag) ?: return false
+        val mu = type2(tag) ?: return false.also { Log.i(TAG, "ultralight: not a Type 2 tag (sak=${NfcA.get(tag)?.sak})") }
         return try {
             mu.connect()
             // Page 3 = capability container: E1 = NDEF formatted, byte 2 = data area size / 8,
             // byte 3 high nibble 0 = writable. Pages 4..6 = start of the data area.
             val first = mu.readPages(3)
-            if ((first[0].toInt() and 0xFF) != 0xE1 || (first[3].toInt() and 0xF0) != 0) return false
-            if (expect == null && !isBlankTlv(first.copyOfRange(4, 16))) return false
-            val bytes = msg.toByteArray()
-            val tlv = ByteArrayOutputStream().apply {
-                write(0x03)
-                if (bytes.size < 0xFF) {
-                    write(bytes.size)
-                } else {
-                    write(0xFF)
-                    write(bytes.size shr 8)
-                    write(bytes.size and 0xFF)
-                }
-                write(bytes)
-                write(0xFE)
-            }.toByteArray()
-            if (tlv.size > (first[2].toInt() and 0xFF) * 8) return false
+            val hex = first.joinToString(" ") { "%02X".format(it) }
+            if ((first[0].toInt() and 0xFF) != 0xE1 || (first[3].toInt() and 0xF0) != 0) {
+                Log.i(TAG, "ultralight: not NDEF-formatted or locked, pages 3-6 = $hex")
+                return false
+            }
+            if (expect == null && !isBlankTlv(first.copyOfRange(4, 16))) {
+                Log.i(TAG, "ultralight: not blank, pages 3-6 = $hex")
+                return false
+            }
+            val tlv = tlvOf(msg)
+            if (tlv.size > (first[2].toInt() and 0xFF) * 8) {
+                Log.i(TAG, "ultralight: too small, need ${tlv.size}, holds ${(first[2].toInt() and 0xFF) * 8}")
+                return false
+            }
             val padded = tlv.copyOf((tlv.size + 3) / 4 * 4)
             if (expect == null) {
                 for (i in padded.indices step 4) mu.writePage(4 + i / 4, padded.copyOfRange(i, i + 4))
@@ -358,14 +375,116 @@ object CardTag {
                 page += 4
             }
             val now = current.toByteArray()
-            if (ndefFromTlv(now)?.toByteArray()?.contentEquals(expect.toByteArray()) != true) return false
+            if (ndefFromTlv(now)?.toByteArray()?.contentEquals(expect.toByteArray()) != true) {
+                Log.i(TAG, "ultralight: tag changed since it was read, not touching it")
+                return false
+            }
             for (i in (padded.size - 4) downTo 0 step 4) {
                 val chunk = padded.copyOfRange(i, i + 4)
                 if (!chunk.contentEquals(now.copyOfRange(i, i + 4))) mu.writePage(4 + i / 4, chunk)
             }
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.i(TAG, "ultralight: write failed", e)
             false
+        } finally {
+            try {
+                mu.close()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * An NFC Forum Type 2 tag (NTAG21x / Ultralight) read and written page by page. Some phones (Xiaomi) list
+     * such a sticker only as [NfcA] in reader mode, with no [MifareUltralight], so the same READ (0x30) and
+     * WRITE (0xA2) commands are then sent over NfcA directly.
+     */
+    private class Type2(private val mu: MifareUltralight?, private val nfcA: NfcA?) : java.io.Closeable {
+        fun connect() {
+            mu?.connect()
+            nfcA?.connect()
+        }
+
+        /** 4 pages (16 bytes) from [page]. */
+        fun readPages(page: Int): ByteArray {
+            mu?.let { return it.readPages(page) }
+            val r = nfcA!!.transceive(byteArrayOf(0x30, page.toByte()))
+            if (r.size < 16) throw IOException("READ $page NAK")
+            return r.copyOf(16)
+        }
+
+        fun writePage(page: Int, data: ByteArray) {
+            mu?.let { return it.writePage(page, data) }
+            val r = nfcA!!.transceive(byteArrayOf(0xA2.toByte(), page.toByte()) + data)
+            // ACK is the 4-bit 0xA; some stacks hand back nothing for it.
+            if (r.isNotEmpty() && (r[0].toInt() and 0x0F) != 0x0A) throw IOException("WRITE $page NAK")
+        }
+
+        override fun close() {
+            mu?.close()
+            nfcA?.close()
+        }
+    }
+
+    /** The tag as a Type 2 tag, or null (Mifare Classic, DESFire, ISO-DEP cards… have SAK != 0). */
+    private fun type2(tag: Tag): Type2? {
+        MifareUltralight.get(tag)?.let { return Type2(it, null) }
+        val a = NfcA.get(tag) ?: return null
+        return if ((a.sak.toInt() and 0xFF) == 0x00) Type2(null, a) else null
+    }
+
+    /** [msg] as a Type 2 tag's data area: NDEF message TLV, then the terminator TLV. */
+    private fun tlvOf(msg: NdefMessage): ByteArray {
+        val bytes = msg.toByteArray()
+        return ByteArrayOutputStream().apply {
+            write(0x03)
+            if (bytes.size < 0xFF) {
+                write(bytes.size)
+            } else {
+                write(0xFF)
+                write(bytes.size shr 8)
+                write(bytes.size and 0xFF)
+            }
+            write(bytes)
+            write(0xFE)
+        }.toByteArray()
+    }
+
+    /**
+     * "Write to card" on an NTAG / Ultralight sticker, page by page (reader mode hides [Ndef] on these, see
+     * [readMessage]). Unlike [writeUltralight] this replaces whatever the tag holds: the grown-up asked for it.
+     * Takes the first of [options] that fits, writes the TLV header page last and reads the result back.
+     * Null when the tag isn't an Ultralight / NTAG.
+     */
+    private fun writeUltralightCard(context: Context, tag: Tag, options: List<NdefMessage>): WriteResult? {
+        val mu = type2(tag) ?: return null
+        return try {
+            mu.connect()
+            val first = mu.readPages(3)
+            // Not NDEF-formatted yet: leave it to NdefFormatable below.
+            if ((first[0].toInt() and 0xFF) != 0xE1) return null
+            if ((first[3].toInt() and 0xF0) != 0) return WriteResult.Error(context.getString(R.string.msg_tag_read_only))
+            val capacity = (first[2].toInt() and 0xFF) * 8
+            val tlvs = options.map(::tlvOf)
+            val tlv = tlvs.firstOrNull { it.size <= capacity }
+                ?: return WriteResult.Error(context.getString(R.string.msg_tag_too_small, tlvs.last().size, capacity))
+            val padded = tlv.copyOf((tlv.size + 3) / 4 * 4)
+            for (i in (padded.size - 4) downTo 0 step 4) mu.writePage(4 + i / 4, padded.copyOfRange(i, i + 4))
+            // Read it back: a sticker lifted halfway leaves half a card.
+            val back = ByteArrayOutputStream()
+            var page = 4
+            while (back.size() < padded.size) {
+                back.write(mu.readPages(page))
+                page += 4
+            }
+            if (back.toByteArray().copyOf(tlv.size).contentEquals(tlv)) {
+                WriteResult.Ok
+            } else {
+                WriteResult.Error(context.getString(R.string.msg_tag_write_failed, context.getString(R.string.msg_tag_lost_contact)))
+            }
+        } catch (e: Exception) {
+            WriteResult.Error(context.getString(R.string.msg_tag_write_failed, e.message ?: context.getString(R.string.msg_tag_lost_contact)))
         } finally {
             try {
                 mu.close()
@@ -386,7 +505,18 @@ object CardTag {
                     if (i + 1 >= b.size) return false
                     i += 2 + (b[i + 1].toInt() and 0xFF)
                 }
-                0x03 -> return i + 1 < b.size && b[i + 1].toInt() == 0
+                // An empty NDEF TLV, or one holding only empty records (what NFC apps' "erase" leaves behind).
+                0x03 -> {
+                    if (i + 1 >= b.size) return false
+                    val len = b[i + 1].toInt() and 0xFF
+                    if (len == 0) return true
+                    if (len == 0xFF || i + 2 + len > b.size) return false
+                    return try {
+                        NdefMessage(b.copyOfRange(i + 2, i + 2 + len)).records.all { it.tnf == NdefRecord.TNF_EMPTY }
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
                 else -> return false
             }
         }
@@ -424,6 +554,9 @@ object CardTag {
                 }
             }
         }
+
+        // Reader mode hides Ndef on NTAG stickers: write them page by page.
+        writeUltralightCard(context, tag, listOf(full, slim, slimNoLaunch))?.let { return it }
 
         NdefFormatable.get(tag)?.let { formatable ->
             return try {

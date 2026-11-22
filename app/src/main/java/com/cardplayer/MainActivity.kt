@@ -13,6 +13,7 @@ import android.view.KeyEvent
 import com.cardplayer.playback.PlayerController
 import android.content.pm.PackageManager
 import android.nfc.NdefMessage
+import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import com.cardplayer.nfc.CardTag
@@ -20,6 +21,7 @@ import com.cardplayer.data.SharedMedia
 import kotlin.concurrent.thread
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,6 +43,17 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
 
     private val viewModel: MainViewModel by viewModels()
     private var nfcReader: NfcReader? = null
+
+    /**
+     * When the app last came to the front, and whether a card has been seen since. A card that opened the app
+     * (its launch link starts us like the home-screen icon, then reader mode finds it on the phone) is a play tap,
+     * whatever grown-up screen was left open.
+     */
+    @Volatile
+    private var resumedAt = 0L
+
+    @Volatile
+    private var cardSeenSinceResume = true
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -131,6 +144,8 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
 
     override fun onResume() {
         super.onResume()
+        resumedAt = SystemClock.elapsedRealtime()
+        cardSeenSinceResume = false
         nfcReader?.enable()
         publishNfcState()
         ContextCompat.registerReceiver(
@@ -239,10 +254,20 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
         val message = if (!wantData) null else (ndefFromIntent ?: CardTag.readMessage(tag))
         // A BoopBox-shared card, or a real Yoto card (plays from the yoto.io link on its tag).
         val shared = CardTag.decode(message, uid) ?: CardTag.yotoCard(message, uid)
-        runOnUiThread { viewModel.onCardTapped(uid, shared) }
+        val openedApp = !cardSeenSinceResume && SystemClock.elapsedRealtime() - resumedAt < LAUNCH_TAP_WINDOW_MS
+        cardSeenSinceResume = true
+        runOnUiThread { viewModel.onCardTapped(uid, shared, openedApp) }
         // Self-healing, after the tap is handed over so playback doesn't wait on it: a blank card gets the BoopBox
         // launch link, and a card whose link names an old package (or none) is fixed, so a tap opens the app from anywhere.
-        CardTag.heal(tag, if (wantData) message else (ndefFromIntent ?: CardTag.readMessage(tag)))
+        // Once per card per run of the app: touching the tag on every tap makes some phones (Xiaomi) lose a card that
+        // is still lying there, which stops playback as if it had been lifted. A fresh run checks again, so a tag
+        // wiped or rewritten since is still put right.
+        if (uid in checkedThisRun) return
+        val current = if (wantData) message else (ndefFromIntent ?: CardTag.readMessage(tag))
+        val wrote = CardTag.heal(tag, current)
+        // Done with this card if it was written, or read fine and needs nothing (right link, someone else's tag, too
+        // small). A blank or unreadable tag that couldn't be written is tried again next tap.
+        if (wrote || (current != null && current.records.any { it.tnf != NdefRecord.TNF_EMPTY })) checkedThisRun += uid
     }
 
     /**
@@ -302,5 +327,13 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
     private fun setKeepScreenOn(on: Boolean) {
         if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    private companion object {
+        /** Cards whose tag [CardTag.heal] has checked since the app process started (outlives the activity). */
+        val checkedThisRun: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
+        /** A card seen this soon after the app comes to the front is the card that opened it. */
+        const val LAUNCH_TAP_WINDOW_MS = 4000L
     }
 }

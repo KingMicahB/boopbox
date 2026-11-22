@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -742,11 +743,12 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 viewModel.playNow(it)
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.editor_save_and_play))
+                        Text(stringResource(R.string.editor_save_and_play), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -1007,8 +1009,15 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                     }
                                 }
                             ) { Text(stringResource(R.string.editor_download_newest)) }
-                            Spacer(Modifier.width(12.dp))
-                            feed?.let { Text(pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size), style = MaterialTheme.typography.bodyMedium) }
+                        }
+                        // Own line: beside the buttons it was squeezed into a column a few letters wide.
+                        feed?.let {
+                            Text(
+                                pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                         PodcastMode.entries.forEach { mode ->
                             Row(
