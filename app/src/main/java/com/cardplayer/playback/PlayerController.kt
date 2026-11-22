@@ -693,11 +693,24 @@ class PlayerController(
             SourceType.YOTO -> {
                 // Physical Yoto cards carry their own access link; library cards need the account.
                 if (!YotoClient.isCardLink(card.uri) && !yoto.isConnected) throw IllegalStateException(app.getString(R.string.msg_err_yoto_not_connected))
-                val detail = try {
-                    yoto.card(card.uri)
+                val group = yotoGroup(card)
+                // Offline (or Yoto down): fall back to the last chapter list, keeping only downloaded tracks.
+                val fetched = try {
+                    Result.success(yoto.card(card.uri))
                 } catch (e: Exception) {
-                    throw IllegalStateException(e.message ?: app.getString(R.string.msg_err_yoto_unreachable))
-                } ?: throw IllegalStateException(app.getString(R.string.msg_err_yoto_needs_internet))
+                    Result.failure(e)
+                }
+                val fresh = fetched.getOrNull()
+                val detail = fresh ?: yoto.cachedCard(card.uri)?.let { cached ->
+                    cached.copy(chapters = cached.chapters.mapNotNull { ch ->
+                        ch.copy(tracks = ch.tracks.filter { t -> podcastCache.cachedFileKeyed(group, ch.key + "/" + t.key) != null })
+                            .takeIf { it.tracks.isNotEmpty() }
+                    })
+                }?.takeIf { it.chapters.isNotEmpty() }
+                    ?: throw IllegalStateException(
+                        fetched.exceptionOrNull()?.let { it.message ?: app.getString(R.string.msg_err_yoto_unreachable) }
+                            ?: app.getString(R.string.msg_err_yoto_needs_internet)
+                    )
                 if (detail.chapters.isEmpty()) throw IllegalStateException(app.getString(R.string.msg_err_yoto_no_chapters))
                 // A real Yoto card adopted on its first tap has no name yet: take Yoto's title and cover.
                 cards.get(card.uid)?.takeIf { it.name.isBlank() }?.let { saved ->
@@ -707,7 +720,6 @@ class PlayerController(
                 }
                 // One media item per track; Yoto lists podcast chapters newest first already.
                 // Downloaded copies (keyed by chapter/track id) win over the hourly signed URLs.
-                val group = yotoGroup(card)
                 items = detail.chapters.flatMap { ch ->
                     val multi = ch.tracks.size > 1
                     ch.tracks.mapIndexed { i, t ->
@@ -723,7 +735,8 @@ class PlayerController(
                     }
                 }
                 stopAfterItem = detail.autoAdvance == "none"
-                if (settings.value.podcastAutoDownload) {
+                // Only a fresh list has live URLs to download from.
+                if (settings.value.podcastAutoDownload && fresh != null) {
                     scope.launch(Dispatchers.IO) {
                         try {
                             downloadYoto(card, detail)

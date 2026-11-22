@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.json.Json
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -65,8 +66,11 @@ class YotoClient(private val context: Context) {
     data class Tokens(val accessToken: String, val refreshToken: String, val expiresAt: Long)
 
     data class LibraryCard(val cardId: String, val title: String, val category: String?, val coverUrl: String?, val author: String?)
+    @Serializable
     data class Track(val key: String, val title: String?, val format: String?, val durationSec: Int, val trackUrl: String)
+    @Serializable
     data class Chapter(val key: String, val title: String, val availableFrom: String?, val iconUrl: String?, val tracks: List<Track>)
+    @Serializable
     data class CardDetail(
         val cardId: String,
         val title: String,
@@ -284,7 +288,41 @@ class YotoClient(private val context: Context) {
      * Chapters and fresh (signed, ~1 h) stream URLs for one card. [cardIdOrLink] is a library
      * card id (needs sign-in) or the yoto.io link read off a physical Yoto card (no sign-in).
      */
-    suspend fun card(cardIdOrLink: String): CardDetail? {
+    suspend fun card(cardIdOrLink: String): CardDetail? =
+        fetchCard(cardIdOrLink)?.also { saveCardDetail(cardIdOrLink, it) }
+
+    /**
+     * The chapter list last fetched for this card, so its downloaded tracks still play offline.
+     * Its stream URLs have long expired: only use tracks that are in the download cache.
+     */
+    fun cachedCard(cardIdOrLink: String): CardDetail? = try {
+        cardDetailFile(cardIdOrLink).takeIf { it.exists() }
+            ?.let { cardJson.decodeFromString(CardDetail.serializer(), it.readText()) }
+    } catch (_: Exception) {
+        null
+    }
+
+    private val cardJson = Json { ignoreUnknownKeys = true }
+    private val cardDir = File(context.filesDir, "yoto-cards")
+
+    private fun cardDetailFile(cardIdOrLink: String): File {
+        val hash = MessageDigest.getInstance("SHA-1").digest(cardIdOrLink.trim().toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        return File(cardDir, "$hash.json")
+    }
+
+    private suspend fun saveCardDetail(cardIdOrLink: String, detail: CardDetail) = withContext(Dispatchers.IO) {
+        try {
+            cardDir.mkdirs()
+            val file = cardDetailFile(cardIdOrLink)
+            val tmp = File(file.path + ".tmp")
+            tmp.writeText(cardJson.encodeToString(CardDetail.serializer(), detail))
+            tmp.renameTo(file)
+        } catch (_: Exception) {
+        }
+    }
+
+    private suspend fun fetchCard(cardIdOrLink: String): CardDetail? {
         if (!isCardLink(cardIdOrLink)) {
             val json = get("/card/$cardIdOrLink") ?: return null
             return parseCard(cardIdOrLink, json.optJSONObject("card") ?: json)
