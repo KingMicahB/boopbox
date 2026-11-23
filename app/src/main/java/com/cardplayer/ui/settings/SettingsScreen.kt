@@ -699,6 +699,13 @@ private fun LazyListScope.playbackSection(settings: AppSettings, viewModel: Main
         ) { mode -> viewModel.updateSettings { it.copy(cardRemovedOverride = mode) } }
     }
     item {
+        SwitchRow(
+            title = stringResource(R.string.settings_car_card_lift_title),
+            subtitle = stringResource(R.string.settings_car_card_lift_subtitle),
+            checked = settings.carIgnoreCardLift
+        ) { v -> viewModel.updateSettings { it.copy(carIgnoreCardLift = v) } }
+    }
+    item {
         Column {
             Text(stringResource(R.string.settings_card_removed_title), style = MaterialTheme.typography.bodyLarge)
             Text(

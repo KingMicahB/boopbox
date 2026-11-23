@@ -14,8 +14,10 @@ documentfile = "1.1.0"
 junit = "4.13.2"
 billing = "8.3.0"
 fragment = "1.8.9"
+carApp = "1.4.0"
 
 [libraries]
+androidx-car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }

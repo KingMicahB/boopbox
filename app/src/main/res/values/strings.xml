@@ -213,6 +213,10 @@
     <string name="settings_card_removed_override_title">All cards: when lifted off the phone</string>
     <string name="settings_card_removed_override_hint">Overrides every card\'s own choice.</string>
     <string name="settings_card_removed_override_none">No Override</string>
+    <string name="settings_car_card_lift_title">In the car: keep playing when the card is lifted</string>
+    <string name="settings_car_card_lift_subtitle">While the phone is connected to Android Auto, a card sliding off the phone doesn\'t stop the music.</string>
+    <string name="car_tab_cards">Cards</string>
+    <string name="car_tab_songs">Songs &amp; chapters</string>
     <string name="settings_card_removed_title">New cards: when the card is lifted off the phone</string>
     <string name="settings_card_removed_hint">Each card has its own choice in its settings (e.g. audiobooks stop, music keeps playing). This is what new cards start with.</string>
     <string name="settings_card_removed_stop">Stop</string>

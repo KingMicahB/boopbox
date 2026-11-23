@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto: BoopBox is a media app (browse the cards, play / pause / skip from the car screen). -->
+<automotiveApp>
+    <uses name="media" />
+</automotiveApp>

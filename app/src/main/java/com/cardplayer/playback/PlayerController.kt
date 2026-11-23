@@ -290,6 +290,12 @@ class PlayerController(
         val s = settings.value
         val card = currentCard?.takeIf { it.uid == uid } ?: return
         cardOnPhone = false
+        // In the car a card slides off the phone on every bump: carry on, and expect it straight back.
+        if (s.carIgnoreCardLift && CarLink.connected) {
+            cancelRemoval()
+            liftIgnoredAt = SystemClock.elapsedRealtime()
+            return
+        }
         val mode = card.removedMode(s)
         if (mode == "nothing") return
         cancelRemoval()
@@ -308,6 +314,9 @@ class PlayerController(
         removalRunnable = null
     }
 
+    /** When a lift of the playing card was last ignored because the phone is in the car (elapsedRealtime), else 0. */
+    private var liftIgnoredAt = 0L
+
     @Volatile
     var hooks: ActivityHooks? = null
 
@@ -323,6 +332,12 @@ class PlayerController(
             cancelRemoval()
             return
         }
+        // Same in the car, where the lift was ignored: the card coming back must not pause the music.
+        val liftedAt = liftIgnoredAt
+        liftIgnoredAt = 0L
+        if (tapped && liftedAt > 0L && cur?.uid == card.uid && _nowPlaying.value != null &&
+            SystemClock.elapsedRealtime() - liftedAt < maxOf(s.cardRemovedGraceSeconds, 3) * 1000L
+        ) return
         // The card already playing in another app, seen again: NFC reader mode restarts every time we come back
         // to the front, so a card left on the phone "taps" again. Relaunching the app would bounce between the
         // two forever (and a toggle would pause it on every return).
@@ -346,6 +361,21 @@ class PlayerController(
         cancelRemoval()
         cardOnPhone = false
         startAt = mediaId to positionMs
+        startCard(card)
+    }
+
+    /**
+     * A card picked on the car screen (Android Auto): like a tap, except that picking the card that is already
+     * on never pauses or restarts it; it just makes sure it is playing.
+     */
+    fun playFromCar(card: Card) {
+        cancelRemoval()
+        if (currentCard?.uid == card.uid && _nowPlaying.value != null) {
+            if (_nowPlaying.value?.isPlaying != true) togglePlayPause()
+            return
+        }
+        cardOnPhone = false
+        startAt = null
         startCard(card)
     }
 
@@ -833,10 +863,28 @@ class PlayerController(
         // A cut single file plays from its start cut: the player's positions then start there, chapters don't.
         itemOffsetMs = if (items.size == 1) items[0].clippingConfiguration.startPositionMs else 0L
 
+        // What the session shows outside the app (car screen, lock screen): the card's name, and for one file
+        // split into songs where each one starts, so next / previous and the title follow the songs there too.
+        val cardName = card.displayName(app)
+        val queue = if (items.size == 1 && card.chapters.size > 1) {
+            val chapters = card.chapters
+            listOf(
+                CardPlayer.tag(
+                    items[0],
+                    cardName,
+                    chapterStarts = LongArray(chapters.size) { (chapterSpan(card, it, 0L).first - itemOffsetMs).coerceAtLeast(0L) },
+                    chapterTitles = Array(chapters.size) { chapters[it].title },
+                    chapterArt = Array(chapters.size) { card.trackArt[chapters[it].artKey] ?: card.artworkUrl.takeIf { card.audiobook } ?: "" }
+                )
+            )
+        } else {
+            items.map { CardPlayer.tag(it, cardName) }
+        }
+
         val c = awaitController()
         c.shuffleModeEnabled = card.shuffle
         c.repeatMode = Player.REPEAT_MODE_OFF // stop at the end, no looping
-        c.setMediaItems(items, startIndex, startPos)
+        c.setMediaItems(queue, startIndex, startPos)
         c.setPlaybackSpeed(if (Plus.isActive) card.speed.coerceIn(0.5f, 2f) else 1f)
         c.prepare()
         c.play()

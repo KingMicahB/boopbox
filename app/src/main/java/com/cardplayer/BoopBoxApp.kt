@@ -7,6 +7,7 @@ import com.cardplayer.data.CardRepository
 import com.cardplayer.data.PendingCardRepository
 import com.cardplayer.data.PositionStore
 import com.cardplayer.data.SettingsRepository
+import com.cardplayer.playback.CarLink
 import com.cardplayer.playback.PlayerController
 
 class BoopBoxApp : Application() {
@@ -29,6 +30,7 @@ class BoopBoxApp : Application() {
         positions = PositionStore(this)
         pending = PendingCardRepository(this, cards)
         player = PlayerController(this, cards, settings, positions)
+        CarLink.start(this)
     }
 
     companion object {

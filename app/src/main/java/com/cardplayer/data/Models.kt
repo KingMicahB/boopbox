@@ -168,6 +168,8 @@ data class AppSettings(
     val cardRemoved: String? = null,
     /** Lifting any card off the phone: "nothing", "pause" or "stop", beating every card's own choice. Null = no override. */
     val cardRemovedOverride: String? = null,
+    /** While the phone is connected to a car screen (Android Auto), a card lifted off the phone changes nothing. */
+    val carIgnoreCardLift: Boolean = true,
     /** Seconds to put the card back before the removal action happens. */
     val cardRemovedGraceSeconds: Int = 3,
     /** Tint the whole screen for a moment on every zone tap. */

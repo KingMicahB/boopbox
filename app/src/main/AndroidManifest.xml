@@ -198,7 +198,21 @@
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <!-- Android Auto browses the cards and controls playback through this service. -->
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <!-- Android Auto: BoopBox shows up on the car screen as a media app. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <!-- Card pictures for the car screen, which loads them itself (see CardArtProvider). Read only. -->
+        <provider
+            android:name=".playback.CardArtProvider"
+            android:authorities="${applicationId}.art"
+            android:exported="true" />
     </application>
 </manifest>

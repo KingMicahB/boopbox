@@ -217,6 +217,10 @@
     <string name="settings_card_removed_override_title">כל הכרטיסים: כשהכרטיס מורם מהטלפון</string>
     <string name="settings_card_removed_override_hint">גובר על הבחירה של כל כרטיס.</string>
     <string name="settings_card_removed_override_none">ללא עקיפה</string>
+    <string name="settings_car_card_lift_title">ברכב: ממשיכים לנגן כשהכרטיס מורם</string>
+    <string name="settings_car_card_lift_subtitle">כשהטלפון מחובר ל-Android Auto, כרטיס שמחליק מהטלפון לא עוצר את המוזיקה.</string>
+    <string name="car_tab_cards">כרטיסים</string>
+    <string name="car_tab_songs">שירים ופרקים</string>
     <string name="settings_card_removed_title">כרטיסים חדשים: כשהכרטיס מורם מהטלפון</string>
     <string name="settings_card_removed_hint">לכל כרטיס יש בחירה משלו בהגדרות שלו (למשל ספרי שמע נעצרים, מוזיקה ממשיכה לנגן). זה מה שכרטיסים חדשים מתחילים איתו.</string>
     <string name="settings_card_removed_stop">עצירה</string>

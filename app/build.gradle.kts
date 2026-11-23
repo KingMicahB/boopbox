@@ -75,6 +75,8 @@ dependencies {
 
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
+    // Only for CarConnection: is the phone connected to a car screen (Android Auto) right now?
+    implementation(libs.androidx.car.app)
     implementation(libs.coil.compose)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
