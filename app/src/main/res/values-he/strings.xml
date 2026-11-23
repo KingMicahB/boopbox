@@ -158,6 +158,9 @@
     <string name="settings_backup_body">כל כרטיס, כל הגדרה, ההתחברות ל-Yoto וכל השירים והתמונות שהכרטיסים משתמשים בהם (גם אלה שנבחרו מהתיקיות של הטלפון), בקובץ אחד. עם הרבה שירים מהטלפון הקובץ יכול להיות גדול.</string>
     <string name="settings_backup_save">שמירת גיבוי</string>
     <string name="settings_backup_restore">שחזור מגיבוי</string>
+    <string name="settings_backup_saving">שומר גיבוי…</string>
+    <string name="settings_backup_restoring">משחזר מגיבוי…</string>
+    <string name="settings_backup_percent">%1$s %2$d%%</string>
     <string name="settings_restore_title">לשחזר את הגיבוי הזה?</string>
     <string name="settings_restore_body">הפעולה מחליפה את כל הכרטיסים וההגדרות בטלפון הזה באלה שבגיבוי. כל מה שמתנגן כרגע ייעצר.</string>
     <string name="settings_restore_confirm">שחזור</string>
@@ -883,6 +886,18 @@
     <string name="editor_send_sticker">שליחת המדבקה כתמונה</string>
     <string name="editor_send_sticker_note">המדבקה של הכרטיס כתמונה, בגודל של כרטיס NFC: &#x200E;54 × 85.6 מ\"מ. הדפיסו ב-100%%, לא \"התאמה לעמוד\".</string>
     <string name="msg_sticker_failed">לא הצלחנו ליצור את תמונת המדבקה: %1$s</string>
+    <string name="sticker_pack_export">ייצוא חבילת מדבקות</string>
+    <string name="sticker_pack_body">המדבקה של כל כרטיס, כל אחת בגודל של כרטיס NFC (&#x200E;54 × 85.6 מ\"מ).</string>
+    <string name="sticker_pack_zip">ייצוא כקובץ zip</string>
+    <string name="sticker_pack_zip_detail">כל מדבקה כתמונה נפרדת, כולן בקובץ zip אחד.</string>
+    <string name="sticker_pack_print">ייצוא להדפסה</string>
+    <string name="sticker_pack_print_detail" formatted="false">קובץ PDF עם המדבקות זו לצד זו על הדף. הדפיסו ב-100%, לא \"התאמה לעמוד\", וגזרו לאורך הקווים האפורים.</string>
+    <string name="sticker_pack_file_name">מדבקות BoopBox</string>
+    <plurals name="msg_sticker_pack_making">
+        <item quantity="one">מכין מדבקה אחת…</item>
+        <item quantity="two">מכין %d מדבקות…</item>
+        <item quantity="other">מכין %d מדבקות…</item>
+    </plurals>
     <string name="plus_reason_trim">חיתוך ההתחלה והסוף של שיר הוא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_general">פתיחת כל הכרטיסים וכל התוספות להורים.</string>
     <string name="plus_includes">מה יש ב־Plus</string>

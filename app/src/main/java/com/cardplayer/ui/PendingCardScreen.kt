@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -104,7 +104,7 @@ fun PendingCardScreen(
             )
             // Swallow taps so nothing reaches the player screen underneath.
             .pointerInput(Unit) { detectTapGestures { } }
-            .systemBarsPadding()
+            .safeDrawingPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Column(
@@ -312,7 +312,7 @@ fun ReceivingOverlay(state: ReceiveState, onDismiss: () -> Unit) {
             .fillMaxSize()
             .background(Color(0xFF101828).copy(alpha = 0.96f))
             .pointerInput(Unit) { detectTapGestures { } }
-            .systemBarsPadding()
+            .safeDrawingPadding()
             .padding(32.dp),
         contentAlignment = Alignment.Center
     ) {

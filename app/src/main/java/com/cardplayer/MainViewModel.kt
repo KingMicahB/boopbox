@@ -1,5 +1,6 @@
 package com.cardplayer
 
+import com.cardplayer.sticker.StickerPack
 import com.cardplayer.sticker.StickerPng
 import com.cardplayer.data.StickerDesign
 import android.graphics.BitmapFactory
@@ -644,6 +645,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Every card's sticker at once, handed to [onReady] (on the main thread) with its mime type: a .zip of
+     * card-sized PNGs, or ([forPrint]) a PDF with the stickers laid out side by side on the page, ready to print
+     * at 100% and cut out. Cards go in [cards]' order.
+     */
+    fun exportStickerPack(cards: List<Card>, forPrint: Boolean, onReady: (File, String) -> Unit) {
+        if (_boopBusy.value || cards.isEmpty()) return
+        _boopBusy.value = true
+        _notices.tryEmit(Notice(app.resources.getQuantityString(R.plurals.msg_sticker_pack_making, cards.size, cards.size)))
+        viewModelScope.launch {
+            try {
+                val file = withContext(Dispatchers.Default) {
+                    val pictures = StickerRenderer.coilPictures(app)
+                    val dir = StickerPack.outDir(app)
+                    val name = app.getString(R.string.sticker_pack_file_name)
+                    // One sticker at a time: a whole shelf of them at full size would not fit in memory.
+                    val next: suspend (Int) -> android.graphics.Bitmap? = { i ->
+                        try {
+                            StickerPack.stickerFor(app, cards[i], pictures)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    if (forPrint) {
+                        val paper = StickerPack.paperFor(app.resources.configuration.locales[0])
+                        File(dir, "$name.pdf").also { StickerPack.writePdf(it, paper, cards.size, next) }
+                    } else {
+                        File(dir, "$name.zip").also { StickerPack.writeZip(it, StickerPack.fileNames(app, cards), next) }
+                    }
+                }
+                onReady(file, if (forPrint) StickerPack.MIME_PDF else StickerPack.MIME_ZIP)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _notices.tryEmit(Notice(app.getString(R.string.msg_sticker_failed, errorText(e)), error = true))
+            } finally {
+                _boopBusy.value = false
+            }
+        }
+    }
+
     /** Copies a .boop already packed by [exportBoop] to a place the grown-up picked. */
     fun saveBoopTo(file: File, target: Uri) {
         viewModelScope.launch {
@@ -713,20 +757,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---- whole-phone backup
 
+    /** A backup being saved or put back: which, and how far in (0..100; null = can't tell). */
+    data class BackupProgress(val restoring: Boolean, val percent: Int?)
+
+    private val _backupProgress = MutableStateFlow<BackupProgress?>(null)
+    /** Null while no backup is being saved or restored. */
+    val backupProgress: StateFlow<BackupProgress?> = _backupProgress.asStateFlow()
+
+    /** Feeds [_backupProgress], only when the whole percent changes (the copy reports every 64 KB). */
+    private fun backupProgressTo(restoring: Boolean) = Backup.Progress { done, total ->
+        val percent = if (total > 0) (done * 100 / total).toInt().coerceIn(0, 100) else null
+        val now = BackupProgress(restoring, percent)
+        if (_backupProgress.value != now) _backupProgress.value = now
+    }
+
     /** Writes every card, the settings, positions, Yoto sign-in and the library into [target]. */
     fun exportBackup(target: Uri) {
         if (_boopBusy.value) return
         _boopBusy.value = true
+        _backupProgress.value = BackupProgress(restoring = false, percent = null)
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    app.contentResolver.openOutputStream(target)?.use { Backup.export(app, it) }
+                    app.contentResolver.openOutputStream(target)?.use { Backup.export(app, it, backupProgressTo(restoring = false)) }
                         ?: throw IllegalStateException(app.getString(R.string.msg_cant_write_there))
                 }
                 _notices.tryEmit(Notice(app.getString(R.string.msg_backup_saved)))
             } catch (e: Exception) {
                 _notices.tryEmit(Notice(app.getString(R.string.msg_backup_failed, errorText(e)), error = true))
             } finally {
+                _backupProgress.value = null
                 _boopBusy.value = false
             }
         }
@@ -736,11 +796,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun importBackup(uri: Uri) {
         if (_boopBusy.value) return
         _boopBusy.value = true
+        _backupProgress.value = BackupProgress(restoring = true, percent = null)
         viewModelScope.launch {
             try {
                 app.player.stop()
                 val count = withContext(Dispatchers.IO) {
-                    app.contentResolver.openInputStream(uri)?.use { Backup.import(app, it) }
+                    val size = Backup.sizeOf(app, uri.toString())
+                    app.contentResolver.openInputStream(uri)?.use { Backup.import(app, it, size, backupProgressTo(restoring = true)) }
                         ?: throw IllegalStateException(app.getString(R.string.msg_cant_open_file))
                 }
                 app.cards.reload()
@@ -751,6 +813,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _notices.tryEmit(Notice(app.getString(R.string.msg_restore_failed, errorText(e)), error = true))
             } finally {
+                _backupProgress.value = null
                 _boopBusy.value = false
             }
         }

@@ -26,7 +26,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import com.cardplayer.ui.barsAndCutout
+import com.cardplayer.ui.barsBottomPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -821,8 +825,11 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     }
 
     Scaffold(
+        // Lying down, the camera cut-out is at a side: the bars alone would leave the editor under it.
+        contentWindowInsets = WindowInsets.barsAndCutout,
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets.barsAndCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 title = { Text(stringResource(if (saved == null) R.string.editor_title_new else R.string.editor_title_edit)) },
                 navigationIcon = {
                     IconButton(onClick = { leave() }) {
@@ -849,7 +856,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
+                        .barsBottomPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Button(

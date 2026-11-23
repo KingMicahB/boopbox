@@ -2,6 +2,7 @@ package com.cardplayer.data
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
 import com.cardplayer.R
 import com.cardplayer.audio.Audiobook
@@ -12,6 +13,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -56,33 +58,66 @@ object Backup {
     fun fileName(): String =
         "boopbox-backup-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".zip"
 
-    /** Writes the backup to [out]. Runs on a background thread. */
-    fun export(context: Context, out: OutputStream) {
+    /**
+     * How far a backup has got: [done] of [total] bytes. [total] is a best guess (a phone file may not say how
+     * big it is), so [done] can pass it.
+     */
+    fun interface Progress {
+        fun update(done: Long, total: Long)
+    }
+
+    /** Writes the backup to [out], telling [progress] as it goes. Runs on a background thread. */
+    fun export(context: Context, out: OutputStream, progress: Progress = Progress { _, _ -> }) {
         val root = context.filesDir
+        // Everything is listed first, so the whole size is known before the first byte is written.
+        val local = ArrayList<Pair<String, File>>()
+        for (name in FILES) File(root, name).takeIf { it.isFile }?.let { local += name to it }
+        for (folder in FOLDERS) {
+            val dir = File(root, folder)
+            if (!dir.isDirectory) continue
+            dir.walkTopDown().filter { it.isFile }.forEach { f ->
+                local += "$folder/" + f.relativeTo(dir).path.replace(File.separatorChar, '/') to f
+            }
+        }
+        val cards = try {
+            File(root, "cards.json").takeIf { it.isFile }?.let { json.decodeFromString(cardsSerializer, it.readText()) }
+        } catch (_: Exception) {
+            null
+        }
+        val (phoneUris, folders) = phoneFiles(context, cards.orEmpty())
+        val phoneSizes = phoneUris.associateWith { sizeOf(context, it) }
+        val total = local.sumOf { it.second.length() } + phoneSizes.values.sum()
+        var done = 0L
+        val counted = { n: Long -> done += n; progress.update(done, total) }
+        progress.update(0, total)
+
         ZipOutputStream(out.buffered()).use { zip ->
-            for (name in FILES) {
-                val f = File(root, name)
-                if (!f.isFile) continue
+            for ((name, f) in local) {
                 zip.putNextEntry(ZipEntry(name))
-                f.inputStream().use { it.copyTo(zip) }
+                f.inputStream().use { copy(it, zip, counted) }
                 zip.closeEntry()
             }
-            for (folder in FOLDERS) {
-                val dir = File(root, folder)
-                if (!dir.isDirectory) continue
-                dir.walkTopDown().filter { it.isFile }.forEach { f ->
-                    val rel = f.relativeTo(dir).path.replace(File.separatorChar, '/')
-                    zip.putNextEntry(ZipEntry("$folder/$rel"))
-                    f.inputStream().use { it.copyTo(zip) }
+            // Copies of every phone file the cards play or show, in `phone/`. A file that no longer opens is left out.
+            val files = LinkedHashMap<String, String>()
+            for (s in phoneUris) {
+                val input = try {
+                    context.contentResolver.openInputStream(Uri.parse(s))
+                } catch (_: Exception) {
+                    null
+                }
+                if (input == null) {
+                    counted(phoneSizes[s] ?: 0L)
+                    continue
+                }
+                val name = "$PHONE_DIR/" + shortHash(s) + "-" + sanitize(DocumentFile.fromSingleUri(context, Uri.parse(s))?.name ?: "file")
+                input.use {
+                    zip.putNextEntry(ZipEntry(name))
+                    copy(it, zip, counted)
                     zip.closeEntry()
                 }
+                files[s] = name
             }
-            val cards = try {
-                File(root, "cards.json").takeIf { it.isFile }?.let { json.decodeFromString(cardsSerializer, it.readText()) }
-            } catch (_: Exception) {
-                null
-            }
-            val phone = packPhoneFiles(context, cards.orEmpty(), zip)
+            val phone = PhoneFiles(files, folders.filterValues { list -> list.any { it.uri in files } })
             if (phone.files.isNotEmpty()) {
                 zip.putNextEntry(ZipEntry(PHONE_INDEX))
                 zip.write(json.encodeToString(PhoneFiles.serializer(), phone).toByteArray())
@@ -91,24 +126,12 @@ object Backup {
         }
     }
 
-    /** Copies every phone file the cards play or show into `phone/` in [zip]. A file that no longer opens is left out. */
-    private fun packPhoneFiles(context: Context, cards: List<Card>, zip: ZipOutputStream): PhoneFiles {
-        val files = LinkedHashMap<String, String>()
+    /** Every phone file (`content://`) the cards play or show, once each, and each folder card's songs. */
+    private fun phoneFiles(context: Context, cards: List<Card>): Pair<Set<String>, Map<String, List<PlaylistItem>>> {
+        val uris = LinkedHashSet<String>()
         val folders = LinkedHashMap<String, List<PlaylistItem>>()
         fun add(s: String?) {
-            if (s == null || !s.startsWith("content://") || s in files) return
-            val input = try {
-                context.contentResolver.openInputStream(Uri.parse(s))
-            } catch (_: Exception) {
-                null
-            } ?: return
-            val name = "$PHONE_DIR/" + shortHash(s) + "-" + sanitize(DocumentFile.fromSingleUri(context, Uri.parse(s))?.name ?: "file")
-            input.use {
-                zip.putNextEntry(ZipEntry(name))
-                it.copyTo(zip)
-                zip.closeEntry()
-            }
-            files[s] = name
+            if (s != null && s.startsWith("content://")) uris += s
         }
         for (card in cards) {
             if (card.sourceType == SourceType.LOCAL_FOLDER) {
@@ -123,18 +146,52 @@ object Backup {
             card.playlist.forEach { add(it.uri) }
             card.trackArt.forEach { (k, v) -> add(k); add(v) }
         }
-        return PhoneFiles(files, folders.filterValues { list -> list.any { it.uri in files } })
+        return uris to folders
+    }
+
+    /** How big a phone file says it is (0 when it won't say). */
+    fun sizeOf(context: Context, uri: String): Long = try {
+        context.contentResolver.query(Uri.parse(uri), arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0).coerceAtLeast(0L) else 0L
+        } ?: 0L
+    } catch (_: Exception) {
+        0L
+    }
+
+    /** [InputStream.copyTo], telling [counted] about every chunk. */
+    private fun copy(input: InputStream, out: OutputStream, counted: (Long) -> Unit) {
+        val buffer = ByteArray(64 * 1024)
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            out.write(buffer, 0, n)
+            counted(n.toLong())
+        }
+    }
+
+    /** Counts the bytes read through it: how far into a backup file a restore has got. */
+    private class CountingInput(input: InputStream, private val counted: (Long) -> Unit) : FilterInputStream(input) {
+        override fun read(): Int = super.read().also { if (it >= 0) counted(1) }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { if (it > 0) counted(it.toLong()) }
+
+        override fun skip(n: Long): Long = super.skip(n).also { if (it > 0) counted(it) }
     }
 
     /**
      * Puts the backup's files in place of this phone's. The caller stops playback first and
      * reloads the stores afterwards. Runs on a background thread. Returns the number of cards.
+     * [size] = how big the backup file is (0 = not known): [progress] follows the reading of it, which is nearly
+     * all the time a restore takes.
      */
-    fun import(context: Context, input: InputStream): Int {
+    fun import(context: Context, input: InputStream, size: Long = 0L, progress: Progress = Progress { _, _ -> }): Int {
         val root = context.filesDir
         val tmp = File(context.cacheDir, "backup-in-${System.currentTimeMillis()}").apply { mkdirs() }
         try {
-            ZipInputStream(input.buffered()).use { zip ->
+            var read = 0L
+            progress.update(0, size)
+            val counting = CountingInput(input) { n -> read += n; progress.update(read, size) }
+            ZipInputStream(counting.buffered()).use { zip ->
                 val base = tmp.canonicalPath + File.separator
                 while (true) {
                     val entry = zip.nextEntry ?: break

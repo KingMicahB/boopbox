@@ -30,7 +30,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.calculateEndPadding
+import com.cardplayer.ui.barsAndCutout
+import com.cardplayer.ui.barsBottomPadding
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -298,8 +305,10 @@ fun SettingsScreen(viewModel: MainViewModel) {
         val m = Metrics(maxWidth)
         val current = section
         Scaffold(
+            contentWindowInsets = WindowInsets.barsAndCutout,
             topBar = {
                 TopAppBar(
+                    windowInsets = WindowInsets.barsAndCutout.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                     title = { Text(stringResource(current?.titleRes ?: R.string.settings_title)) },
                     navigationIcon = {
                         IconButton(onClick = { if (current == null) viewModel.goToPlayer() else section = null }) {
@@ -321,9 +330,11 @@ fun SettingsScreen(viewModel: MainViewModel) {
             // Whatever the toddler left playing stays in reach while the grown-up is in here.
             bottomBar = { nowPlaying?.let { MiniPlayer(np = it, pixel = settings.pixelArt, viewModel = viewModel) } }
         ) { padding ->
+            // The sides too: lying down, the camera cut-out is at one of them.
+            val direction = LocalLayoutDirection.current
             val contentPadding = PaddingValues(
-                start = m.gutter,
-                end = m.gutter,
+                start = m.gutter + padding.calculateStartPadding(direction),
+                end = m.gutter + padding.calculateEndPadding(direction),
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 96.dp
             )
@@ -418,7 +429,7 @@ private fun MiniPlayer(np: NowPlaying, pixel: Boolean, viewModel: MainViewModel)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .barsBottomPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -578,15 +589,12 @@ private fun LazyListScope.cardsSection(
         }
     }
     val q = query.trim()
-    val shown = cards
-        .filter { q.isEmpty() || it.name.contains(q, ignoreCase = true) || it.subtitle?.contains(q, ignoreCase = true) == true }
-        .let { list ->
-            when (settings.cardSort) {
-                "name" -> list.sortedBy { it.name.ifBlank { it.subtitle ?: "" }.lowercase() }
-                "added" -> list.sortedByDescending { it.createdAt }
-                else -> list.sortedWith(compareByDescending<CardModel> { it.lastPlayedAt }.thenByDescending { it.createdAt })
-            }
-        }
+    val sorted = when (settings.cardSort) {
+        "name" -> cards.sortedBy { it.name.ifBlank { it.subtitle ?: "" }.lowercase() }
+        "added" -> cards.sortedByDescending { it.createdAt }
+        else -> cards.sortedWith(compareByDescending<CardModel> { it.lastPlayedAt }.thenByDescending { it.createdAt })
+    }
+    val shown = sorted.filter { q.isEmpty() || it.name.contains(q, ignoreCase = true) || it.subtitle?.contains(q, ignoreCase = true) == true }
     if (cards.isNotEmpty() && shown.isEmpty()) {
         item {
             Text(stringResource(R.string.settings_no_matching_cards), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -604,6 +612,57 @@ private fun LazyListScope.cardsSection(
             onPlay = { viewModel.playNow(card) },
             extra = { YouTubeCacheStatus(viewModel.player.youtubeCache, card, settings.youtubeAutoCache) }
         )
+    }
+    // Every card's sticker at once (all of them, whatever the search shows), in the list's order.
+    if (cards.isNotEmpty()) {
+        item(key = "sticker-pack") { StickerPackButton(sorted, viewModel) }
+    }
+}
+
+/** "Export sticker pack": the stickers as a .zip of pictures, or as a PDF laid out for printing. */
+@Composable
+private fun StickerPackButton(cards: List<CardModel>, viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
+    var asking by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+        OutlinedButton(onClick = { asking = true }, enabled = !busy) { Text(stringResource(R.string.sticker_pack_export)) }
+    }
+    if (asking) {
+        fun export(forPrint: Boolean) {
+            asking = false
+            viewModel.exportStickerPack(cards, forPrint) { file, mime ->
+                context.startActivity(com.cardplayer.sticker.StickerPack.shareIntent(context, file, mime))
+            }
+        }
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(stringResource(R.string.sticker_pack_export)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.sticker_pack_body), style = MaterialTheme.typography.bodyMedium)
+                    StickerPackOption(stringResource(R.string.sticker_pack_zip), stringResource(R.string.sticker_pack_zip_detail)) { export(false) }
+                    StickerPackOption(stringResource(R.string.sticker_pack_print), stringResource(R.string.sticker_pack_print_detail)) { export(true) }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { asking = false }) { Text(stringResource(android.R.string.cancel)) } }
+        )
+    }
+}
+
+@Composable
+private fun StickerPackOption(title: String, detail: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -881,6 +940,27 @@ private fun LazyListScope.accountsSection(settings: AppSettings, viewModel: Main
                 title = stringResource(R.string.settings_backup_restore),
                 onClick = if (busy) null else ({ opener.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) })
             )
+            // A big library takes a while: how far in it is.
+            val progress by viewModel.backupProgress.collectAsStateWithLifecycle()
+            progress?.let { p ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    val what = stringResource(if (p.restoring) R.string.settings_backup_restoring else R.string.settings_backup_saving)
+                    Text(
+                        if (p.percent != null) stringResource(R.string.settings_backup_percent, what, p.percent) else what,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (p.percent != null) {
+                        LinearProgressIndicator(progress = { p.percent / 100f }, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                    }
+                }
+            }
         }
         confirmRestore?.let { uri ->
             AlertDialog(

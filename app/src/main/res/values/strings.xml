@@ -158,6 +158,9 @@
     <string name="settings_backup_body">Every card, every setting, the Yoto sign-in and every song and picture the cards use (also the ones picked from the phone\'s own folders), in one file. With lots of songs from the phone the file can get big.</string>
     <string name="settings_backup_save">Save backup</string>
     <string name="settings_backup_restore">Restore backup</string>
+    <string name="settings_backup_saving">Saving backup…</string>
+    <string name="settings_backup_restoring">Restoring backup…</string>
+    <string name="settings_backup_percent">%1$s %2$d%%</string>
     <string name="settings_restore_title">Restore this backup?</string>
     <string name="settings_restore_body">It replaces every card and setting on this phone with the backup\'s. Whatever is playing stops.</string>
     <string name="settings_restore_confirm">Restore</string>
@@ -847,6 +850,17 @@
     <string name="editor_send_sticker">Send sticker (.png)</string>
     <string name="editor_send_sticker_note">The card\'s sticker as a picture, the size of an NFC card: 54 × 85.6 mm. Print it at 100%%, not \"fit to page\".</string>
     <string name="msg_sticker_failed">Couldn\'t make the sticker picture: %1$s</string>
+    <string name="sticker_pack_export">Export sticker pack</string>
+    <string name="sticker_pack_body">Every card\'s sticker, each the size of an NFC card (54 × 85.6 mm).</string>
+    <string name="sticker_pack_zip">Export as .zip</string>
+    <string name="sticker_pack_zip_detail">Each sticker as its own picture, all in one .zip.</string>
+    <string name="sticker_pack_print">Export for printing</string>
+    <string name="sticker_pack_print_detail" formatted="false">A PDF with the stickers side by side on the page. Print at 100%, not \"fit to page\", then cut along the grey lines.</string>
+    <string name="sticker_pack_file_name">BoopBox stickers</string>
+    <plurals name="msg_sticker_pack_making">
+        <item quantity="one">Making %d sticker…</item>
+        <item quantity="other">Making %d stickers…</item>
+    </plurals>
     <string name="plus_reason_trim">Trimming the start and end of a song is part of BoopBox Plus.</string>
     <string name="plus_reason_general">Unlock every card and grown-up extra.</string>
     <string name="plus_includes">Plus includes</string>

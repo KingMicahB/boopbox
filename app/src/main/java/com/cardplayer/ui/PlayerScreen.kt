@@ -34,10 +34,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -550,7 +548,7 @@ fun PlayerScreen(viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .statusBarsPadding()
+                .safeTopPadding()
                 .padding(start = 20.dp, top = 22.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -574,7 +572,7 @@ fun PlayerScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .statusBarsPadding()
+                .safeTopPadding()
                 .padding(12.dp)
                 .size(60.dp)
                 .alpha(if (noCards) 0.9f else 0.3f)
@@ -627,7 +625,7 @@ fun PlayerScreen(viewModel: MainViewModel) {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
+                .safeBottomPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -1074,7 +1072,7 @@ private fun NowPlayingContent(
                         compact = landscape,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .statusBarsPadding()
+                            .safeTopPadding()
                             .padding(top = edgePad)
                     )
                     ZoneGlyph(
@@ -1084,7 +1082,7 @@ private fun NowPlayingContent(
                         compact = landscape,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
+                            .safeBottomPadding()
                             .padding(bottom = edgePad)
                     )
                     ZoneGlyph(
@@ -1094,6 +1092,7 @@ private fun NowPlayingContent(
                         compact = landscape,
                         modifier = Modifier
                             .align(Alignment.CenterStart)
+                            .safeSidePadding()
                             .padding(start = 18.dp)
                     )
                     ZoneGlyph(
@@ -1103,6 +1102,7 @@ private fun NowPlayingContent(
                         compact = landscape,
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
+                            .safeSidePadding()
                             .padding(end = 18.dp)
                     )
                 }

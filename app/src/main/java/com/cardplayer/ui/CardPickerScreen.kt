@@ -16,10 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -124,7 +123,7 @@ fun CardPickerScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .statusBarsPadding()
+                .safeTopPadding()
                 .padding(12.dp)
                 .size(60.dp)
                 .clip(CircleShape)
@@ -220,8 +219,7 @@ private fun PickerCarousel(cards: List<Card>, pixel: Boolean, dim: Boolean, onPi
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .safeDrawingPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -290,8 +288,7 @@ private fun PickerTiles(cards: List<Card>, cols: Int, rows: Int, pixel: Boolean,
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .safeDrawingPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // As tall as the close button beside it, and clear of it on both sides. A short screen keeps the room for cards.
