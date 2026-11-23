@@ -20,7 +20,7 @@ import java.util.zip.ZipOutputStream
 /**
  * A `.boop` file: one card, ready to send to someone else. It is a plain zip holding
  *  - `card.json`: an [InboxCard] whose phone-local paths are written as `lib:<id>/<file>`,
- *  - every file on this phone the card plays or shows (songs, pictures), next to it.
+ *  - every file on this phone the card plays or shows (songs, pictures, the card's sticker), next to it.
  *
  * Loading one unpacks the files into `files/library/<id>/` and hands `card.json` to the same
  * inbox [PendingCardRepository.importInbox] uses for computer pushes, so the card waits for
@@ -71,6 +71,7 @@ object BoopFile {
                 else -> pack(c.uri)!!
             },
             artworkUrl = pack(c.artworkUrl),
+            stickerUrl = pack(c.stickerUrl),
             playlist = c.playlist.map { it.copy(uri = pack(it.uri)!!) },
             trackArt = c.trackArt.entries.associate { (k, v) -> pack(k)!! to pack(v)!! }
         )

@@ -42,6 +42,12 @@ data class Card(
     /** content:// uri, folder tree uri, RSS url, stream url or app deep link, depending on [sourceType]. */
     val uri: String = "",
     val artworkUrl: String? = null,
+    /**
+     * The printed face of the real card (the sticker made by `tools/stickers.py`: portrait, a Yoto card's shape),
+     * when there is one. The card picker shows it in place of [artworkUrl]. Travels with the card in a .boop,
+     * a computer push and a backup.
+     */
+    val stickerUrl: String? = null,
     val subtitle: String? = null,
     val podcastMode: PodcastMode = PodcastMode.LATEST,
     val episodeUrl: String? = null,
@@ -77,6 +83,8 @@ data class Card(
      * of a playlist card's song, the uri of a hand-built [playlist]'s item.
      */
     val clips: Map<String, Clip> = emptyMap(),
+    /** Its picture is offered in the card picker (holding the logo on the home screen). False = only the real card plays it. */
+    val showInPicker: Boolean = true,
     /** When this card was last tapped to play (0 = never); the card list can sort by it. */
     val lastPlayedAt: Long = 0L,
     val createdAt: Long = System.currentTimeMillis()
@@ -198,6 +206,10 @@ data class AppSettings(
 
     // ---- idle screen
     val showClock: Boolean = true,
+    /** Holding the logo on the home screen opens every card's picture to choose from, for when the cards aren't there. */
+    val holdLogoToPick: Boolean = true,
+    /** How the card picker lays the cards out: "cards" (one big picture at a time, swiped sideways) or "tiles" (a grid of small ones). */
+    val pickerStyle: String = "cards",
     /** "off", "on" or "bedtime" (only during bedtime hours). */
     val nightLight: String = "bedtime",
     val nightLightColor: Long = 0xFFFF8C3AL,

@@ -119,6 +119,7 @@ import kotlin.math.roundToInt
 private enum class Section(@param:StringRes val titleRes: Int, val emoji: String, @param:StringRes val blurbRes: Int) {
     PLUS(R.string.settings_section_plus_title, "⭐", R.string.settings_section_plus_blurb),
     CARDS(R.string.settings_section_cards_title, "🃏", R.string.settings_section_cards_blurb),
+    PICKER(R.string.settings_section_picker_title, "👆", R.string.settings_section_picker_blurb),
     PLAYBACK(R.string.settings_section_playback_title, "▶️", R.string.settings_section_playback_blurb),
     ACCOUNTS(R.string.settings_section_accounts_title, "☁️", R.string.settings_section_accounts_blurb),
     SAFETY(R.string.settings_section_safety_title, "🔒", R.string.settings_section_safety_blurb),
@@ -197,6 +198,12 @@ fun SettingsScreen(viewModel: MainViewModel) {
     fun statusFor(s: Section): String = when (s) {
         Section.PLUS -> if (plus) stringResource(R.string.settings_status_plus_on) else stringResource(R.string.plus_cards_used, minOf(cards.size, Plus.FREE_CARD_LIMIT), Plus.FREE_CARD_LIMIT)
         Section.CARDS -> if (cards.isEmpty()) stringResource(R.string.settings_status_no_cards) else pluralStringResource(R.plurals.settings_status_cards, cards.size, cards.size)
+        Section.PICKER -> if (!settings.holdLogoToPick) stringResource(R.string.settings_off) else stringResource(
+            R.string.settings_picker_status,
+            stringResource(if (settings.pickerStyle == "tiles") R.string.settings_picker_style_tiles else R.string.settings_picker_style_cards),
+            cards.count { it.showInPicker },
+            cards.size
+        )
         Section.PLAYBACK -> if (settings.volumeCapPercent >= 100) stringResource(R.string.settings_status_volume_off) else stringResource(R.string.settings_status_volume_limit, settings.volumeCapPercent)
         Section.ACCOUNTS -> stringResource(if (yotoTokens != null) R.string.settings_status_yoto_connected else R.string.settings_status_yoto_not_connected) +
             " · " + stringResource(R.string.settings_podcasts_using, cacheMb)
@@ -300,6 +307,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         when (current) {
                             Section.PLUS -> plusSection(plus, cards.size, viewModel)
                             Section.CARDS -> cardsSection(cards, settings, m, viewModel, cardQuery) { cardQuery = it }
+                            Section.PICKER -> pickerSection(cards, settings, m, context, viewModel)
                             Section.PLAYBACK -> playbackSection(settings, viewModel)
                             Section.ACCOUNTS -> accountsSection(settings, viewModel)
                             Section.SAFETY -> safetySection(settings, viewModel)
@@ -536,6 +544,86 @@ private fun LazyListScope.cardsSection(
             onPlay = { viewModel.playNow(card) },
             extra = { YouTubeCacheStatus(viewModel.player.youtubeCache, card, settings.youtubeAutoCache) }
         )
+    }
+}
+
+/** The card picker: playing a card from its picture when the card itself isn't there (hold the logo on the home screen). */
+private fun LazyListScope.pickerSection(cards: List<CardModel>, settings: AppSettings, m: Metrics, context: Context, viewModel: MainViewModel) {
+    item {
+        SwitchRow(
+            title = stringResource(R.string.settings_logo_picker_title),
+            subtitle = stringResource(R.string.settings_logo_picker_subtitle),
+            checked = settings.holdLogoToPick
+        ) { v -> viewModel.updateSettings { it.copy(holdLogoToPick = v) } }
+    }
+    if (!settings.holdLogoToPick) return
+    item {
+        Column {
+            Text(stringResource(R.string.settings_picker_style), style = MaterialTheme.typography.bodyLarge)
+            ChipGroup(
+                options = listOf(
+                    "cards" to stringResource(R.string.settings_picker_style_cards),
+                    "tiles" to stringResource(R.string.settings_picker_style_tiles)
+                ),
+                selected = if (settings.pickerStyle == "tiles") "tiles" else "cards"
+            ) { v -> viewModel.updateSettings { it.copy(pickerStyle = v) } }
+            Text(
+                stringResource(if (settings.pickerStyle == "tiles") R.string.settings_picker_style_tiles_hint else R.string.settings_picker_style_cards_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    if (cards.isEmpty()) return
+    item {
+        Column {
+            SubTitle(stringResource(R.string.settings_picker_cards))
+            Text(
+                stringResource(R.string.settings_picker_cards_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { viewModel.setShowInPicker(cards.map { it.uid }, true) },
+                    enabled = cards.any { !it.showInPicker }
+                ) { Text(stringResource(R.string.settings_picker_show_all)) }
+                OutlinedButton(
+                    onClick = { viewModel.setShowInPicker(cards.map { it.uid }, false) },
+                    enabled = cards.any { it.showInPicker }
+                ) { Text(stringResource(R.string.settings_picker_hide_all)) }
+            }
+        }
+    }
+    // By name, so a card keeps its place in the list when its switch is flipped.
+    items(cards.sortedBy { it.displayName(context).lowercase() }, key = { it.uid }) { card ->
+        val toggle = { viewModel.setShowInPicker(listOf(card.uid), !card.showInPicker) }
+        Card(
+            onClick = toggle,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                CardArtwork(
+                    artwork = card.artworkUrl,
+                    seed = card.uid,
+                    color = card.color,
+                    modifier = Modifier.size(m.artSize),
+                    cornerRadius = 14.dp,
+                    pixel = settings.pixelArt
+                )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    card.displayName(context),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = card.showInPicker, onCheckedChange = { toggle() })
+            }
+        }
     }
 }
 

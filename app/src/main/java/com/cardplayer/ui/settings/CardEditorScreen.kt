@@ -591,6 +591,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             sourceType = linkType,
             uri = uri.trim(),
             artworkUrl = artworkUrl.trim().ifBlank { null },
+            // Arrives with a .boop or a computer push; the editor doesn't change it.
+            stickerUrl = existing?.stickerUrl,
             subtitle = subtitle,
             podcastMode = podcastMode,
             episodeUrl = episodeUrl,
@@ -617,6 +619,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     else -> false
                 }
             },
+            // Chosen in settings (the "Card picker" section), not here: keep it as it is.
+            showInPicker = existing?.showInPicker ?: true,
             createdAt = existing?.createdAt ?: System.currentTimeMillis()
         )
     }

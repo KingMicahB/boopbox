@@ -102,7 +102,8 @@ class PendingCardRepository(private val context: Context, private val cards: Car
             }
             when {
                 mapped != null -> {
-                    cards.upsert(card.copy(uid = mapped.uid, createdAt = mapped.createdAt))
+                    // Still the same card on this phone: whether the picker offers it was chosen here, not by the sender.
+                    cards.upsert(card.copy(uid = mapped.uid, createdAt = mapped.createdAt, showInPicker = mapped.showInPicker))
                     _imported.tryEmit(context.getString(R.string.msg_updated_card, card.displayName(context)))
                 }
                 push.targetUid != null -> {
@@ -143,6 +144,7 @@ class PendingCardRepository(private val context: Context, private val cards: Car
         return card.copy(
             uri = r(card.uri.ifBlank { "lib:$id/" }),
             artworkUrl = card.artworkUrl?.let(::r),
+            stickerUrl = card.stickerUrl?.let(::r),
             playlist = card.playlist.map { it.copy(uri = r(it.uri)) },
             trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) }
         )

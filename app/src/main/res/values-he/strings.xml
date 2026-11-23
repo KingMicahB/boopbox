@@ -269,6 +269,21 @@
     <string name="settings_taps">הקשות</string>
     <string name="settings_idle_screen">מסך המתנה</string>
     <string name="settings_show_clock">הצגת השעון</string>
+    <string name="settings_section_picker_title">בוחר הכרטיסים</string>
+    <string name="settings_section_picker_blurb">ניגון בלי הכרטיס: לחיצה ארוכה על הלוגו ובחירת תמונה</string>
+    <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
+    <string name="settings_logo_picker_title">לחיצה ארוכה על הלוגו לבחירת כרטיס</string>
+    <string name="settings_logo_picker_subtitle">כשהכרטיסים לא איתכם: לחצו לחיצה ארוכה על הלוגו של BoopBox במסך הבית, מצאו את תמונת הכרטיס והקישו עליה כדי לנגן.</string>
+    <string name="settings_picker_style">איך הכרטיסים מוצגים</string>
+    <string name="settings_picker_style_cards">כרטיסים</string>
+    <string name="settings_picker_style_tiles">אריחים</string>
+    <string name="settings_picker_style_cards_hint">תמונה גדולה אחת בכל פעם: מחליקים הצידה כדי למצוא את הכרטיס.</string>
+    <string name="settings_picker_style_tiles_hint">כמה תמונות קטנות יחד: גוללים כדי למצוא את הכרטיס.</string>
+    <string name="settings_picker_cards">כרטיסים בבוחר</string>
+    <string name="settings_picker_cards_hint">כרטיס שכבוי כאן מתנגן רק עם הכרטיס האמיתי.</string>
+    <string name="settings_picker_show_all">הצגת הכול</string>
+    <string name="settings_picker_hide_all">הסתרת הכול</string>
+    <string name="picker_title">בחרו כרטיס</string>
     <string name="settings_night_light">אור לילה</string>
     <string name="settings_night_light_hint">מעמעם את כל הנגן לצבע רך, כמו מנורת לילה.</string>
     <string name="settings_night_light_bedtime">בשעת שינה</string>
@@ -511,7 +526,6 @@
     <string name="editor_sleep_title">טיימר שינה כשמצמידים את הכרטיס הזה (בדקות)</string>
     <string name="editor_sleep_note">לסיפורי לילה טוב: הצליל נחלש ומושהה אחרי הזמן הזה, בכל פעם שמצמידים את הכרטיס. כבוי = חל רק הטיימר של שעות השינה.</string>
     <string name="editor_sleep_off">כבוי</string>
-
     <!-- Card editor: looks -->
     <string name="editor_section_looks">מראה</string>
     <string name="editor_name">שם</string>

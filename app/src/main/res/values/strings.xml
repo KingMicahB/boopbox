@@ -265,6 +265,21 @@
     <string name="settings_taps">Taps</string>
     <string name="settings_idle_screen">Idle screen</string>
     <string name="settings_show_clock">Show the clock</string>
+    <string name="settings_section_picker_title">Card picker</string>
+    <string name="settings_section_picker_blurb">Play without the card: hold the logo, pick a picture</string>
+    <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
+    <string name="settings_logo_picker_title">Hold the logo to pick a card</string>
+    <string name="settings_logo_picker_subtitle">For when the cards aren\'t with you: hold the BoopBox logo on the home screen, find the card\'s picture and tap it to play.</string>
+    <string name="settings_picker_style">How the cards are shown</string>
+    <string name="settings_picker_style_cards">Cards</string>
+    <string name="settings_picker_style_tiles">Tiles</string>
+    <string name="settings_picker_style_cards_hint">One big picture at a time: swipe sideways to find the card.</string>
+    <string name="settings_picker_style_tiles_hint">Several small pictures at once: scroll to find the card.</string>
+    <string name="settings_picker_cards">Cards in the picker</string>
+    <string name="settings_picker_cards_hint">A card that is switched off here plays only with its real card.</string>
+    <string name="settings_picker_show_all">Show all</string>
+    <string name="settings_picker_hide_all">Hide all</string>
+    <string name="picker_title">Pick a card</string>
     <string name="settings_night_light">Night light</string>
     <string name="settings_night_light_hint">Dims the whole player to a soft colour, like a bedside lamp.</string>
     <string name="settings_night_light_bedtime">At bedtime</string>
@@ -493,7 +508,6 @@
     <string name="editor_sleep_title">Sleep timer when this card is tapped (minutes)</string>
     <string name="editor_sleep_note">For bedtime stories: the sound fades out and pauses after this long, every time the card is tapped. Off = only the bedtime-hours timer applies.</string>
     <string name="editor_sleep_off">Off</string>
-
     <!-- Card editor: looks -->
     <string name="editor_section_looks">Looks</string>
     <string name="editor_name">Name</string>

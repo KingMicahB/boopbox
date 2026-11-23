@@ -21,7 +21,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -60,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -372,9 +375,15 @@ fun PlayerScreen(viewModel: MainViewModel) {
     val nfc by viewModel.nfc.collectAsStateWithLifecycle()
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     val noCards = cards.isEmpty()
+    // The card picker only offers the cards switched on for it in settings ("Card picker").
+    val pickable = remember(cards) { cards.filter { it.showInPicker } }
     val haptic = LocalHapticFeedback.current
     val battery = rememberBattery()
     var askPassword by remember { mutableStateOf(false) }
+    // The cards aren't here: the logo was held, and every card's picture is up to choose from.
+    var picking by rememberSaveable { mutableStateOf(false) }
+    // Anything starting to play (a picked picture, or a real card tapped meanwhile) closes the picker.
+    LaunchedEffect(nowPlaying != null) { if (nowPlaying != null) picking = false }
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val volume by viewModel.player.volume.collectAsStateWithLifecycle()
     val sleepEndsAt by viewModel.player.sleepEndsAt.collectAsStateWithLifecycle()
@@ -479,7 +488,13 @@ fun PlayerScreen(viewModel: MainViewModel) {
                 clock = if (settings.showClock) clockText(clockNow) else null,
                 nightLight = nightLight,
                 noCards = noCards,
-                gearTaps = settings.gearTaps
+                gearTaps = settings.gearTaps,
+                // Held as long as the picture is held to stop, so a hand that is only holding the phone doesn't open it.
+                logoHoldMs = if (settings.holdLogoToPick && pickable.isNotEmpty()) gripGuard(settings.gripGuard).holdMs else null,
+                onLogoHold = {
+                    if (settings.zoneHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    picking = true
+                }
             )
         } else {
             NowPlayingContent(
@@ -584,6 +599,23 @@ fun PlayerScreen(viewModel: MainViewModel) {
                 settings = settings,
                 onUnlock = { askPassword = false; viewModel.openSettings() },
                 onDismiss = { askPassword = false }
+            )
+        }
+
+        // Over the home screen and its gear; notices and the "new card" question still show on top.
+        if (picking && current == null) {
+            CardPickerScreen(
+                cards = pickable,
+                style = settings.pickerStyle,
+                pixel = settings.pixelArt,
+                dim = nightLight,
+                haptics = settings.zoneHaptics,
+                // Closed at once: the home screen's spinner shows while the card loads.
+                onPick = {
+                    picking = false
+                    viewModel.playNow(it)
+                },
+                onClose = { picking = false }
             )
         }
 
@@ -733,7 +765,21 @@ private fun BatteryGlyph(battery: Battery) {
 }
 
 @Composable
-private fun IdleContent(busy: Boolean, pixel: Boolean, clock: String?, nightLight: Boolean, noCards: Boolean, gearTaps: Int) {
+private fun IdleContent(
+    busy: Boolean,
+    pixel: Boolean,
+    clock: String?,
+    nightLight: Boolean,
+    noCards: Boolean,
+    gearTaps: Int,
+    /** How long the logo is held to open the card picker; null = holding it does nothing. */
+    logoHoldMs: Long?,
+    onLogoHold: () -> Unit
+) {
+    val currentOnLogoHold by rememberUpdatedState(onLogoHold)
+    val scope = rememberCoroutineScope()
+    // Same ring as hold-to-stop on the player: it fills while the finger stays on the logo.
+    val holdProgress = remember { Animatable(0f) }
     val transition = rememberInfiniteTransition(label = "pulse")
     val scale by transition.animateFloat(
         initialValue = 1f,
@@ -753,6 +799,27 @@ private fun IdleContent(busy: Boolean, pixel: Boolean, clock: String?, nightLigh
             Box(
                 modifier = Modifier
                     .size(logoSize)
+                    .then(
+                        if (logoHoldMs == null) Modifier else Modifier.pointerInput(logoHoldMs) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                val ring = scope.launch {
+                                    holdProgress.snapTo(0f)
+                                    // A plain tap shows nothing: the ring only starts once the finger has clearly stayed.
+                                    val lead = 250
+                                    holdProgress.animateTo(
+                                        1f,
+                                        tween(durationMillis = (logoHoldMs - lead).toInt().coerceAtLeast(1), delayMillis = lead, easing = LinearEasing)
+                                    )
+                                }
+                                // Null = the time ran out with the finger still on the logo (lifting or sliding off ends the wait early).
+                                val held = withTimeoutOrNull(logoHoldMs) { waitForUpOrCancellation(); Unit } == null
+                                ring.cancel()
+                                scope.launch { holdProgress.snapTo(0f) }
+                                if (held) currentOnLogoHold()
+                            }
+                        }
+                    )
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
@@ -777,6 +844,7 @@ private fun IdleContent(busy: Boolean, pixel: Boolean, clock: String?, nightLigh
                             .background(Color.Black.copy(alpha = 0.55f))
                     )
                 }
+                HoldRing(holdProgress.value)
             }
         }
         val caption: @Composable () -> Unit = {
@@ -1228,32 +1296,37 @@ private fun ArtBox(np: NowPlaying, pixel: Boolean, dim: Boolean, size: Dp, scale
                 PauseIcon(modifier = Modifier.size(width = 16.dp, height = 18.dp), color = Color.White)
             }
         }
-        if (holdProgress > 0.01f) {
-            val ring = MaterialTheme.colorScheme.primary
-            Canvas(Modifier.fillMaxSize()) {
-                val stroke = 9.dp.toPx()
-                val inset = stroke / 2 + 6.dp.toPx()
-                val arcSize = Size(this.size.width - 2 * inset, this.size.height - 2 * inset)
-                drawArc(
-                    color = Ink.copy(alpha = 0.35f),
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = arcSize,
-                    style = Stroke(stroke)
-                )
-                drawArc(
-                    color = ring,
-                    startAngle = -90f,
-                    sweepAngle = 360f * holdProgress,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = arcSize,
-                    style = Stroke(stroke, cap = StrokeCap.Round)
-                )
-            }
-        }
+        HoldRing(holdProgress)
+    }
+}
+
+/** The ring that fills round a picture while a finger rests on it (hold to stop, hold the logo to pick a card). Fills its parent. */
+@Composable
+private fun HoldRing(progress: Float) {
+    if (progress <= 0.01f) return
+    val ring = MaterialTheme.colorScheme.primary
+    Canvas(Modifier.fillMaxSize()) {
+        val stroke = 9.dp.toPx()
+        val inset = stroke / 2 + 6.dp.toPx()
+        val arcSize = Size(size.width - 2 * inset, size.height - 2 * inset)
+        drawArc(
+            color = Ink.copy(alpha = 0.35f),
+            startAngle = -90f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(stroke)
+        )
+        drawArc(
+            color = ring,
+            startAngle = -90f,
+            sweepAngle = 360f * progress,
+            useCenter = false,
+            topLeft = Offset(inset, inset),
+            size = arcSize,
+            style = Stroke(stroke, cap = StrokeCap.Round)
+        )
     }
 }
 

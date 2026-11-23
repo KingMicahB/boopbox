@@ -119,6 +119,7 @@ object Backup {
                 add(card.uri)
             }
             add(card.artworkUrl)
+            add(card.stickerUrl)
             card.playlist.forEach { add(it.uri) }
             card.trackArt.forEach { (k, v) -> add(k); add(v) }
         }
@@ -233,6 +234,7 @@ object Backup {
         return c.copy(
             uri = r(c.uri),
             artworkUrl = c.artworkUrl?.let(::r),
+            stickerUrl = c.stickerUrl?.let(::r),
             playlist = c.playlist.map { it.copy(uri = r(it.uri)) },
             trackArt = c.trackArt.entries.associate { (k, v) -> r(k) to r(v) },
             clips = c.clips.mapKeys { (k, _) -> r(k) }
@@ -257,6 +259,7 @@ object Backup {
         return card.copy(
             uri = r(card.uri),
             artworkUrl = card.artworkUrl?.let(::r),
+            stickerUrl = card.stickerUrl?.let(::r),
             playlist = card.playlist.map { it.copy(uri = r(it.uri)) },
             trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) }
         )

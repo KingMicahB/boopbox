@@ -14,6 +14,8 @@ A manifest (see cards/*.json):
       "id": "rotemama-medley",              # stable: pushing the same id again updates the card in place
       "name": "Rotemama songs", "emoji": "🎶", "color": "#FFB74D",
       "cover": "yoto:2696",                  # yoto:<id> | http(s) url | local image path
+      "sticker": "../stickers/x.png",        # optional: the printed card's face, shown in the app's card picker.
+                                             # Left out = ../stickers/<id>.png (tools/stickers.py output) when it exists
       "resume": false, "shuffle": false,
       "audiobook": false, "speed": 1,        # optional: audiobook = cover on every part + resume on; speed 0.5-2
       "source": "C:/path/medley.mp3",       # default file for tracks that only give start/end
@@ -38,9 +40,9 @@ import tempfile
 import urllib.parse
 import urllib.request
 
-# applicationId of the debug build on the phone (BOOPBOX_PKG overrides it, e.g. com.boopbox.full for the
-# archived sideload build). Kotlin classes still live in com.cardplayer.
-PKG = os.environ.get("BOOPBOX_PKG", "com.boopboxapp")
+# applicationId of the debug build on the phone ("BoopBox test", installed next to the Play app; BOOPBOX_PKG
+# overrides it, e.g. com.boopbox.full for the archived sideload build). Kotlin classes still live in com.cardplayer.
+PKG = os.environ.get("BOOPBOX_PKG", "com.boopboxapp.debug")
 STAGE = "/data/local/tmp/cardpush"
 UA = {"User-Agent": "Mozilla/5.0 CardPlayer-cardpush/1.0"}
 WHISPER_MODEL = "ivrit-ai/whisper-large-v3-turbo-ct2"  # Hebrew-tuned; fine for English too
@@ -220,6 +222,16 @@ def cmd_push(a):
             with open(os.path.join(lib, "cover.png"), "wb") as f:
                 f.write(load_icon(cover, base, native=True))
 
+        # The card's sticker travels with it: the app's card picker shows it as the card's face.
+        sticker = os.path.join(base, m["sticker"]) if m.get("sticker") else os.path.join(os.path.dirname(base), "stickers", f"{card_id}.png")
+        if m.get("sticker") and not os.path.isfile(sticker):
+            sys.exit(f"sticker not found: {sticker}")
+        has_sticker = os.path.isfile(sticker)
+        if has_sticker:
+            from PIL import Image
+            Image.open(sticker).convert("RGB").save(os.path.join(lib, "sticker.png"), "PNG")
+            print(f"  sticker: {os.path.relpath(sticker, base)}")
+
         uses_yoto = any(str(t.get("icon", "")).startswith("yoto:") for t in tracks) or str(cover or "").startswith("yoto:")
         card = {
             "uid": f"pending:{card_id}",
@@ -231,6 +243,7 @@ def cmd_push(a):
             "uri": podcast or f"lib:{card_id}/",
             "podcastMode": "LATEST",
             "artworkUrl": f"lib:{card_id}/cover.png" if cover else None,
+            "stickerUrl": f"lib:{card_id}/sticker.png" if has_sticker else None,
             "subtitle": m.get("artist") or feed.get("author"),
             # Podcasts and audiobooks carry on where they stopped unless told otherwise.
             "resume": bool(m.get("resume", bool(podcast) or bool(m.get("audiobook")))),

@@ -438,6 +438,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (app.settings.value.youtubeAutoCache) app.player.youtubeCache.ensureAsync(card)
     }
 
+    /** Settings, "Card picker": whether these cards' pictures are offered when the logo is held. */
+    fun setShowInPicker(uids: Collection<String>, show: Boolean) {
+        for (uid in uids) {
+            val card = app.cards.get(uid) ?: continue
+            if (card.showInPicker != show) app.cards.upsert(card.copy(showInPicker = show))
+        }
+    }
+
     fun deleteCard(uid: String) {
         app.cards.delete(uid)
         app.positions.clear(uid)

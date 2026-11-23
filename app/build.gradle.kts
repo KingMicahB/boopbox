@@ -19,6 +19,11 @@ android {
     }
 
     buildTypes {
+        // Installed next to the Play app (com.boopboxapp.debug, "BoopBox test"): a debug-signed build can't
+        // replace the Play-signed one, and uninstalling that one would take its cards with it.
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
