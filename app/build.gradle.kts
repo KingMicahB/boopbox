@@ -25,7 +25,11 @@ android {
             applicationIdSuffix = ".debug"
         }
         release {
-            isMinifyEnabled = false
+            // R8: shrinks, optimises and renames the code. Google Play asks for it (it reported "Obfuscation 0%"
+            // for 1.0.5, with a warning about visibility), and the download gets smaller. What only breaks once
+            // code is renamed shows in the releaseCheck build below, on a phone, before anything is uploaded.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // The release build exactly as dexed for Play, but debug-signed and installed next to the Play app
