@@ -354,6 +354,20 @@
     <string name="editor_cat_yoto_hint">כרטיס מספריית Yoto שלכם: Yoto Daily, כרטיסים שנקנו, Yoto Club</string>
     <string name="editor_cat_stream">שידור שמע</string>
     <string name="editor_cat_stream_hint">כתובת ישירה של MP3 / שידור</string>
+    <string name="editor_kind_link">קישור</string>
+    <string name="editor_kind_link_hint">Spotify, YouTube, Netflix, Audible, פודקאסט או שידור רדיו: מדביקים את הקישור ו-BoopBox מבין לבד את השאר</string>
+    <string name="editor_kind_phone">בטלפון הזה</string>
+    <string name="editor_kind_phone_hint">קובץ, שירים בסדר שתבחרו, תיקייה או ספר שמע שהורד</string>
+    <string name="editor_kind_record">הקלטה</string>
+    <string name="editor_kind_yoto">Yoto</string>
+    <string name="editor_paste_any">הדביקו קישור</string>
+    <string name="editor_link_plays_as">מתנגן בתור</string>
+    <string name="editor_plays_as_value">מתנגן בתור: %1$s</string>
+    <string name="editor_phone_choose_files">בחירת קבצים</string>
+    <string name="editor_phone_choose_folder">בחירת תיקייה</string>
+    <string name="editor_phone_note">קובץ אחד מתנגן לבד; בוחרים כמה והם הופכים לרשימת השמעה שאפשר לסדר.</string>
+    <string name="editor_is_audiobook">זה ספר שמע</string>
+    <string name="editor_is_audiobook_note">ממשיך מאיפה שעצר ומציג את פרקי הספר</string>
 
     <!-- Card editor: default titles stored with the card -->
     <string name="editor_default_song_title">שיר</string>
@@ -447,7 +461,6 @@
 
     <!-- Card editor: what should it play -->
     <string name="editor_section_play">מה הכרטיס ינגן?</string>
-    <string name="editor_card_type">סוג כרטיס</string>
     <string name="editor_paste_link">הדביקו קישור (באפליקציה: שיתוף ← העתקת קישור)</string>
     <string name="editor_paste_video">הדביקו קישור מ-Netflix או מ-Disney+ (שיתוף ← העתקת קישור)</string>
     <string name="editor_video_unknown">זה לא קישור של Netflix או Disney+</string>
@@ -482,9 +495,7 @@
     <string name="editor_episode_load_feed">טענו את העדכון כדי לבחור פרק.</string>
 
     <!-- Card editor: file / folder -->
-    <string name="editor_choose_file">בחירת קובץ</string>
     <string name="editor_file_chosen">נבחר קובץ</string>
-    <string name="editor_no_file">עדיין אין קובץ</string>
     <string name="editor_songs_inside">שירים בתוך הקובץ הזה</string>
     <!-- Always 2 or more songs here, so no plural. -->
     <string name="editor_split_done">הקובץ חולק ל-%1$d שירים. הצד הימני והשמאלי של המסך מדלגים ביניהם, ולכל שיר יכולה להיות תמונה משלו.</string>
@@ -527,8 +538,6 @@
     <!-- ספרי שמע שהורדו -->
     <string name="editor_cat_book">ספר שמע בטלפון הזה</string>
     <string name="editor_cat_book_hint">ספר שהורד: קובץ אחד או תיקייה של פרקים</string>
-    <string name="editor_book_choose_file">קובץ ספר</string>
-    <string name="editor_book_choose_folder">תיקיית ספר</string>
     <string name="editor_book_note">ספרים מוגנים (Audible, Apple Books, Libby) מתנגנים רק באפליקציות שלהם. ספרים שהורדו בלי הגנה וספרי LibriVox עובדים כאן.</string>
     <string name="editor_book_reading">קורא את הספר…</string>
     <plurals name="editor_book_chapters">
@@ -556,9 +565,7 @@
     <string name="editor_speed_title">מהירות</string>
     <string name="editor_speed_note">לאט יותר עוזר לקטנטנים לעקוב אחרי הסיפור.</string>
     <string name="editor_speed_normal">רגיל</string>
-    <string name="editor_choose_folder">בחירת תיקייה</string>
     <string name="editor_folder_chosen">נבחרה תיקייה</string>
-    <string name="editor_no_folder">עדיין אין תיקייה</string>
 
     <!-- Card editor: Yoto -->
     <string name="editor_yoto_signin_note">התחברו פעם אחת עם חשבון ה-Yoto של המשפחה, ואז אפשר יהיה לנגן ב-BoopBox כל דבר מספריית ה-Yoto שלכם, כולל הפרק היומי של Yoto Daily. כרטיסי Yoto אמיתיים לא דורשים התחברות: פשוט הצמידו כרטיס כזה לטלפון כשמסך הנגן פתוח.</string>

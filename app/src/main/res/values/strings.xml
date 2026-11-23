@@ -350,6 +350,20 @@
     <string name="editor_cat_yoto_hint">A card from your Yoto library: Yoto Daily, bought cards, Yoto Club</string>
     <string name="editor_cat_stream">Audio stream</string>
     <string name="editor_cat_stream_hint">A direct URL to an MP3 / stream</string>
+    <string name="editor_kind_link">Link</string>
+    <string name="editor_kind_link_hint">Spotify, YouTube, Netflix, Audible, a podcast or a radio stream: paste the link and BoopBox works out the rest</string>
+    <string name="editor_kind_phone">On this phone</string>
+    <string name="editor_kind_phone_hint">A file, songs in your own order, a folder, or a downloaded audiobook</string>
+    <string name="editor_kind_record">Record</string>
+    <string name="editor_kind_yoto">Yoto</string>
+    <string name="editor_paste_any">Paste a link</string>
+    <string name="editor_link_plays_as">Plays as</string>
+    <string name="editor_plays_as_value">Plays as: %1$s</string>
+    <string name="editor_phone_choose_files">Choose files</string>
+    <string name="editor_phone_choose_folder">Choose a folder</string>
+    <string name="editor_phone_note">One file plays on its own; pick several and they become a playlist you can put in order.</string>
+    <string name="editor_is_audiobook">This is an audiobook</string>
+    <string name="editor_is_audiobook_note">Carries on where it stopped and shows the book\'s chapters</string>
 
     <!-- Card editor: default titles stored with the card -->
     <string name="editor_default_song_title">Song</string>
@@ -439,7 +453,6 @@
 
     <!-- Card editor: what should it play -->
     <string name="editor_section_play">What should it play?</string>
-    <string name="editor_card_type">Card type</string>
     <string name="editor_paste_link">Paste link (Share → Copy link in the app)</string>
     <string name="editor_paste_video">Paste Netflix or Disney+ link (Share → Copy link)</string>
     <string name="editor_video_unknown">Not a Netflix or Disney+ link</string>
@@ -472,9 +485,7 @@
     <string name="editor_episode_load_feed">Load the feed to pick an episode.</string>
 
     <!-- Card editor: file / folder -->
-    <string name="editor_choose_file">Choose a file</string>
     <string name="editor_file_chosen">File chosen</string>
-    <string name="editor_no_file">No file yet</string>
     <string name="editor_songs_inside">Songs inside this file</string>
     <!-- Always 2 or more songs here, so no plural. -->
     <string name="editor_split_done">Split into %1$d songs. Right/left skip between them, each can have its own picture.</string>
@@ -515,8 +526,6 @@
     <!-- Downloaded audiobooks -->
     <string name="editor_cat_book">Audiobook on this phone</string>
     <string name="editor_cat_book_hint">A downloaded book: one file or a folder of chapters</string>
-    <string name="editor_book_choose_file">Book file</string>
-    <string name="editor_book_choose_folder">Book folder</string>
     <string name="editor_book_note">Copy-protected books (Audible, Apple Books, Libby) only play in their own apps. DRM-free downloads and LibriVox books work here.</string>
     <string name="editor_book_reading">Reading the book…</string>
     <plurals name="editor_book_chapters">
@@ -540,9 +549,7 @@
     <string name="editor_speed_title">Speed</string>
     <string name="editor_speed_note">Slower helps little ones follow a story.</string>
     <string name="editor_speed_normal">Normal</string>
-    <string name="editor_choose_folder">Choose a folder</string>
     <string name="editor_folder_chosen">Folder chosen</string>
-    <string name="editor_no_folder">No folder yet</string>
 
     <!-- Card editor: Yoto -->
     <string name="editor_yoto_signin_note">Sign in with the family\'s Yoto account once; BoopBox can then play anything in your Yoto library, including Yoto Daily\'s episode of the day. Real Yoto cards need no sign-in: just tap one on the player screen.</string>
