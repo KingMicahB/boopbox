@@ -16,9 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
@@ -85,8 +84,9 @@ fun PermissionSetupScreen(nfc: NfcState, onDone: () -> Unit) {
                 modifier = Modifier
                     .fillMaxSize()
                     .widthIn(max = 760.dp)
-                    .statusBarsPadding()
-                    .navigationBarsPadding(),
+                    // Clear of the camera cut-out as well as the bars: this screen comes up over the player, which
+                    // hides the status bar, and then the status bar's room is no room at all.
+                    .safeDrawingPadding(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
