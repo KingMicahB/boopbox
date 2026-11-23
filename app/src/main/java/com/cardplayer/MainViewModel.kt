@@ -406,6 +406,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun openSettings() = setScreen(Screen.Settings)
 
+    private val _debugSettings = MutableStateFlow<Pair<String, Int>?>(null)
+    /** Test builds only (MainActivity.handleDebugIntent): the settings section to show and the row to scroll to. */
+    val debugSettings: StateFlow<Pair<String, Int>?> = _debugSettings.asStateFlow()
+
+    fun debugOpenSettings(section: String, row: Int) {
+        _debugSettings.value = section to row
+        setScreen(Screen.Settings)
+    }
+
     fun openScan() {
         if (allowNewCard()) setScreen(Screen.Scan)
     }

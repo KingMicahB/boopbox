@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -269,17 +272,16 @@ private fun PickerCarousel(cards: List<Card>, pixel: Boolean, dim: Boolean, onPi
 }
 
 /**
- * "Tiles": [cols] × [rows] small cards per screen (the grown-up's choice in settings), each as big as its share
- * of the screen allows; the next screenful is a swipe sideways away.
+ * "Tiles": small cards, [cols] across and [rows] down per screen (the grown-up's choice in settings), each as big
+ * as its share of the screen allows. More cards are a smooth scroll down.
  */
 @Composable
 private fun PickerTiles(cards: List<Card>, cols: Int, rows: Int, pixel: Boolean, dim: Boolean, onPick: (Card) -> Unit, onIdle: () -> Unit) {
     val context = LocalContext.current
     val across = cols.coerceIn(1, 6)
     val down = rows.coerceIn(1, 6)
-    val pages = remember(cards, across, down) { cards.chunked(across * down) }
-    val pagerState = rememberPagerState { pages.size }
-    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.isScrollInProgress) {
         delay(PickerIdleMs)
         onIdle()
     }
@@ -300,70 +302,56 @@ private fun PickerTiles(cards: List<Card>, cols: Int, rows: Int, pixel: Boolean,
                     .padding(horizontal = 56.dp),
                 contentAlignment = Alignment.Center
             ) { if (!landscape) PickerTitle() }
-            HorizontalPager(
-                state = pagerState,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                key = { pages[it].first().uid }
-            ) { page ->
-                val shown = pages[page]
+                    .weight(1f)
+            ) {
                 val gap = if (across >= 5 || down >= 5) 6.dp else 12.dp
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                val edge = 12.dp
+                // Exactly [down] rows fill what is on screen; the rest scrolls into it.
+                val rowHeight = ((maxHeight - edge * 2 - gap * (down - 1)) / down).coerceAtLeast(48.dp)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(across),
+                    state = gridState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = edge),
+                    horizontalArrangement = Arrangement.spacedBy(gap),
                     verticalArrangement = Arrangement.spacedBy(gap)
                 ) {
-                    for (r in 0 until down) {
-                        Row(
+                    items(cards, key = { it.uid }) { card ->
+                        BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(gap)
+                                .height(rowHeight),
+                            contentAlignment = Alignment.Center
                         ) {
-                            for (c in 0 until across) {
-                                // A last screen that isn't full keeps its empty places, so cards don't change size.
-                                val card = shown.getOrNull(r * across + c)
-                                BoxWithConstraints(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (card != null) {
-                                        // The card is as big as its place allows, under one line for its name.
-                                        val nameRoom = 24.dp
-                                        val width = minOf(maxWidth, (maxHeight - nameRoom) * CardAspect).coerceAtLeast(20.dp)
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            CardFace(
-                                                card = card,
-                                                pixel = pixel,
-                                                dim = dim,
-                                                corner = (width * 0.08f).coerceIn(4.dp, 18.dp),
-                                                modifier = Modifier.width(width)
-                                            ) { onPick(card) }
-                                            Box(Modifier.height(nameRoom), contentAlignment = Alignment.Center) {
-                                                Text(
-                                                    text = card.displayName(context),
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    color = MaterialTheme.colorScheme.onBackground,
-                                                    textAlign = TextAlign.Center,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
+                            // The card is as big as its place allows, over one line for its name.
+                            val nameRoom = 24.dp
+                            val width = minOf(maxWidth, (maxHeight - nameRoom) * CardAspect).coerceAtLeast(20.dp)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CardFace(
+                                    card = card,
+                                    pixel = pixel,
+                                    dim = dim,
+                                    corner = (width * 0.08f).coerceIn(4.dp, 18.dp),
+                                    modifier = Modifier.width(width)
+                                ) { onPick(card) }
+                                Box(Modifier.height(nameRoom), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = card.displayName(context),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            PageMarks(count = pages.size, current = pagerState.currentPage)
-            Spacer(Modifier.height(12.dp))
         }
     }
 }

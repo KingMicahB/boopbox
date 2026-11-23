@@ -16,6 +16,17 @@
     <string name="common_yes">כן</string>
     <string name="common_no">לא</string>
     <string name="common_not_now">לא עכשיו</string>
+    <string name="common_more_info">מידע נוסף</string>
+    <string name="settings_grip_short">מתעלם מידיים נחות</string>
+    <string name="settings_group_player">נגן</string>
+    <string name="settings_group_card_lifted">כשמרימים כרטיס</string>
+    <string name="settings_group_lock">נעילות</string>
+    <string name="settings_group_touch">מגע</string>
+    <string name="settings_group_look">מראה</string>
+    <string name="settings_bedtime_use">שימוש בשעות שינה</string>
+    <string name="settings_bedtime_card_sleep_title">טיימר שינה בכל הצמדה</string>
+    <string name="settings_night_light_colour">צבע</string>
+    <string name="settings_card_removed_grace_title">החזרה בתוך %1$d שנ׳</string>
 
     <!-- Source types and podcast modes (SourceType / PodcastMode in Models.kt) -->
     <string name="source_local_file">קובץ בטלפון הזה</string>
@@ -139,7 +150,6 @@
 
     <!-- SettingsScreen: Cards section -->
     <string name="settings_cards_empty">עדיין אין כרטיסים. הקישו על \"הוספת כרטיס\" והצמידו כל כרטיס, מדבקה או צעצוע עם NFC לגב הטלפון.</string>
-    <string name="settings_cards_hint">הקישו על כרטיס כדי לערוך אותו. גם הצמדת כרטיס פיזי לטלפון בזמן שאתם כאן תפתח אותו.</string>
     <string name="settings_load_boop">טעינת ‎.boop</string>
     <string name="settings_load_boop_unpacking">פותח את הקובץ…</string>
     <string name="settings_load_boop_hint">קיבלתם קובץ ‎.boop ממישהו? פשוט פתחו אותו (WhatsApp, אימייל, קבצים…) ו-BoopBox ייקח את זה משם. אפשר גם לבחור את הקובץ כאן.</string>
@@ -155,18 +165,17 @@
     <!-- SettingsScreen: Playback section -->
     <string name="settings_volume_limit_off">הגבלת עוצמה: כבויה</string>
     <string name="settings_volume_limit_percent">הגבלת עוצמה: %1$d%%</string>
-    <string name="settings_same_card_title">הקשה נוספת עם אותו כרטיס משהה / ממשיכה את הניגון</string>
-    <string name="settings_same_card_subtitle">כבוי = הקשה נוספת מתחילה מחדש.</string>
-    <string name="settings_default_resume_title">כרטיסים חדשים ממשיכים מהמקום שבו עצרו</string>
+    <string name="settings_same_card_title">אותו כרטיס שוב משהה</string>
+    <string name="settings_default_resume_title">כרטיסים חדשים ממשיכים</string>
     <string name="settings_default_resume_subtitle">ברירת מחדל לכרטיסים שתוסיפו מעכשיו; אפשר עדיין לשנות כל כרטיס בעורך שלו.</string>
     <string name="settings_external_apps">Spotify, YouTube, Audible</string>
-    <string name="settings_return_title">חזרה ל-BoopBox אחרי פתיחת האפליקציה האחרת</string>
+    <string name="settings_return_title">חזרה ל-BoopBox</string>
     <string name="settings_return_subtitle">חזרה מיידית לא דורשת הרשאה. השהיה (האפליקציה האחרת מוצגת לרגע) דורשת את ההרשאה \"הצגה מעל אפליקציות אחרות\" (ראו הרשאות).</string>
     <string name="settings_return_now">חזרה מיידית (מומלץ)</string>
     <string name="settings_return_after">חזרה אחרי %1$d שניות</string>
-    <string name="settings_stop_autoplay_title">עצירת Spotify / YouTube Music בסיום שיר בודד</string>
+    <string name="settings_stop_autoplay_title">עצירת ניגון אוטומטי</string>
     <string name="settings_stop_autoplay_subtitle">האפליקציות האלה ממשיכות לנגן שירים אחרים בעצמן. כשיש גישה להתראות, BoopBox משהה אותן ברגע שהן עוברות מהשיר שעל הכרטיס.</string>
-    <string name="settings_keep_screen_on">להשאיר את המסך דלוק כשהנגן פתוח</string>
+    <string name="settings_keep_screen_on">המסך נשאר דולק</string>
     <string name="settings_yoto_title">חשבון Yoto</string>
     <string name="settings_yoto_connected">מחובר ל-Yoto</string>
     <string name="settings_yoto_not_connected">לא מחובר</string>
@@ -175,7 +184,7 @@
     <string name="settings_yoto_connect">חיבור חשבון Yoto</string>
     <string name="settings_yoto_disconnect">ניתוק</string>
     <string name="settings_podcasts_title">פודקאסטים</string>
-    <string name="settings_podcasts_keep_title">שמירת פרקים שהורדו</string>
+    <string name="settings_podcasts_keep_title">הורדת פרקים</string>
     <string name="settings_podcasts_keep_subtitle">כשיש חיבור לאינטרנט, כרטיסי פודקאסט וכרטיסי Yoto שומרים בטלפון את הפרק החדש ביותר (שאר כרטיסי Yoto שומרים את כל הקטעים שלהם), כך שהקשה מנגנת מיד, גם בלי אינטרנט. פרקים ישנים יותר נמחקים.</string>
     <plurals name="settings_podcasts_downloading">
         <item quantity="one">מורידים פרק אחד… בשימוש: %2$s MB</item>
@@ -202,11 +211,10 @@
     </plurals>
 
     <!-- SettingsScreen: Toddler safety section -->
-    <string name="settings_child_lock_title">נעילת ילדים (הצמדת BoopBox למסך)</string>
+    <string name="settings_child_lock_title">נעילת ילדים</string>
     <string name="settings_child_lock_subtitle">כפתורי הבית, החזרה והאפליקציות האחרונות מפסיקים לפעול. בפעם הראשונה Android יבקש מכם לאשר. כרטיסי Spotify / YouTube משחררים את ההצמדה בזמן שהאפליקציה האחרת נפתחת.</string>
-    <string name="settings_unpin_now">ביטול הצמדה עכשיו (יציאה מ-BoopBox)</string>
-    <string name="settings_gear_taps_title">כפתור גלגל השיניים: מספר הקשות לפתיחת ההגדרות</string>
-    <string name="settings_gear_taps_hint">הקשה כפולה קשה יותר לפעוטות להפעיל בטעות.</string>
+    <string name="settings_unpin_now">שחרור הנעילה עכשיו</string>
+    <string name="settings_gear_taps_title">כפתור גלגל השיניים</string>
     <string name="settings_gear_double">הקשה כפולה</string>
     <string name="settings_gear_single">הקשה אחת</string>
     <string name="settings_password_title">קוד PIN להגדרות</string>
@@ -214,33 +222,30 @@
     <string name="settings_password_off">כבוי. כל מי שמקיש על גלגל השיניים נכנס.</string>
     <string name="settings_password_change">שינוי קוד PIN</string>
     <string name="settings_password_set">הגדרת קוד PIN</string>
-    <string name="settings_card_removed_override_title">כל הכרטיסים: כשהכרטיס מורם מהטלפון</string>
-    <string name="settings_card_removed_override_hint">גובר על הבחירה של כל כרטיס.</string>
-    <string name="settings_card_removed_override_none">ללא עקיפה</string>
-    <string name="settings_car_card_lift_title">ברכב: ממשיכים לנגן כשהכרטיס מורם</string>
+    <string name="settings_card_removed_override_title">כל הכרטיסים</string>
+    <string name="settings_card_removed_override_none">לפי כל כרטיס</string>
+    <string name="settings_car_card_lift_title">ממשיך לנגן ברכב</string>
     <string name="settings_car_card_lift_subtitle">כשהטלפון מחובר ל-Android Auto, כרטיס שמחליק מהטלפון לא עוצר את המוזיקה.</string>
     <string name="car_tab_cards">כרטיסים</string>
     <string name="car_tab_songs">שירים ופרקים</string>
-    <string name="settings_card_removed_title">כרטיסים חדשים: כשהכרטיס מורם מהטלפון</string>
+    <string name="settings_card_removed_title">כרטיסים חדשים</string>
     <string name="settings_card_removed_hint">לכל כרטיס יש בחירה משלו בהגדרות שלו (למשל ספרי שמע נעצרים, מוזיקה ממשיכה לנגן). זה מה שכרטיסים חדשים מתחילים איתו.</string>
     <string name="settings_card_removed_stop">עצירה</string>
     <string name="settings_card_removed_pause">השהיה</string>
     <string name="settings_card_removed_keep">המשך ניגון</string>
     <string name="settings_card_removed_grace">כרטיסים שעוצרים או משהים ממשיכים לנגן %1$d שניות אחרי שמרימים אותם. אם מחזירים את הכרטיס בזמן, הניגון ממשיך.</string>
-    <string name="settings_gate_title">נדרשת הקשה כפולה כדי להגדיר כרטיס חדש</string>
-    <string name="settings_gate_subtitle">מונע מאצבעות קטנות להסתובב אל מסך ההגדרה.</string>
+    <string name="settings_gate_title">הקשה כפולה להגדרת כרטיס</string>
     <string name="settings_grip_title">הגנה מאחיזה</string>
     <string name="settings_grip_body">מתעלמת מידיים שרק מחזיקות את הטלפון: אצבעות סביב הקצוות, אצבעות שנחות על המסך, כפות ידיים והחלקות. ברמה חזקה צריך גם להחזיק את התמונה זמן ארוך יותר כדי לעצור, והדילוג איטי יותר.</string>
     <string name="settings_grip_normal">רגילה</string>
     <string name="settings_grip_strong">חזקה</string>
-    <string name="settings_picture_only_title">רק התמונה פועלת</string>
+    <string name="settings_picture_only_title">רק התמונה פעילה</string>
     <string name="settings_picture_only_subtitle">מכבה את חזק יותר / שקט יותר / דילוג במסך הנגן. הקישו על התמונה כדי לנגן או להשהות; כפתורי העוצמה של הטלפון ממשיכים לפעול.</string>
-    <string name="settings_scrub_title">גרירה הצידה כדי לנוע בתוך שיר</string>
+    <string name="settings_scrub_title">גרירה לדילוג בשיר</string>
     <string name="settings_scrub_subtitle">גוררים ימינה כדי להתקדם ושמאלה כדי לחזור; הקפיצה קורית כשמרימים את האצבע. החלקה למעלה תוך כדי גרירה = מהר יותר, למטה = עדין יותר. הטלה מהירה, כף יד או אצבע שנייה מבטלות.</string>
-    <string name="settings_flash_title">הבהוב המסך בכל הקשה</string>
+    <string name="settings_flash_title">הבהוב בהקשה</string>
     <string name="settings_flash_subtitle">חם = חזק יותר, כחול = שקט יותר, טורקיז = דילוג, לבן = ניגון/השהיה.</string>
-    <string name="settings_buzz_title">רטט בכל הקשה</string>
-    <string name="settings_buzz_subtitle">רטט קטן בהקשות על הנגן, בעצירה בהחזקה וכשגלגל השיניים נפתח.</string>
+    <string name="settings_buzz_title">רטט בהקשה</string>
 
     <!-- SettingsScreen: Bedtime & sleep section -->
     <string name="settings_sleep_state_after_song">טיימר שינה: אחרי השיר הזה</string>
@@ -252,12 +257,9 @@
     <string name="settings_bedtime_hours_hint">הגבלת עוצמה שקטה יותר, טיימר שינה אוטומטי ואור לילה בין השעות האלה.</string>
     <string name="settings_bedtime_starts">התחלה</string>
     <string name="settings_bedtime_ends">סיום</string>
-    <string name="settings_time_stepper">%1$s: %2$s</string>
     <string name="settings_bedtime_now">עכשיו שעת שינה.</string>
     <string name="settings_bedtime_not_now">עכשיו לא שעת שינה.</string>
     <string name="settings_bedtime_volume">הגבלת עוצמה בשעת שינה: %1$d%%</string>
-    <string name="settings_bedtime_card_sleep_off">טיימר שינה כשמקישים עם כרטיס בשעת שינה: כבוי</string>
-    <string name="settings_bedtime_card_sleep_minutes">טיימר שינה כשמקישים עם כרטיס בשעת שינה: %1$d דק׳</string>
 
     <!-- SettingsScreen: Look & idle screen section -->
     <string name="settings_theme_title">ערכת נושא</string>
@@ -265,10 +267,8 @@
     <string name="settings_theme_light">בהיר</string>
     <string name="settings_theme_dark">כהה</string>
     <string name="settings_pixel_art_title">תמונות פיקסל ארט</string>
-    <string name="settings_pixel_art_subtitle">התמונות מצוירות בפיקסלים גדולים, כמו במשחק רטרו. כבוי = תמונות רגילות.</string>
-    <string name="settings_battery_title">אחוז סוללה</string>
-    <string name="settings_battery_hint">סוללה קטנה עם אחוז הטעינה, בפינה העליונה של הנגן.</string>
-    <string name="settings_battery_low">כשחלשה או בטעינה</string>
+    <string name="settings_battery_title">סוללה</string>
+    <string name="settings_battery_low">כשנמוכה</string>
     <string name="settings_battery_always">תמיד</string>
     <string name="settings_taps">הקשות</string>
     <string name="settings_idle_screen">מסך המתנה</string>
@@ -276,24 +276,18 @@
     <string name="settings_section_picker_title">בוחר הכרטיסים</string>
     <string name="settings_section_picker_blurb">ניגון בלי הכרטיס: לחיצה ארוכה על הלוגו ובחירת תמונה</string>
     <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
-    <string name="settings_logo_picker_title">לחיצה ארוכה על הלוגו לבחירת כרטיס</string>
+    <string name="settings_logo_picker_title">לחיצה ארוכה על הלוגו</string>
     <string name="settings_logo_picker_subtitle">כשהכרטיסים לא איתכם: לחצו לחיצה ארוכה על הלוגו של BoopBox במסך הבית, מצאו את תמונת הכרטיס והקישו עליה כדי לנגן.</string>
-    <string name="settings_picker_style">איך הכרטיסים מוצגים</string>
+    <string name="settings_picker_style">תצוגה</string>
     <string name="settings_picker_style_cards">כרטיסים</string>
     <string name="settings_picker_style_tiles">אריחים</string>
-    <string name="settings_picker_style_cards_hint">תמונה גדולה אחת בכל פעם: מחליקים הצידה כדי למצוא את הכרטיס.</string>
-    <string name="settings_picker_style_tiles_hint">כמה כרטיסים קטנים יחד: מחליקים הצידה למסך הבא.</string>
-    <string name="settings_picker_tiles_per_screen">אריחים במסך: %1$d × %2$d</string>
-    <string name="settings_picker_tiles_per_screen_hint">כמה כרטיסים נכנסים במסך אחד של הבוחר.</string>
-    <string name="settings_picker_tiles_across">לרוחב</string>
-    <string name="settings_picker_tiles_down">לגובה</string>
+    <string name="settings_picker_tiles_per_screen">אריחים במסך</string>
     <string name="settings_picker_cards">כרטיסים בבוחר</string>
     <string name="settings_picker_cards_hint">כרטיס שכבוי כאן מתנגן רק עם הכרטיס האמיתי.</string>
     <string name="settings_picker_show_all">הצגת הכול</string>
     <string name="settings_picker_hide_all">הסתרת הכול</string>
     <string name="picker_title">בחרו כרטיס</string>
     <string name="settings_night_light">אור לילה</string>
-    <string name="settings_night_light_hint">מעמעם את כל הנגן לצבע רך, כמו מנורת לילה.</string>
     <string name="settings_night_light_bedtime">בשעת שינה</string>
     <string name="settings_brightness">בהירות: %1$d%%</string>
 
@@ -350,7 +344,7 @@
     <string name="editor_cat_file_hint">MP3, M4B, FLAC, OGG, סרטון… כל מה שהטלפון יודע לנגן</string>
     <string name="editor_cat_folder_hint">מנגן כל קובץ שמע בתיקייה, לפי סדר השמות</string>
     <string name="editor_cat_playlist">רשימת השמעה</string>
-    <string name="editor_cat_playlist_hint">בחרו שירים מהטלפון (וכתובות שידור), סדרו אותם, ותנו לכל שיר תמונה משלו</string>
+    <string name="editor_cat_playlist_hint">שירים מהטלפון, בסדר שתבחרו</string>
     <string name="editor_cat_yoto_hint">כרטיס מספריית Yoto שלכם: Yoto Daily, כרטיסים שנקנו, Yoto Club</string>
     <string name="editor_cat_stream">שידור שמע</string>
     <string name="editor_cat_stream_hint">כתובת ישירה של MP3 / שידור</string>
@@ -404,7 +398,6 @@
     <string name="editor_found_songs">נמצאו %1$d שירים בסרטון הזה. הצד הימני והשמאלי של המסך מדלגים ביניהם.</string>
     <string name="editor_no_tracklist">לא נמצאה רשימת שירים: יתנגן כשיר אחד.</string>
     <string name="editor_rescan">סריקה חוזרת</string>
-    <string name="editor_trim_hint">פתיח עם דיבורים או סוף ארוך? בחרו איפה השיר מתחיל ונגמר.</string>
     <string name="editor_trim_done">מנגן %1$s ← %2$s</string>
     <string name="editor_trim">חיתוך השיר הזה</string>
     <string name="editor_trim_remove">ניגון הכול</string>
@@ -446,7 +439,7 @@
 
     <!-- ספרי שמע שהורדו -->
     <string name="editor_cat_book">ספר שמע בטלפון הזה</string>
-    <string name="editor_cat_book_hint">ספר שהורד: קובץ M4B / MP3 אחד או תיקייה של קובצי פרקים. זוכר איפה עצרנו; ימין ושמאל מדלגים בין הפרקים.</string>
+    <string name="editor_cat_book_hint">ספר שהורד: קובץ אחד או תיקייה של פרקים</string>
     <string name="editor_book_choose_file">קובץ ספר</string>
     <string name="editor_book_choose_folder">תיקיית ספר</string>
     <string name="editor_book_note">ספרים מוגנים (Audible, Apple Books, Libby) מתנגנים רק באפליקציות שלהם. ספרים שהורדו בלי הגנה וספרי LibriVox עובדים כאן.</string>
@@ -519,7 +512,6 @@
         <item quantity="other">%d שירים</item>
     </plurals>
     <string name="editor_add_stream_label">או הוסיפו כתובת של שידור / MP3</string>
-    <string name="editor_playlist_hint">השתמשו בחצים כדי לסדר את השירים. כל שיר מקבל למטה תמונה משלו.</string>
 
     <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
     <string name="editor_fetching">מביאים פרטים…</string>
@@ -548,7 +540,6 @@
     <string name="editor_remove_song_cd">הסרת שיר</string>
     <string name="editor_remove_picture_cd">הסרת תמונה</string>
     <string name="editor_pick">בחירה</string>
-    <string name="editor_drag_hint">גררו את הידית ≡ כדי לשנות סדר. הקישו על התמונה של שיר כדי לבחור לו סמל.</string>
     <string name="editor_first_80">מוצגים 80 הקטעים הראשונים.</string>
     <string name="editor_icon_title">סמל קטן לרשימת הכרטיסים</string>
     <string name="editor_colour">צבע</string>
@@ -798,8 +789,8 @@
     <string name="art_url_note">כל תמונה ברשת: העתיקו את הקישור שלה והדביקו אותו כאן.</string>
 
     <!-- Settings: accounts section, card list sorting, bedtime times -->
-    <string name="settings_section_accounts_title">חשבונות והורדות</string>
-    <string name="settings_section_accounts_blurb">חשבון Yoto, הורדות פודקאסטים</string>
+    <string name="settings_section_accounts_title">חשבונות ונתונים</string>
+    <string name="settings_section_accounts_blurb">חשבון Yoto, הורדות, גיבוי</string>
     <string name="settings_status_yoto_connected">Yoto מחובר</string>
     <string name="settings_status_yoto_not_connected">Yoto לא מחובר</string>
     <string name="settings_sort_recent">נוגנו לאחרונה</string>
@@ -808,7 +799,6 @@
     <string name="settings_search_cards">חיפוש כרטיסים</string>
     <string name="settings_no_matching_cards">אין כרטיס שמתאים.</string>
     <string name="settings_played_ago">נוגן %1$s</string>
-    <string name="settings_change_time">שינוי</string>
 
     <!-- Scan screen -->
     <string name="scan_existing_hint">הצמדת כרטיס שכבר מוגדר פותחת אותו לעריכה.</string>

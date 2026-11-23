@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
         handleNfcIntent(intent)
         // Only on a real launch: a recreated activity would unpack the same .boop a second time.
         if (savedInstanceState == null) handleBoopIntent(intent)
+        handleDebugIntent(intent)
         requestNotificationPermissionIfNeeded()
     }
 
@@ -98,6 +99,18 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
         setIntent(intent)
         handleNfcIntent(intent)
         handleBoopIntent(intent)
+        handleDebugIntent(intent)
+    }
+
+    /**
+     * Test builds only, for screenshots (adb can't tap on every phone):
+     * `adb shell am start -n <package>/com.cardplayer.MainActivity --es debug_settings LOOK --ei debug_scroll 4`
+     * opens that settings section (HOME = the section tiles) scrolled to that row. The Play build ignores it.
+     */
+    private fun handleDebugIntent(intent: Intent?) {
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        val section = intent?.getStringExtra("debug_settings") ?: return
+        viewModel.debugOpenSettings(section, intent.getIntExtra("debug_scroll", 0))
     }
 
     /** NFC switched on or off while we are on screen (quick-settings tile): keep the banner honest. */

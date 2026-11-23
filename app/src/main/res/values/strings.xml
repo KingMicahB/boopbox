@@ -18,6 +18,17 @@
     <string name="common_yes">Yes</string>
     <string name="common_no">No</string>
     <string name="common_not_now">Not now</string>
+    <string name="common_more_info">More info</string>
+    <string name="settings_grip_short">Ignores resting hands</string>
+    <string name="settings_group_player">Player</string>
+    <string name="settings_group_card_lifted">When a card is lifted</string>
+    <string name="settings_group_lock">Locks</string>
+    <string name="settings_group_touch">Touch</string>
+    <string name="settings_group_look">Look</string>
+    <string name="settings_bedtime_use">Use bedtime hours</string>
+    <string name="settings_bedtime_card_sleep_title">Sleep timer on each tap</string>
+    <string name="settings_night_light_colour">Colour</string>
+    <string name="settings_card_removed_grace_title">Put back within %1$d s</string>
 
     <!-- Source types and podcast modes (SourceType / PodcastMode in Models.kt) -->
     <string name="source_local_file">File on this phone</string>
@@ -139,7 +150,6 @@
 
     <!-- SettingsScreen: Cards section -->
     <string name="settings_cards_empty">No cards yet. Tap \"Add a card\", then hold any NFC card, sticker or toy against the back of the phone.</string>
-    <string name="settings_cards_hint">Tap a card to edit it. Holding a physical card on the phone while you are here also opens it.</string>
     <string name="settings_load_boop">Load a .boop</string>
     <string name="settings_load_boop_unpacking">Unpacking…</string>
     <string name="settings_load_boop_hint">Got a .boop from someone? Just open it (WhatsApp, email, Files…) and BoopBox takes over. Or pick the file here.</string>
@@ -155,18 +165,17 @@
     <!-- SettingsScreen: Playback section -->
     <string name="settings_volume_limit_off">Volume limit: off</string>
     <string name="settings_volume_limit_percent">Volume limit: %1$d%%</string>
-    <string name="settings_same_card_title">Tapping the same card again pauses / resumes</string>
-    <string name="settings_same_card_subtitle">Off = tapping again restarts it.</string>
-    <string name="settings_default_resume_title">New cards continue where they left off</string>
+    <string name="settings_same_card_title">Same card again pauses</string>
+    <string name="settings_default_resume_title">New cards resume</string>
     <string name="settings_default_resume_subtitle">Default for cards you add from now on; each card can still be changed in its editor.</string>
     <string name="settings_external_apps">Spotify, YouTube, Audible</string>
-    <string name="settings_return_title">Come back to BoopBox after opening the other app</string>
+    <string name="settings_return_title">Return to BoopBox</string>
     <string name="settings_return_subtitle">Straight away needs no permission. A delay (the other app shows for a moment) needs \"Display over other apps\" (see Permissions).</string>
     <string name="settings_return_now">Come back straight away (recommended)</string>
     <string name="settings_return_after">Come back after %1$ds</string>
-    <string name="settings_stop_autoplay_title">Stop Spotify / YouTube Music when a single song ends</string>
+    <string name="settings_stop_autoplay_title">Stop autoplay</string>
     <string name="settings_stop_autoplay_subtitle">Those apps roll on to autoplay. With notification access on, BoopBox pauses them when they leave the song on the card.</string>
-    <string name="settings_keep_screen_on">Keep the screen on while on the player</string>
+    <string name="settings_keep_screen_on">Keep screen on</string>
     <string name="settings_yoto_title">Yoto account</string>
     <string name="settings_yoto_connected">Connected to Yoto</string>
     <string name="settings_yoto_not_connected">Not connected</string>
@@ -175,7 +184,7 @@
     <string name="settings_yoto_connect">Connect Yoto account</string>
     <string name="settings_yoto_disconnect">Disconnect</string>
     <string name="settings_podcasts_title">Podcasts</string>
-    <string name="settings_podcasts_keep_title">Keep episodes downloaded</string>
+    <string name="settings_podcasts_keep_title">Download episodes</string>
     <string name="settings_podcasts_keep_subtitle">When online, podcast and Yoto cards save their newest episode on the phone (other Yoto cards save all their tracks), so a tap plays at once, even offline. Older episodes are removed.</string>
     <plurals name="settings_podcasts_downloading">
         <item quantity="one">Downloading %1$d episode… Using %2$s MB</item>
@@ -198,11 +207,10 @@
     </plurals>
 
     <!-- SettingsScreen: Toddler safety section -->
-    <string name="settings_child_lock_title">Child lock (pin BoopBox to the screen)</string>
+    <string name="settings_child_lock_title">Child lock</string>
     <string name="settings_child_lock_subtitle">Home, Back and Recents stop working. Android asks you to confirm the first time. Spotify / YouTube cards unpin it while the other app opens.</string>
-    <string name="settings_unpin_now">Unpin now (leave BoopBox)</string>
-    <string name="settings_gear_taps_title">Gear button: taps to open settings</string>
-    <string name="settings_gear_taps_hint">Double tap is harder for toddlers to hit by accident.</string>
+    <string name="settings_unpin_now">Unpin now</string>
+    <string name="settings_gear_taps_title">Gear button</string>
     <string name="settings_gear_double">Double tap</string>
     <string name="settings_gear_single">Single tap</string>
     <string name="settings_password_title">Settings PIN</string>
@@ -210,33 +218,30 @@
     <string name="settings_password_off">Off. Anyone who taps the gear gets in.</string>
     <string name="settings_password_change">Change PIN</string>
     <string name="settings_password_set">Set PIN</string>
-    <string name="settings_card_removed_override_title">All cards: when lifted off the phone</string>
-    <string name="settings_card_removed_override_hint">Overrides every card\'s own choice.</string>
-    <string name="settings_card_removed_override_none">No Override</string>
-    <string name="settings_car_card_lift_title">In the car: keep playing when the card is lifted</string>
+    <string name="settings_card_removed_override_title">All cards</string>
+    <string name="settings_card_removed_override_none">Each card\'s own</string>
+    <string name="settings_car_card_lift_title">Keep playing in the car</string>
     <string name="settings_car_card_lift_subtitle">While the phone is connected to Android Auto, a card sliding off the phone doesn\'t stop the music.</string>
     <string name="car_tab_cards">Cards</string>
     <string name="car_tab_songs">Songs &amp; chapters</string>
-    <string name="settings_card_removed_title">New cards: when the card is lifted off the phone</string>
+    <string name="settings_card_removed_title">New cards</string>
     <string name="settings_card_removed_hint">Each card has its own choice in its settings (e.g. audiobooks stop, music keeps playing). This is what new cards start with.</string>
     <string name="settings_card_removed_stop">Stop</string>
     <string name="settings_card_removed_pause">Pause</string>
     <string name="settings_card_removed_keep">Keep playing</string>
     <string name="settings_card_removed_grace">Cards that stop or pause: putting the card back within %1$d s carries on.</string>
-    <string name="settings_gate_title">Double-tap needed to set up a new card</string>
-    <string name="settings_gate_subtitle">Stops little fingers wandering into the setup screen.</string>
+    <string name="settings_gate_title">Double-tap to set up a card</string>
     <string name="settings_grip_title">Grip guard</string>
     <string name="settings_grip_body">Ignores hands that are only holding the phone: fingers round the edges, resting fingers, palms and slides. Strong also needs a longer hold on the picture to stop and slows down skipping.</string>
     <string name="settings_grip_normal">Normal</string>
     <string name="settings_grip_strong">Strong</string>
-    <string name="settings_picture_only_title">Only the picture works</string>
+    <string name="settings_picture_only_title">Picture only</string>
     <string name="settings_picture_only_subtitle">Turns off louder / quieter / skip on the player screen. Tap the picture to play or pause; the phone\'s volume buttons still work.</string>
-    <string name="settings_scrub_title">Drag sideways to move through a song</string>
+    <string name="settings_scrub_title">Drag to scrub</string>
     <string name="settings_scrub_subtitle">Drag right to go forward, left to go back; it jumps when you let go. Slide up while dragging to go faster, down to go finer. Flicks, palms and a second finger cancel it.</string>
-    <string name="settings_flash_title">Flash the screen on every tap</string>
+    <string name="settings_flash_title">Flash on tap</string>
     <string name="settings_flash_subtitle">Warm = louder, blue = quieter, teal = skip, white = play/pause.</string>
-    <string name="settings_buzz_title">Buzz on every tap</string>
-    <string name="settings_buzz_subtitle">A little vibration for taps on the player, for hold-to-stop and when the gear opens.</string>
+    <string name="settings_buzz_title">Buzz on tap</string>
 
     <!-- SettingsScreen: Bedtime & sleep section -->
     <string name="settings_sleep_state_after_song">Sleep timer: after this song</string>
@@ -248,12 +253,9 @@
     <string name="settings_bedtime_hours_hint">Quieter volume limit, automatic sleep timer and night light between these times.</string>
     <string name="settings_bedtime_starts">Starts</string>
     <string name="settings_bedtime_ends">Ends</string>
-    <string name="settings_time_stepper">%1$s: %2$s</string>
     <string name="settings_bedtime_now">It is bedtime now.</string>
     <string name="settings_bedtime_not_now">Not bedtime right now.</string>
     <string name="settings_bedtime_volume">Bedtime volume limit: %1$d%%</string>
-    <string name="settings_bedtime_card_sleep_off">Sleep timer when a card is tapped at bedtime: off</string>
-    <string name="settings_bedtime_card_sleep_minutes">Sleep timer when a card is tapped at bedtime: %1$d min</string>
 
     <!-- SettingsScreen: Look & idle screen section -->
     <string name="settings_theme_title">Theme</string>
@@ -261,10 +263,8 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_pixel_art_title">Pixel art pictures</string>
-    <string name="settings_pixel_art_subtitle">Artwork is drawn chunky, like a retro game. Off = normal photos.</string>
-    <string name="settings_battery_title">Battery percentage</string>
-    <string name="settings_battery_hint">A small battery with its percentage, in the top corner of the player.</string>
-    <string name="settings_battery_low">When low or charging</string>
+    <string name="settings_battery_title">Battery</string>
+    <string name="settings_battery_low">When low</string>
     <string name="settings_battery_always">Always</string>
     <string name="settings_taps">Taps</string>
     <string name="settings_idle_screen">Idle screen</string>
@@ -272,24 +272,18 @@
     <string name="settings_section_picker_title">Card picker</string>
     <string name="settings_section_picker_blurb">Play without the card: hold the logo, pick a picture</string>
     <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
-    <string name="settings_logo_picker_title">Hold the logo to pick a card</string>
+    <string name="settings_logo_picker_title">Hold the logo to open</string>
     <string name="settings_logo_picker_subtitle">For when the cards aren\'t with you: hold the BoopBox logo on the home screen, find the card\'s picture and tap it to play.</string>
-    <string name="settings_picker_style">How the cards are shown</string>
+    <string name="settings_picker_style">Layout</string>
     <string name="settings_picker_style_cards">Cards</string>
     <string name="settings_picker_style_tiles">Tiles</string>
-    <string name="settings_picker_style_cards_hint">One big picture at a time: swipe sideways to find the card.</string>
-    <string name="settings_picker_style_tiles_hint">Several small cards at once: swipe sideways for the next screenful.</string>
-    <string name="settings_picker_tiles_per_screen">Tiles per screen: %1$d × %2$d</string>
-    <string name="settings_picker_tiles_per_screen_hint">How many cards one screen of the picker holds.</string>
-    <string name="settings_picker_tiles_across">Across</string>
-    <string name="settings_picker_tiles_down">Down</string>
+    <string name="settings_picker_tiles_per_screen">Tiles per screen</string>
     <string name="settings_picker_cards">Cards in the picker</string>
     <string name="settings_picker_cards_hint">A card that is switched off here plays only with its real card.</string>
     <string name="settings_picker_show_all">Show all</string>
     <string name="settings_picker_hide_all">Hide all</string>
     <string name="picker_title">Pick a card</string>
     <string name="settings_night_light">Night light</string>
-    <string name="settings_night_light_hint">Dims the whole player to a soft colour, like a bedside lamp.</string>
     <string name="settings_night_light_bedtime">At bedtime</string>
     <string name="settings_brightness">Brightness: %1$d%%</string>
 
@@ -346,7 +340,7 @@
     <string name="editor_cat_file_hint">MP3, M4B, FLAC, OGG, video… anything the phone can play</string>
     <string name="editor_cat_folder_hint">Plays every audio file in the folder, in name order</string>
     <string name="editor_cat_playlist">Playlist</string>
-    <string name="editor_cat_playlist_hint">Pick songs from the phone (and stream URLs), put them in order, give each its own picture</string>
+    <string name="editor_cat_playlist_hint">Songs from the phone, in your own order</string>
     <string name="editor_cat_yoto_hint">A card from your Yoto library: Yoto Daily, bought cards, Yoto Club</string>
     <string name="editor_cat_stream">Audio stream</string>
     <string name="editor_cat_stream_hint">A direct URL to an MP3 / stream</string>
@@ -400,7 +394,6 @@
     <string name="editor_found_songs">Found %1$d songs in this video. Right/left skip between them.</string>
     <string name="editor_no_tracklist">No tracklist found: plays as one song.</string>
     <string name="editor_rescan">Rescan</string>
-    <string name="editor_trim_hint">Talky intro or a long ending? Pick where the song starts and stops.</string>
     <string name="editor_trim_done">Plays %1$s → %2$s</string>
     <string name="editor_trim">Trim this song</string>
     <string name="editor_trim_remove">Play it all</string>
@@ -438,7 +431,7 @@
 
     <!-- Downloaded audiobooks -->
     <string name="editor_cat_book">Audiobook on this phone</string>
-    <string name="editor_cat_book_hint">A downloaded book: one M4B / MP3 file or a folder of chapter files. Remembers where it stopped; right/left skip chapters.</string>
+    <string name="editor_cat_book_hint">A downloaded book: one file or a folder of chapters</string>
     <string name="editor_book_choose_file">Book file</string>
     <string name="editor_book_choose_folder">Book folder</string>
     <string name="editor_book_note">Copy-protected books (Audible, Apple Books, Libby) only play in their own apps. DRM-free downloads and LibriVox books work here.</string>
@@ -501,7 +494,6 @@
         <item quantity="other">%d songs</item>
     </plurals>
     <string name="editor_add_stream_label">Or add a stream / MP3 URL</string>
-    <string name="editor_playlist_hint">Use the arrows to put songs in order. Each song gets its own picture below.</string>
 
     <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
     <string name="editor_fetching">Fetching details…</string>
@@ -530,7 +522,6 @@
     <string name="editor_remove_song_cd">Remove song</string>
     <string name="editor_remove_picture_cd">Remove picture</string>
     <string name="editor_pick">Pick</string>
-    <string name="editor_drag_hint">Drag the ≡ handle to reorder. Tap a song\'s picture to choose its icon.</string>
     <string name="editor_first_80">Showing the first 80 tracks.</string>
     <string name="editor_icon_title">Little icon for the card list</string>
     <string name="editor_colour">Colour</string>
@@ -770,8 +761,8 @@
     <string name="art_url_note">Any picture on the web: copy its link and paste it here.</string>
 
     <!-- Settings: accounts section, card list sorting, bedtime times -->
-    <string name="settings_section_accounts_title">Accounts &amp; downloads</string>
-    <string name="settings_section_accounts_blurb">Yoto account, podcast downloads</string>
+    <string name="settings_section_accounts_title">Accounts &amp; data</string>
+    <string name="settings_section_accounts_blurb">Yoto account, downloads, backup</string>
     <string name="settings_status_yoto_connected">Yoto connected</string>
     <string name="settings_status_yoto_not_connected">Yoto not connected</string>
     <string name="settings_sort_recent">Recently played</string>
@@ -780,7 +771,6 @@
     <string name="settings_search_cards">Search cards</string>
     <string name="settings_no_matching_cards">No card matches.</string>
     <string name="settings_played_ago">Played %1$s</string>
-    <string name="settings_change_time">Change</string>
 
     <!-- Scan screen -->
     <string name="scan_existing_hint">Tapping a card that is already set up opens it for editing.</string>

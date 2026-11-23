@@ -943,9 +943,6 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 // Split into songs and / or trim the start and end (Plus). A video that isn't downloaded
                                 // (always, in the Play build) is listened to through YouTube's own player in the editor.
                                 if (LinkResolver.isSingleTrack(linkType, uri.trim())) {
-                                    if (mainClip == null) {
-                                        Text(stringResource(R.string.editor_trim_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
                                     MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
                                     OutlinedButton(onClick = openSplitEditor) {
                                         Text(stringResource(if (chapters.size > 1) R.string.editor_edit_songs else R.string.editor_split_into_songs))
@@ -961,18 +958,10 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (app != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             )
-                            Text(
-                                stringResource(R.string.editor_video_note),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            InfoLink(stringResource(R.string.editor_video_note))
                         }
                         if (category == Category.AUDIBLE) {
-                            Text(
-                                stringResource(R.string.editor_audible_note),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            InfoLink(stringResource(R.string.editor_audible_note))
                         }
                     }
                     Category.PODCAST -> {
@@ -1103,13 +1092,14 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             Text(pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_file_chosen else R.string.editor_no_file), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
                         }
                         if (uri.isNotBlank()) {
-                            Text(stringResource(R.string.editor_songs_inside), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                if (chapters.size > 1) stringResource(R.string.editor_split_done, chapters.size)
-                                else stringResource(R.string.editor_split_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            InfoTitle(stringResource(R.string.editor_songs_inside), stringResource(R.string.editor_split_hint), style = MaterialTheme.typography.titleMedium)
+                            if (chapters.size > 1) {
+                                Text(
+                                    stringResource(R.string.editor_split_done, chapters.size),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedButton(onClick = openSplitEditor) {
@@ -1143,11 +1133,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 Text(stringResource(R.string.editor_book_choose_folder))
                             }
                         }
-                        Text(
-                            stringResource(R.string.editor_book_note),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        InfoLink(stringResource(R.string.editor_book_note))
                         if (uri.isNotBlank()) {
                             Text(
                                 pickedLabel ?: stringResource(if (bookFolder) R.string.editor_folder_chosen else R.string.editor_file_chosen),
@@ -1227,11 +1213,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     Category.YOTO -> {
                         val physicalYoto = YotoClient.isCardLink(uri)
                         if (yotoTokens == null && !physicalYoto) {
-                            Text(
-                                stringResource(R.string.editor_yoto_signin_note),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            InfoLink(stringResource(R.string.editor_yoto_signin_note))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Button(onClick = { viewModel.player.yoto.startLogin() }, enabled = yotoLogin != YotoClient.LoginState.Waiting) {
                                     Text(stringResource(if (yotoLogin == YotoClient.LoginState.Waiting) R.string.editor_yoto_waiting else R.string.editor_yoto_connect))
@@ -1334,13 +1316,6 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 }
                             ) { Text(stringResource(R.string.common_add)) }
                         }
-                        if (playlist.isNotEmpty()) {
-                            Text(
-                                stringResource(R.string.editor_playlist_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
 
@@ -1411,13 +1386,9 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.editor_sleep_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
+                    InfoIcon(text = stringResource(R.string.editor_sleep_note), title = stringResource(R.string.editor_sleep_title))
                     if (!plus) PlusBadge(Modifier.padding(start = 8.dp))
                 }
-                Text(
-                    stringResource(R.string.editor_sleep_note),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(0, 15, 30, 45, 60).forEach { mins ->
                         FilterChip(
@@ -1432,12 +1403,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
             val looksSection: @Composable ColumnScope.() -> Unit = {
                 SectionTitle(stringResource(R.string.editor_section_looks))
-                Text(stringResource(R.string.editor_picture), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.editor_picture_note),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                InfoTitle(stringResource(R.string.editor_picture), stringResource(R.string.editor_picture_note), style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = { pickerTarget = "" }) { Text(stringResource(if (artworkUrl.isBlank()) R.string.editor_find_picture else R.string.editor_change_picture)) }
                     Spacer(Modifier.width(8.dp))
@@ -1474,12 +1440,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 }
                 val editable = category == Category.PLAYLIST
                 if (tracks.size > 1 || (editable && tracks.isNotEmpty())) {
-                    Text(stringResource(if (editable) R.string.editor_tracks_songs_title else R.string.editor_tracks_each_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(R.string.editor_tracks_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    InfoTitle(stringResource(if (editable) R.string.editor_tracks_songs_title else R.string.editor_tracks_each_title), stringResource(R.string.editor_tracks_note), style = MaterialTheme.typography.titleMedium)
                     // Drag-to-reorder state (playlists only): which row is held, how far it has moved, row heights.
                     var dragIndex by remember { mutableStateOf<Int?>(null) }
                     var dragOffset by remember { mutableFloatStateOf(0f) }
@@ -1618,13 +1579,6 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                         }
                       }
                     }
-                    if (editable) {
-                        Text(
-                            stringResource(R.string.editor_drag_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     if (tracks.size > 80) {
                         Text(stringResource(R.string.editor_first_80), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -1676,12 +1630,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
             val tagAndShareSection: @Composable ColumnScope.() -> Unit = {
                 if (saved != null) {
-                    SectionTitle(stringResource(R.string.editor_section_tag))
-                    Text(
-                        stringResource(R.string.editor_tag_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    SectionTitle(stringResource(R.string.editor_section_tag), stringResource(R.string.editor_tag_note))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = {
@@ -1704,14 +1653,16 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     }
                 }
 
-                SectionTitle(stringResource(R.string.editor_section_share))
                 val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST || category == Category.AUDIOBOOK
                 val shareable = !localOnly && uri.isNotBlank()
-                Text(
-                    stringResource(if (localOnly) R.string.editor_share_local_only else R.string.editor_share_note),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                SectionTitle(stringResource(R.string.editor_section_share), if (localOnly) null else stringResource(R.string.editor_share_note))
+                if (localOnly) {
+                    Text(
+                        stringResource(R.string.editor_share_local_only),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedButton(
                     enabled = shareable,
                     onClick = {
@@ -1722,11 +1673,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(stringResource(R.string.editor_write_to_card)) }
-                Text(
-                    stringResource(R.string.editor_boop_note),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                InfoLink(stringResource(R.string.editor_boop_note))
                 if (boopBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(

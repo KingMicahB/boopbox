@@ -13,6 +13,8 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,6 +40,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -76,6 +79,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -156,6 +160,9 @@ fun SettingsScreen(viewModel: MainViewModel) {
     LaunchedEffect(Unit) { viewModel.notices.collect { snackbar.showSnackbar(it.text) } }
 
     var section by rememberSaveable { mutableStateOf<Section?>(null) }
+    // Test builds only: a section asked for over adb (MainActivity.handleDebugIntent).
+    val debugSettings by viewModel.debugSettings.collectAsStateWithLifecycle()
+    LaunchedEffect(debugSettings) { debugSettings?.let { asked -> section = Section.entries.firstOrNull { it.name == asked.first } } }
     BackHandler(enabled = section != null) { section = null }
 
     editPrompt?.let { card ->
@@ -297,7 +304,17 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 }
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    // Each section starts at its top.
+                    val listState = key(current) { rememberLazyListState() }
+                    LaunchedEffect(debugSettings, current) {
+                        val asked = debugSettings ?: return@LaunchedEffect
+                        if (asked.first == current.name && asked.second > 0) {
+                            delay(150)
+                            listState.scrollToItem(asked.second)
+                        }
+                    }
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier
                             .fillMaxSize()
                             .widthIn(max = m.contentMax),
@@ -307,7 +324,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         when (current) {
                             Section.PLUS -> plusSection(plus, cards.size, viewModel)
                             Section.CARDS -> cardsSection(cards, settings, m, viewModel, cardQuery) { cardQuery = it }
-                            Section.PICKER -> pickerSection(cards, settings, m, context, viewModel)
+                            Section.PICKER -> pickerSection(cards, settings, context, viewModel)
                             Section.PLAYBACK -> playbackSection(settings, viewModel)
                             Section.ACCOUNTS -> accountsSection(settings, viewModel)
                             Section.SAFETY -> safetySection(settings, viewModel)
@@ -432,60 +449,6 @@ private fun LazyListScope.cardsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    } else {
-        item {
-            Text(
-                stringResource(R.string.settings_cards_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-    item {
-        val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
-        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) viewModel.receiveBoop(uri)
-        }
-        Column {
-            OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !busy) { Text(stringResource(R.string.settings_load_boop)) }
-            Text(
-                stringResource(if (busy) R.string.settings_load_boop_unpacking else R.string.settings_load_boop_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-    }
-    item {
-        val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
-        var confirmRestore by remember { mutableStateOf<Uri?>(null) }
-        val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-            if (uri != null) viewModel.exportBackup(uri)
-        }
-        val opener = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) confirmRestore = uri
-        }
-        Column {
-            SubTitle(stringResource(R.string.settings_backup_title))
-            Text(
-                stringResource(R.string.settings_backup_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { saver.launch(Backup.fileName()) }, enabled = !busy) { Text(stringResource(R.string.settings_backup_save)) }
-                OutlinedButton(onClick = { opener.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }, enabled = !busy) { Text(stringResource(R.string.settings_backup_restore)) }
-            }
-        }
-        confirmRestore?.let { uri ->
-            AlertDialog(
-                onDismissRequest = { confirmRestore = null },
-                title = { Text(stringResource(R.string.settings_restore_title)) },
-                text = { Text(stringResource(R.string.settings_restore_body)) },
-                confirmButton = { TextButton(onClick = { viewModel.importBackup(uri); confirmRestore = null }) { Text(stringResource(R.string.settings_restore_confirm)) } },
-                dismissButton = { TextButton(onClick = { confirmRestore = null }) { Text(stringResource(R.string.common_cancel)) } }
-            )
-        }
     }
     if (cards.isNotEmpty()) {
         item { SubTitle(stringResource(R.string.settings_your_cards)) }
@@ -545,107 +508,100 @@ private fun LazyListScope.cardsSection(
             extra = { YouTubeCacheStatus(viewModel.player.youtubeCache, card, settings.youtubeAutoCache) }
         )
     }
-}
-
-/** The card picker: playing a card from its picture when the card itself isn't there (hold the logo on the home screen). */
-private fun LazyListScope.pickerSection(cards: List<CardModel>, settings: AppSettings, m: Metrics, context: Context, viewModel: MainViewModel) {
+    // Last: .boop files normally open straight from WhatsApp, email or Files; this is for the app that won't hand one over.
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_logo_picker_title),
-            subtitle = stringResource(R.string.settings_logo_picker_subtitle),
-            checked = settings.holdLogoToPick
-        ) { v -> viewModel.updateSettings { it.copy(holdLogoToPick = v) } }
-    }
-    if (!settings.holdLogoToPick) return
-    item {
-        Column {
-            Text(stringResource(R.string.settings_picker_style), style = MaterialTheme.typography.bodyLarge)
-            ChipGroup(
-                options = listOf(
-                    "cards" to stringResource(R.string.settings_picker_style_cards),
-                    "tiles" to stringResource(R.string.settings_picker_style_tiles)
-                ),
-                selected = if (settings.pickerStyle == "tiles") "tiles" else "cards"
-            ) { v -> viewModel.updateSettings { it.copy(pickerStyle = v) } }
-            Text(
-                stringResource(if (settings.pickerStyle == "tiles") R.string.settings_picker_style_tiles_hint else R.string.settings_picker_style_cards_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
+        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) viewModel.receiveBoop(uri)
         }
-    }
-    if (settings.pickerStyle == "tiles") {
-        item {
-            Column {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !busy) { Text(stringResource(R.string.settings_load_boop)) }
+                InfoIcon(text = stringResource(R.string.settings_load_boop_hint), title = stringResource(R.string.settings_load_boop))
+            }
+            if (busy) {
                 Text(
-                    stringResource(R.string.settings_picker_tiles_per_screen, settings.pickerTileCols, settings.pickerTileRows),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    stringResource(R.string.settings_picker_tiles_per_screen_hint),
+                    stringResource(R.string.settings_load_boop_unpacking),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                val sizes = (1..6).map { it.toString() to it.toString() }
-                Text(stringResource(R.string.settings_picker_tiles_across), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
-                ChipGroup(options = sizes, selected = settings.pickerTileCols.toString()) { v ->
-                    viewModel.updateSettings { it.copy(pickerTileCols = v.toInt()) }
-                }
-                Text(stringResource(R.string.settings_picker_tiles_down), style = MaterialTheme.typography.bodyMedium)
-                ChipGroup(options = sizes, selected = settings.pickerTileRows.toString()) { v ->
-                    viewModel.updateSettings { it.copy(pickerTileRows = v.toInt()) }
+            }
+            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** The card picker: playing a card from its picture when the card itself isn't there (hold the logo on the home screen). */
+private fun LazyListScope.pickerSection(cards: List<CardModel>, settings: AppSettings, context: Context, viewModel: MainViewModel) {
+    item {
+        SettingsGroup {
+            SwitchSetting(
+                title = stringResource(R.string.settings_logo_picker_title),
+                info = stringResource(R.string.settings_logo_picker_subtitle),
+                checked = settings.holdLogoToPick
+            ) { v -> viewModel.updateSettings { it.copy(holdLogoToPick = v) } }
+            if (settings.holdLogoToPick) {
+                SettingRow(
+                    title = stringResource(R.string.settings_picker_style),
+                    below = {
+                        Segments(
+                            options = listOf(
+                                "cards" to stringResource(R.string.settings_picker_style_cards),
+                                "tiles" to stringResource(R.string.settings_picker_style_tiles)
+                            ),
+                            selected = if (settings.pickerStyle == "tiles") "tiles" else "cards"
+                        ) { v -> viewModel.updateSettings { it.copy(pickerStyle = v) } }
+                    }
+                )
+                if (settings.pickerStyle == "tiles") {
+                    // Across × down.
+                    SettingRow(title = stringResource(R.string.settings_picker_tiles_per_screen)) {
+                        val sizes = (1..6).map { it to it.toString() }
+                        ValueMenu(sizes, settings.pickerTileCols) { v -> viewModel.updateSettings { it.copy(pickerTileCols = v) } }
+                        Text("×", style = MaterialTheme.typography.titleMedium)
+                        ValueMenu(sizes, settings.pickerTileRows) { v -> viewModel.updateSettings { it.copy(pickerTileRows = v) } }
+                    }
                 }
             }
         }
     }
-    if (cards.isEmpty()) return
+    if (!settings.holdLogoToPick || cards.isEmpty()) return
     item {
-        Column {
-            SubTitle(stringResource(R.string.settings_picker_cards))
-            Text(
-                stringResource(R.string.settings_picker_cards_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+        SettingsGroup(title = stringResource(R.string.settings_picker_cards), info = stringResource(R.string.settings_picker_cards_hint)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
                     onClick = { viewModel.setShowInPicker(cards.map { it.uid }, true) },
                     enabled = cards.any { !it.showInPicker }
                 ) { Text(stringResource(R.string.settings_picker_show_all)) }
-                OutlinedButton(
+                TextButton(
                     onClick = { viewModel.setShowInPicker(cards.map { it.uid }, false) },
                     enabled = cards.any { it.showInPicker }
                 ) { Text(stringResource(R.string.settings_picker_hide_all)) }
             }
-        }
-    }
-    // By name, so a card keeps its place in the list when its switch is flipped.
-    items(cards.sortedBy { it.displayName(context).lowercase() }, key = { it.uid }) { card ->
-        val toggle = { viewModel.setShowInPicker(listOf(card.uid), !card.showInPicker) }
-        Card(
-            onClick = toggle,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                CardArtwork(
-                    artwork = card.artworkUrl,
-                    seed = card.uid,
-                    color = card.color,
-                    modifier = Modifier.size(m.artSize),
-                    cornerRadius = 14.dp,
-                    pixel = settings.pixelArt
-                )
-                Spacer(Modifier.width(14.dp))
-                Text(
-                    card.displayName(context),
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = card.showInPicker, onCheckedChange = { toggle() })
+            // By name, so a card keeps its place in the list when its switch is flipped.
+            for (card in cards.sortedBy { it.displayName(context).lowercase() }) {
+                key(card.uid) {
+                    SwitchSetting(
+                        title = card.displayName(context),
+                        checked = card.showInPicker,
+                        leading = {
+                            CardArtwork(
+                                artwork = card.artworkUrl,
+                                seed = card.uid,
+                                color = card.color,
+                                modifier = Modifier.size(44.dp),
+                                cornerRadius = 10.dp,
+                                pixel = settings.pixelArt
+                            )
+                        }
+                    ) { v -> viewModel.setShowInPicker(listOf(card.uid), v) }
+                }
             }
         }
     }
@@ -677,275 +633,257 @@ private fun LazyListScope.plusSection(plus: Boolean, cardCount: Int, viewModel: 
     if (Plus.canPretend) {
         item {
             val pretending by Plus.pretending.collectAsStateWithLifecycle()
-            SwitchRow(
-                title = stringResource(R.string.plus_pretend_title),
-                subtitle = stringResource(R.string.plus_pretend_subtitle),
-                checked = pretending
-            ) { Plus.setPretend(it) }
+            SettingsGroup {
+                SwitchSetting(
+                    title = stringResource(R.string.plus_pretend_title),
+                    note = stringResource(R.string.plus_pretend_subtitle),
+                    checked = pretending
+                ) { Plus.setPretend(it) }
+            }
         }
     }
 }
 
 private fun LazyListScope.playbackSection(settings: AppSettings, viewModel: MainViewModel) {
     item {
-        SliderRow(
-            title = if (settings.volumeCapPercent >= 100) stringResource(R.string.settings_volume_limit_off) else stringResource(R.string.settings_volume_limit_percent, settings.volumeCapPercent),
-            value = settings.volumeCapPercent.toFloat(),
-            range = 20f..100f,
-            steps = 15
-        ) { v -> viewModel.updateSettings { it.copy(volumeCapPercent = v.roundToInt()) } }
+        SettingsGroup(stringResource(R.string.settings_group_player)) {
+            SettingRow(
+                title = if (settings.volumeCapPercent >= 100) stringResource(R.string.settings_volume_limit_off) else stringResource(R.string.settings_volume_limit_percent, settings.volumeCapPercent),
+                below = {
+                    SettingSlider(value = settings.volumeCapPercent.toFloat(), valueRange = 20f..100f, steps = 15) { v -> viewModel.updateSettings { it.copy(volumeCapPercent = v.roundToInt()) } }
+                }
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_keep_screen_on),
+                checked = settings.keepScreenOn
+            ) { v -> viewModel.updateSettings { it.copy(keepScreenOn = v) } }
+        }
     }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_same_card_title),
-            subtitle = stringResource(R.string.settings_same_card_subtitle),
-            checked = settings.sameCardToggles
-        ) { v -> viewModel.updateSettings { it.copy(sameCardToggles = v) } }
+        SettingsGroup(stringResource(R.string.settings_section_cards_title)) {
+            SwitchSetting(
+                title = stringResource(R.string.settings_same_card_title),
+                checked = settings.sameCardToggles
+            ) { v -> viewModel.updateSettings { it.copy(sameCardToggles = v) } }
+            SwitchSetting(
+                title = stringResource(R.string.settings_default_resume_title),
+                info = stringResource(R.string.settings_default_resume_subtitle),
+                checked = settings.defaultResume
+            ) { v -> viewModel.updateSettings { it.copy(defaultResume = v) } }
+            // Picture-only (Safety) turns the drag off along with the other zones.
+            if (!settings.pictureOnly) {
+                SwitchSetting(
+                    title = stringResource(R.string.settings_scrub_title),
+                    info = stringResource(R.string.settings_scrub_subtitle),
+                    checked = settings.dragToScrub
+                ) { v -> viewModel.updateSettings { it.copy(dragToScrub = v) } }
+            }
+        }
     }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_default_resume_title),
-            subtitle = stringResource(R.string.settings_default_resume_subtitle),
-            checked = settings.defaultResume
-        ) { v -> viewModel.updateSettings { it.copy(defaultResume = v) } }
-    }
-    item {
-        DropdownRow(
-            title = stringResource(R.string.settings_card_removed_override_title),
-            subtitle = stringResource(R.string.settings_card_removed_override_hint),
-            options = listOf(
-                null to stringResource(R.string.settings_card_removed_override_none),
+        SettingsGroup(stringResource(R.string.settings_group_card_lifted)) {
+            val modes = listOf(
                 "stop" to stringResource(R.string.settings_card_removed_stop),
                 "pause" to stringResource(R.string.settings_card_removed_pause),
                 "nothing" to stringResource(R.string.settings_card_removed_keep)
-            ),
-            selected = settings.cardRemovedOverride
-        ) { mode -> viewModel.updateSettings { it.copy(cardRemovedOverride = mode) } }
-    }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_car_card_lift_title),
-            subtitle = stringResource(R.string.settings_car_card_lift_subtitle),
-            checked = settings.carIgnoreCardLift
-        ) { v -> viewModel.updateSettings { it.copy(carIgnoreCardLift = v) } }
-    }
-    item {
-        Column {
-            Text(stringResource(R.string.settings_card_removed_title), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.settings_card_removed_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ChipGroup(
-                options = listOf(
-                    "stop" to stringResource(R.string.settings_card_removed_stop),
-                    "pause" to stringResource(R.string.settings_card_removed_pause),
-                    "nothing" to stringResource(R.string.settings_card_removed_keep)
-                ),
-                selected = settings.cardRemovedMode
-            ) { mode -> viewModel.updateSettings { it.copy(cardRemoved = mode) } }
+            SettingRow(
+                title = stringResource(R.string.settings_card_removed_title),
+                info = stringResource(R.string.settings_card_removed_hint),
+                below = {
+                    Segments(options = modes, selected = settings.cardRemovedMode) { mode -> viewModel.updateSettings { it.copy(cardRemoved = mode) } }
+                }
+            )
+            SettingRow(title = stringResource(R.string.settings_card_removed_override_title)) {
+                ValueMenu(
+                    options = listOf<Pair<String?, String>>(null to stringResource(R.string.settings_card_removed_override_none)) + modes,
+                    selected = settings.cardRemovedOverride
+                ) { mode -> viewModel.updateSettings { it.copy(cardRemovedOverride = mode) } }
+            }
+            SettingRow(
+                title = stringResource(R.string.settings_card_removed_grace_title, settings.cardRemovedGraceSeconds),
+                info = stringResource(R.string.settings_card_removed_grace, settings.cardRemovedGraceSeconds),
+                below = {
+                    SettingSlider(value = settings.cardRemovedGraceSeconds.toFloat(), valueRange = 1f..30f, steps = 28) { v -> viewModel.updateSettings { it.copy(cardRemovedGraceSeconds = v.roundToInt()) } }
+                }
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_car_card_lift_title),
+                info = stringResource(R.string.settings_car_card_lift_subtitle),
+                checked = settings.carIgnoreCardLift
+            ) { v -> viewModel.updateSettings { it.copy(carIgnoreCardLift = v) } }
         }
     }
     item {
-        SliderRow(
-            title = stringResource(R.string.settings_card_removed_grace, settings.cardRemovedGraceSeconds),
-            value = settings.cardRemovedGraceSeconds.toFloat(),
-            range = 1f..30f,
-            steps = 28
-        ) { v -> viewModel.updateSettings { it.copy(cardRemovedGraceSeconds = v.roundToInt()) } }
-    }
-    // Picture-only (Safety) turns the drag off along with the other zones.
-    if (!settings.pictureOnly) {
-        item {
-            SwitchRow(
-                title = stringResource(R.string.settings_scrub_title),
-                subtitle = stringResource(R.string.settings_scrub_subtitle),
-                checked = settings.dragToScrub
-            ) { v -> viewModel.updateSettings { it.copy(dragToScrub = v) } }
+        SettingsGroup(stringResource(R.string.settings_external_apps)) {
+            SwitchSetting(
+                title = stringResource(R.string.settings_return_title),
+                info = stringResource(R.string.settings_return_subtitle),
+                checked = settings.returnToApp
+            ) { v -> viewModel.updateSettings { it.copy(returnToApp = v) } }
+            if (settings.returnToApp) {
+                val secs = settings.returnAfterSeconds
+                SettingRow(
+                    title = if (secs <= 0) stringResource(R.string.settings_return_now) else stringResource(R.string.settings_return_after, secs),
+                    below = {
+                        SettingSlider(value = secs.toFloat(), valueRange = 0f..10f, steps = 9) { v -> viewModel.updateSettings { it.copy(returnAfterSeconds = v.roundToInt()) } }
+                    }
+                )
+            }
+            SwitchSetting(
+                title = stringResource(R.string.settings_stop_autoplay_title),
+                info = stringResource(R.string.settings_stop_autoplay_subtitle),
+                checked = settings.stopExternalAutoplay
+            ) { v -> viewModel.updateSettings { it.copy(stopExternalAutoplay = v) } }
         }
-    }
-    item { SubTitle(stringResource(R.string.settings_external_apps)) }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_return_title),
-            subtitle = stringResource(R.string.settings_return_subtitle),
-            checked = settings.returnToApp
-        ) { v -> viewModel.updateSettings { it.copy(returnToApp = v) } }
-    }
-    if (settings.returnToApp) {
-        item {
-            val secs = settings.returnAfterSeconds
-            SliderRow(
-                title = if (secs <= 0) stringResource(R.string.settings_return_now) else stringResource(R.string.settings_return_after, secs),
-                value = secs.toFloat(),
-                range = 0f..10f,
-                steps = 9
-            ) { v -> viewModel.updateSettings { it.copy(returnAfterSeconds = v.roundToInt()) } }
-        }
-    }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_stop_autoplay_title),
-            subtitle = stringResource(R.string.settings_stop_autoplay_subtitle),
-            checked = settings.stopExternalAutoplay
-        ) { v -> viewModel.updateSettings { it.copy(stopExternalAutoplay = v) } }
-    }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_keep_screen_on),
-            subtitle = null,
-            checked = settings.keepScreenOn
-        ) { v -> viewModel.updateSettings { it.copy(keepScreenOn = v) } }
     }
 }
 
-/** Yoto sign-in and the podcast download store: accounts and storage, apart from how things play. */
+/** Yoto sign-in, the podcast download store and the backup: accounts and the phone's data, apart from how things play. */
 private fun LazyListScope.accountsSection(settings: AppSettings, viewModel: MainViewModel) {
-    item { SubTitle(stringResource(R.string.settings_yoto_title)) }
     item {
         val yoto = viewModel.player.yoto
         val tokens by yoto.tokens.collectAsStateWithLifecycle()
         val login by yoto.loginState.collectAsStateWithLifecycle()
-        Column {
-            Text(
-                stringResource(if (tokens != null) R.string.settings_yoto_connected else R.string.settings_yoto_not_connected),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                stringResource(R.string.settings_yoto_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        SettingsGroup(title = stringResource(R.string.settings_yoto_title), info = stringResource(R.string.settings_yoto_body)) {
+            SettingRow(
+                title = stringResource(if (tokens != null) R.string.settings_yoto_connected else R.string.settings_yoto_not_connected),
+                note = (login as? YotoClient.LoginState.Error)?.message
+            ) {
                 if (tokens == null) {
-                    OutlinedButton(onClick = { yoto.startLogin() }, enabled = login != YotoClient.LoginState.Waiting) {
-                        Text(stringResource(if (login == YotoClient.LoginState.Waiting) R.string.settings_yoto_waiting else R.string.settings_yoto_connect))
-                    }
                     if (login == YotoClient.LoginState.Waiting) {
                         TextButton(onClick = { yoto.cancelLogin() }) { Text(stringResource(R.string.common_cancel)) }
                     }
+                    TextButton(onClick = { yoto.startLogin() }, enabled = login != YotoClient.LoginState.Waiting) {
+                        Text(stringResource(if (login == YotoClient.LoginState.Waiting) R.string.settings_yoto_waiting else R.string.settings_yoto_connect))
+                    }
                 } else {
-                    OutlinedButton(onClick = { yoto.logout() }) { Text(stringResource(R.string.settings_yoto_disconnect)) }
+                    TextButton(onClick = { yoto.logout() }) { Text(stringResource(R.string.settings_yoto_disconnect)) }
                 }
-            }
-            (login as? YotoClient.LoginState.Error)?.let {
-                Text(it.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
-    item { SubTitle(stringResource(R.string.settings_podcasts_title)) }
     item {
         val cache = viewModel.player.podcastCache
         val version by cache.version.collectAsStateWithLifecycle()
         val downloading by cache.downloading.collectAsStateWithLifecycle()
         val used = remember(version) { cache.usedBytes() }
-        Column {
-            SwitchRow(
+        SettingsGroup(stringResource(R.string.settings_podcasts_title)) {
+            SwitchSetting(
                 title = stringResource(R.string.settings_podcasts_keep_title),
-                subtitle = stringResource(R.string.settings_podcasts_keep_subtitle),
+                info = stringResource(R.string.settings_podcasts_keep_subtitle),
                 checked = settings.podcastAutoDownload
             ) { v -> viewModel.updateSettings { it.copy(podcastAutoDownload = v) } }
-            Text(
-                "%.1f".format(used / 1_048_576f).let { mb ->
+            SettingRow(
+                title = stringResource(R.string.settings_podcasts_refresh),
+                note = "%.1f".format(used / 1_048_576f).let { mb ->
                     if (downloading.isNotEmpty()) pluralStringResource(R.plurals.settings_podcasts_downloading, downloading.size, downloading.size, mb)
                     else stringResource(R.string.settings_podcasts_using, mb)
                 },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                onClick = { cache.refreshAllAsync(viewModel.cards.value, settings.podcastAutoDownload, minIntervalMs = 0) }
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {
-                    cache.refreshAllAsync(viewModel.cards.value, settings.podcastAutoDownload, minIntervalMs = 0)
-                }) { Text(stringResource(R.string.settings_podcasts_refresh)) }
-                OutlinedButton(onClick = { cache.clearAll() }) { Text(stringResource(R.string.settings_podcasts_delete)) }
-            }
+            SettingRow(title = stringResource(R.string.settings_podcasts_delete), onClick = { cache.clearAll() })
+        }
+    }
+    // Save everything to one file, or put such a file back.
+    item {
+        val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
+        var confirmRestore by remember { mutableStateOf<Uri?>(null) }
+        val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            if (uri != null) viewModel.exportBackup(uri)
+        }
+        val opener = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) confirmRestore = uri
+        }
+        SettingsGroup(title = stringResource(R.string.settings_backup_title), info = stringResource(R.string.settings_backup_body)) {
+            SettingRow(
+                title = stringResource(R.string.settings_backup_save),
+                onClick = if (busy) null else ({ saver.launch(Backup.fileName()) })
+            )
+            SettingRow(
+                title = stringResource(R.string.settings_backup_restore),
+                onClick = if (busy) null else ({ opener.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) })
+            )
+        }
+        confirmRestore?.let { uri ->
+            AlertDialog(
+                onDismissRequest = { confirmRestore = null },
+                title = { Text(stringResource(R.string.settings_restore_title)) },
+                text = { Text(stringResource(R.string.settings_restore_body)) },
+                confirmButton = { TextButton(onClick = { viewModel.importBackup(uri); confirmRestore = null }) { Text(stringResource(R.string.settings_restore_confirm)) } },
+                dismissButton = { TextButton(onClick = { confirmRestore = null }) { Text(stringResource(R.string.common_cancel)) } }
+            )
         }
     }
 }
 
 private fun LazyListScope.safetySection(settings: AppSettings, viewModel: MainViewModel) {
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_child_lock_title),
-            subtitle = stringResource(R.string.settings_child_lock_subtitle),
-            checked = settings.childLock
-        ) { v -> viewModel.updateSettings { it.copy(childLock = v) } }
-    }
-    if (settings.childLock) {
-        item {
-            OutlinedButton(onClick = { viewModel.player.hooks?.setChildLock(false) }) { Text(stringResource(R.string.settings_unpin_now)) }
-        }
-    }
-    item {
-        Column {
-            Text(stringResource(R.string.settings_gear_taps_title), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.settings_gear_taps_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ChipGroup(
-                options = listOf("2" to stringResource(R.string.settings_gear_double), "1" to stringResource(R.string.settings_gear_single)),
-                selected = settings.gearTaps.toString()
-            ) { v -> viewModel.updateSettings { it.copy(gearTaps = v.toInt()) } }
-        }
-    }
-    item {
-        var setting by remember { mutableStateOf(false) }
+        var settingPin by remember { mutableStateOf(false) }
         val locked = SettingsLock.isLocked(settings)
-        Column {
-            Text(stringResource(R.string.settings_password_title), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(if (locked) R.string.settings_password_on else R.string.settings_password_off),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { setting = true }) { Text(stringResource(if (locked) R.string.settings_password_change else R.string.settings_password_set)) }
-                if (locked) {
-                    OutlinedButton(onClick = { viewModel.updateSettings { SettingsLock.withPassword(it, null) } }) { Text(stringResource(R.string.common_remove)) }
-                }
+        SettingsGroup(stringResource(R.string.settings_group_lock)) {
+            SwitchSetting(
+                title = stringResource(R.string.settings_child_lock_title),
+                info = stringResource(R.string.settings_child_lock_subtitle),
+                checked = settings.childLock
+            ) { v -> viewModel.updateSettings { it.copy(childLock = v) } }
+            if (settings.childLock) {
+                SettingRow(title = stringResource(R.string.settings_unpin_now), onClick = { viewModel.player.hooks?.setChildLock(false) })
             }
+            SettingRow(
+                title = stringResource(R.string.settings_password_title),
+                note = stringResource(if (locked) R.string.settings_on else R.string.settings_off),
+                info = stringResource(if (locked) R.string.settings_password_on else R.string.settings_password_off)
+            ) {
+                if (locked) {
+                    TextButton(onClick = { viewModel.updateSettings { SettingsLock.withPassword(it, null) } }) { Text(stringResource(R.string.common_remove)) }
+                }
+                TextButton(onClick = { settingPin = true }) { Text(stringResource(if (locked) R.string.settings_password_change else R.string.settings_password_set)) }
+            }
+            SettingRow(
+                title = stringResource(R.string.settings_gear_taps_title),
+                below = {
+                    Segments(
+                        options = listOf(2 to stringResource(R.string.settings_gear_double), 1 to stringResource(R.string.settings_gear_single)),
+                        selected = settings.gearTaps
+                    ) { v -> viewModel.updateSettings { it.copy(gearTaps = v) } }
+                }
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_gate_title),
+                checked = settings.gateUnknownCardSetup
+            ) { v -> viewModel.updateSettings { it.copy(gateUnknownCardSetup = v) } }
         }
-        if (setting) {
+        if (settingPin) {
             SetPasswordDialog(
-                onSave = { pw -> viewModel.updateSettings { SettingsLock.withPassword(it, pw) }; setting = false },
-                onDismiss = { setting = false }
+                onSave = { pw -> viewModel.updateSettings { SettingsLock.withPassword(it, pw) }; settingPin = false },
+                onDismiss = { settingPin = false }
             )
         }
     }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_gate_title),
-            subtitle = stringResource(R.string.settings_gate_subtitle),
-            checked = settings.gateUnknownCardSetup
-        ) { v -> viewModel.updateSettings { it.copy(gateUnknownCardSetup = v) } }
-    }
-    item {
-        Column {
-            Text(stringResource(R.string.settings_grip_title), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.settings_grip_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        SettingsGroup(stringResource(R.string.settings_group_touch)) {
+            SettingRow(
+                title = stringResource(R.string.settings_grip_title),
+                note = stringResource(R.string.settings_grip_short),
+                info = stringResource(R.string.settings_grip_body),
+                below = {
+                    Segments(
+                        options = listOf(
+                            "off" to stringResource(R.string.settings_off),
+                            "normal" to stringResource(R.string.settings_grip_normal),
+                            "strong" to stringResource(R.string.settings_grip_strong)
+                        ),
+                        selected = settings.gripGuard
+                    ) { v -> viewModel.updateSettings { it.copy(gripGuard = v) } }
+                }
             )
-            ChipGroup(
-                options = listOf(
-                    "off" to stringResource(R.string.settings_off),
-                    "normal" to stringResource(R.string.settings_grip_normal),
-                    "strong" to stringResource(R.string.settings_grip_strong)
-                ),
-                selected = settings.gripGuard
-            ) { v -> viewModel.updateSettings { it.copy(gripGuard = v) } }
+            SwitchSetting(
+                title = stringResource(R.string.settings_picture_only_title),
+                info = stringResource(R.string.settings_picture_only_subtitle),
+                checked = settings.pictureOnly
+            ) { v -> viewModel.updateSettings { it.copy(pictureOnly = v) } }
         }
-    }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_picture_only_title),
-            subtitle = stringResource(R.string.settings_picture_only_subtitle),
-            checked = settings.pictureOnly
-        ) { v -> viewModel.updateSettings { it.copy(pictureOnly = v) } }
     }
 }
 
@@ -960,189 +898,178 @@ private fun LazyListScope.bedtimeSection(settings: AppSettings, plus: Boolean, v
                 delay(1000)
             }
         }
-        Column {
-            val state = when {
-                sleepAtEnd -> stringResource(R.string.settings_sleep_state_after_song)
-                sleepEnds != null -> {
-                    val secs = ((sleepEnds!! - now) / 1000).coerceAtLeast(0)
-                    stringResource(R.string.settings_sleep_state_left, secs / 60, secs % 60)
-                }
-                else -> stringResource(R.string.settings_sleep_state_off)
+        val state = when {
+            sleepAtEnd -> stringResource(R.string.settings_sleep_state_after_song)
+            sleepEnds != null -> {
+                val secs = ((sleepEnds!! - now) / 1000).coerceAtLeast(0)
+                stringResource(R.string.settings_sleep_state_left, secs / 60, secs % 60)
             }
-            Text(state, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.settings_sleep_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(selected = sleepEnds == null && !sleepAtEnd, onClick = { viewModel.player.cancelSleep() }, label = { Text(stringResource(R.string.settings_off)) })
-                listOf(15, 30, 45, 60).forEach { mins ->
-                    FilterChip(selected = false, onClick = { viewModel.player.setSleepTimer(mins) }, label = { Text(stringResource(R.string.settings_minutes_short, mins)) })
-                }
-                FilterChip(selected = sleepAtEnd, onClick = { viewModel.player.setSleepAtTrackEnd() }, label = { Text(stringResource(R.string.settings_song_end)) })
-            }
+            else -> stringResource(R.string.settings_sleep_state_off)
         }
-    }
-    item { SubTitle(stringResource(R.string.settings_bedtime_hours)) }
-    if (!plus) {
-        item { PlusLockedRow(stringResource(R.string.settings_bedtime_hours)) { viewModel.showPaywall(PlusReason.BEDTIME) } }
-        nightLightItems(settings, plus, viewModel)
-        return
+        SettingsGroup {
+            SettingRow(
+                title = state,
+                info = stringResource(R.string.settings_sleep_hint),
+                below = {
+                    // One line that slides sideways, rather than chips wrapping onto a ragged second line.
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(selected = sleepEnds == null && !sleepAtEnd, onClick = { viewModel.player.cancelSleep() }, label = { Text(stringResource(R.string.settings_off)) })
+                        listOf(15, 30, 45, 60).forEach { mins ->
+                            FilterChip(selected = false, onClick = { viewModel.player.setSleepTimer(mins) }, label = { Text(stringResource(R.string.settings_minutes_short, mins)) })
+                        }
+                        FilterChip(selected = sleepAtEnd, onClick = { viewModel.player.setSleepAtTrackEnd() }, label = { Text(stringResource(R.string.settings_song_end)) })
+                    }
+                }
+            )
+        }
     }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_bedtime_hours),
-            subtitle = stringResource(R.string.settings_bedtime_hours_hint),
-            checked = settings.bedtimeEnabled
-        ) { v -> viewModel.updateSettings { it.copy(bedtimeEnabled = v) } }
-    }
-    if (settings.bedtimeEnabled) {
-        item {
-            Column {
-                TimeRow(stringResource(R.string.settings_bedtime_starts), settings.bedtimeStart) { v -> viewModel.updateSettings { it.copy(bedtimeStart = v) } }
-                TimeRow(stringResource(R.string.settings_bedtime_ends), settings.bedtimeEnd) { v -> viewModel.updateSettings { it.copy(bedtimeEnd = v) } }
-                Text(
-                    stringResource(if (Bedtime.isBedtime(settings)) R.string.settings_bedtime_now else R.string.settings_bedtime_not_now),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        item {
-            SliderRow(
-                title = stringResource(R.string.settings_bedtime_volume, settings.bedtimeVolumeCapPercent),
-                value = settings.bedtimeVolumeCapPercent.toFloat(),
-                range = 10f..100f,
-                steps = 17
-            ) { v -> viewModel.updateSettings { it.copy(bedtimeVolumeCapPercent = v.roundToInt()) } }
-        }
-        item {
-            Column {
-                Text(
-                    if (settings.bedtimeSleepMinutes == 0) stringResource(R.string.settings_bedtime_card_sleep_off)
-                    else stringResource(R.string.settings_bedtime_card_sleep_minutes, settings.bedtimeSleepMinutes),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                ChipGroup(
-                    options = listOf(0, 15, 30, 45, 60).map {
-                        it.toString() to if (it == 0) stringResource(R.string.settings_off) else stringResource(R.string.settings_minutes_short, it)
-                    },
-                    selected = settings.bedtimeSleepMinutes.toString()
-                ) { v -> viewModel.updateSettings { it.copy(bedtimeSleepMinutes = v.toInt()) } }
+        SettingsGroup(stringResource(R.string.settings_bedtime_hours)) {
+            if (!plus) {
+                LockedRow(stringResource(R.string.settings_bedtime_hours)) { viewModel.showPaywall(PlusReason.BEDTIME) }
+            } else {
+                SwitchSetting(
+                    title = stringResource(R.string.settings_bedtime_use),
+                    note = if (!settings.bedtimeEnabled) null else stringResource(if (Bedtime.isBedtime(settings)) R.string.settings_bedtime_now else R.string.settings_bedtime_not_now),
+                    info = stringResource(R.string.settings_bedtime_hours_hint),
+                    checked = settings.bedtimeEnabled
+                ) { v -> viewModel.updateSettings { it.copy(bedtimeEnabled = v) } }
+                if (settings.bedtimeEnabled) {
+                    TimeRow(stringResource(R.string.settings_bedtime_starts), settings.bedtimeStart) { v -> viewModel.updateSettings { it.copy(bedtimeStart = v) } }
+                    TimeRow(stringResource(R.string.settings_bedtime_ends), settings.bedtimeEnd) { v -> viewModel.updateSettings { it.copy(bedtimeEnd = v) } }
+                    SettingRow(
+                        title = stringResource(R.string.settings_bedtime_volume, settings.bedtimeVolumeCapPercent),
+                        below = {
+                            SettingSlider(value = settings.bedtimeVolumeCapPercent.toFloat(), valueRange = 10f..100f, steps = 17) { v -> viewModel.updateSettings { it.copy(bedtimeVolumeCapPercent = v.roundToInt()) } }
+                        }
+                    )
+                    SettingRow(title = stringResource(R.string.settings_bedtime_card_sleep_title)) {
+                        ValueMenu(
+                            options = listOf(0, 15, 30, 45, 60).map {
+                                it to if (it == 0) stringResource(R.string.settings_off) else stringResource(R.string.settings_minutes_short, it)
+                            },
+                            selected = settings.bedtimeSleepMinutes
+                        ) { v -> viewModel.updateSettings { it.copy(bedtimeSleepMinutes = v) } }
+                    }
+                }
             }
         }
     }
-    nightLightItems(settings, plus, viewModel)
+    item {
+        SettingsGroup {
+            SettingRow(
+                title = stringResource(R.string.settings_night_light),
+                below = {
+                    Segments(
+                        options = listOf(
+                            "off" to stringResource(R.string.settings_off),
+                            "on" to stringResource(R.string.settings_on),
+                            "bedtime" to stringResource(R.string.settings_night_light_bedtime)
+                        ),
+                        selected = settings.nightLight
+                    ) { mode -> viewModel.updateSettings { it.copy(nightLight = mode) } }
+                }
+            )
+            // Its colour and brightness are Plus.
+            if (settings.nightLight != "off" && !plus) {
+                LockedRow(stringResource(R.string.plus_feature_night_light)) { viewModel.showPaywall(PlusReason.NIGHT_LIGHT) }
+            }
+            if (settings.nightLight != "off" && plus) {
+                SettingRow(
+                    title = stringResource(R.string.settings_night_light_colour),
+                    below = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            listOf(0xFFFF8C3AL, 0xFFFF4D4DL, 0xFFB07CFFL, 0xFF5FD3A0L, 0xFFFFC857L).forEach { c ->
+                                Box(
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(c))
+                                        .border(if (settings.nightLightColor == c) 4.dp else 0.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
+                                        .clickable { viewModel.updateSettings { it.copy(nightLightColor = c) } }
+                                )
+                            }
+                        }
+                    }
+                )
+                SettingRow(
+                    title = stringResource(R.string.settings_brightness, settings.nightLightBrightness),
+                    below = {
+                        SettingSlider(value = settings.nightLightBrightness.toFloat(), valueRange = 5f..100f, steps = 18) { v -> viewModel.updateSettings { it.copy(nightLightBrightness = v.roundToInt()) } }
+                    }
+                )
+            }
+        }
+    }
 }
 
 private fun LazyListScope.lookSection(settings: AppSettings, viewModel: MainViewModel) {
     item {
-        Column {
-            Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.bodyLarge)
-            ChipGroup(
-                options = listOf(
-                    "system" to stringResource(R.string.settings_theme_system),
-                    "light" to stringResource(R.string.settings_theme_light),
-                    "dark" to stringResource(R.string.settings_theme_dark)
-                ),
-                selected = settings.themeMode
-            ) { mode -> viewModel.updateSettings { it.copy(themeMode = mode) } }
-        }
-    }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_pixel_art_title),
-            subtitle = stringResource(R.string.settings_pixel_art_subtitle),
-            checked = settings.pixelArt
-        ) { v -> viewModel.updateSettings { it.copy(pixelArt = v) } }
-    }
-    item {
-        Column {
-            Text(stringResource(R.string.settings_battery_title), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.settings_battery_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        SettingsGroup(stringResource(R.string.settings_group_look)) {
+            SettingRow(
+                title = stringResource(R.string.settings_theme_title),
+                below = {
+                    Segments(
+                        options = listOf(
+                            "system" to stringResource(R.string.settings_theme_system),
+                            "light" to stringResource(R.string.settings_theme_light),
+                            "dark" to stringResource(R.string.settings_theme_dark)
+                        ),
+                        selected = settings.themeMode
+                    ) { mode -> viewModel.updateSettings { it.copy(themeMode = mode) } }
+                }
             )
-            ChipGroup(
-                options = listOf(
-                    "off" to stringResource(R.string.settings_off),
-                    "low" to stringResource(R.string.settings_battery_low),
-                    "always" to stringResource(R.string.settings_battery_always)
-                ),
-                selected = settings.showBattery
-            ) { mode -> viewModel.updateSettings { it.copy(showBattery = mode) } }
+            SwitchSetting(
+                title = stringResource(R.string.settings_pixel_art_title),
+                checked = settings.pixelArt
+            ) { v -> viewModel.updateSettings { it.copy(pixelArt = v) } }
+            SettingRow(
+                title = stringResource(R.string.settings_battery_title),
+                below = {
+                    Segments(
+                        options = listOf(
+                            "off" to stringResource(R.string.settings_off),
+                            "low" to stringResource(R.string.settings_battery_low),
+                            "always" to stringResource(R.string.settings_battery_always)
+                        ),
+                        selected = settings.showBattery
+                    ) { mode -> viewModel.updateSettings { it.copy(showBattery = mode) } }
+                }
+            )
         }
     }
-    item { SubTitle(stringResource(R.string.settings_taps)) }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_flash_title),
-            subtitle = stringResource(R.string.settings_flash_subtitle),
-            checked = settings.zoneFlash
-        ) { v -> viewModel.updateSettings { it.copy(zoneFlash = v) } }
+        SettingsGroup(stringResource(R.string.settings_taps)) {
+            SwitchSetting(
+                title = stringResource(R.string.settings_flash_title),
+                info = stringResource(R.string.settings_flash_subtitle),
+                checked = settings.zoneFlash
+            ) { v -> viewModel.updateSettings { it.copy(zoneFlash = v) } }
+            SwitchSetting(
+                title = stringResource(R.string.settings_buzz_title),
+                checked = settings.zoneHaptics
+            ) { v -> viewModel.updateSettings { it.copy(zoneHaptics = v) } }
+        }
     }
     item {
-        SwitchRow(
-            title = stringResource(R.string.settings_buzz_title),
-            subtitle = stringResource(R.string.settings_buzz_subtitle),
-            checked = settings.zoneHaptics
-        ) { v -> viewModel.updateSettings { it.copy(zoneHaptics = v) } }
-    }
-    item { SubTitle(stringResource(R.string.settings_idle_screen)) }
-    item {
-        SwitchRow(
-            title = stringResource(R.string.settings_show_clock),
-            subtitle = null,
-            checked = settings.showClock
-        ) { v -> viewModel.updateSettings { it.copy(showClock = v) } }
+        SettingsGroup(stringResource(R.string.settings_idle_screen)) {
+            SwitchSetting(
+                title = stringResource(R.string.settings_show_clock),
+                checked = settings.showClock
+            ) { v -> viewModel.updateSettings { it.copy(showClock = v) } }
+        }
     }
 }
 
-/** The night light: on, off or only at bedtime; its colour and brightness are Plus. Part of "Bedtime & sleep". */
-private fun LazyListScope.nightLightItems(settings: AppSettings, plus: Boolean, viewModel: MainViewModel) {
-    item { SubTitle(stringResource(R.string.settings_night_light)) }
-    item {
-        Column {
-            Text(
-                stringResource(R.string.settings_night_light_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ChipGroup(
-                options = listOf(
-                    "off" to stringResource(R.string.settings_off),
-                    "on" to stringResource(R.string.settings_on),
-                    "bedtime" to stringResource(R.string.settings_night_light_bedtime)
-                ),
-                selected = settings.nightLight
-            ) { mode -> viewModel.updateSettings { it.copy(nightLight = mode) } }
-            if (settings.nightLight != "off" && !plus) {
-                PlusLockedRow(stringResource(R.string.plus_feature_night_light)) { viewModel.showPaywall(PlusReason.NIGHT_LIGHT) }
-            }
-            if (settings.nightLight != "off" && plus) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    listOf(0xFFFF8C3AL, 0xFFFF4D4DL, 0xFFB07CFFL, 0xFF5FD3A0L, 0xFFFFC857L).forEach { c ->
-                        Box(
-                            Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(Color(c))
-                                .border(if (settings.nightLightColor == c) 4.dp else 0.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-                                .clickable { viewModel.updateSettings { it.copy(nightLightColor = c) } }
-                        )
-                    }
-                }
-                SliderRow(
-                    title = stringResource(R.string.settings_brightness, settings.nightLightBrightness),
-                    value = settings.nightLightBrightness.toFloat(),
-                    range = 5f..100f,
-                    steps = 18
-                ) { v -> viewModel.updateSettings { it.copy(nightLightBrightness = v.roundToInt()) } }
-            }
-        }
-    }
+/** A Plus feature that isn't unlocked, as a row of a group: tapping it opens the Plus sheet. */
+@Composable
+private fun LockedRow(title: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp)
+    ) { PlusLockedRow(title, onClick) }
 }
 
 private fun LazyListScope.permissionsSection(settings: AppSettings, nfc: NfcState, overlayGranted: Boolean, mediaAccess: Boolean, context: Context) {
@@ -1221,12 +1148,13 @@ private fun LazyListScope.helpSection() {
 // ---------------------------------------------------------------- building blocks
 
 @Composable
-private fun SubTitle(text: String) {
-    Text(
-        text = text,
+private fun SubTitle(text: String, info: String? = null) {
+    InfoTitle(
+        title = text,
+        info = info,
+        modifier = Modifier.padding(top = 10.dp),
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 10.dp)
+        color = MaterialTheme.colorScheme.primary
     )
 }
 
@@ -1294,9 +1222,8 @@ internal fun openXiaomiPermissionEditor(context: Context) {
 @Composable
 private fun TimeRow(label: String, minutes: Int, onChange: (Int) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.settings_time_stepper, label, Bedtime.formatMinutes(minutes)), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { open = true }) { Text(stringResource(R.string.settings_change_time)) }
+    SettingRow(title = label) {
+        TextButton(onClick = { open = true }) { Text(Bedtime.formatMinutes(minutes), style = MaterialTheme.typography.titleMedium) }
     }
     if (open) {
         val state = rememberTimePickerState(initialHour = minutes / 60, initialMinute = minutes % 60, is24Hour = true)
@@ -1317,12 +1244,13 @@ private fun TimeRow(label: String, minutes: Int, onChange: (Int) -> Unit) {
 
 /** Used by the card editor as well. */
 @Composable
-fun SectionTitle(text: String) {
-    Text(
-        text = text,
+fun SectionTitle(text: String, info: String? = null) {
+    InfoTitle(
+        title = text,
+        info = info,
+        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
         style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+        color = MaterialTheme.colorScheme.primary
     )
 }
 
@@ -1387,59 +1315,3 @@ private fun CardRow(
     }
 }
 
-@Composable
-private fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onChange(!checked) }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
-}
-
-@Composable
-private fun <T> DropdownRow(title: String, subtitle: String?, options: List<Pair<T, String>>, selected: T, onChange: (T) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        if (subtitle != null) {
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Spacer(Modifier.height(6.dp))
-        Box {
-            OutlinedButton(onClick = { open = true }) {
-                Text(options.firstOrNull { it.first == selected }?.second ?: options.first().second)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-            }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                options.forEach { (value, label) ->
-                    DropdownMenuItem(text = { Text(label) }, onClick = { onChange(value); open = false })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SliderRow(
-    title: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    onChange: (Float) -> Unit
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Slider(value = value, onValueChange = onChange, valueRange = range, steps = steps)
-    }
-}
