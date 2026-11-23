@@ -843,6 +843,10 @@
     <string name="plus_reason_speed">A playback speed for each card is part of BoopBox Plus.</string>
     <string name="plus_reason_picker">The Card Shelf (playing a card from its picture, without the card) is part of BoopBox Plus.</string>
     <string name="plus_reason_sticker">Changing a sticker by hand (layouts, colours, text) is part of BoopBox Plus. The automatic sticker is free.</string>
+    <string name="plus_reason_print">Sending a sticker as a picture to print is part of BoopBox Plus.</string>
+    <string name="editor_send_sticker">Send sticker (.png)</string>
+    <string name="editor_send_sticker_note">The card\'s sticker as a picture, the size of an NFC card: 54 × 85.6 mm. Print it at 100%%, not \"fit to page\".</string>
+    <string name="msg_sticker_failed">Couldn\'t make the sticker picture: %1$s</string>
     <string name="plus_reason_trim">Trimming the start and end of a song is part of BoopBox Plus.</string>
     <string name="plus_reason_general">Unlock every card and grown-up extra.</string>
     <string name="plus_includes">Plus includes</string>
@@ -859,7 +863,7 @@
     <string name="sticker_gallery_short">From gallery</string>
     <string name="plus_feature_card_extras">A sleep timer and speed for each card</string>
     <string name="plus_feature_picker">Card Shelf: play a card from its picture when the card isn\'t there</string>
-    <string name="plus_feature_sticker">Sticker maker: layouts, colours and text of your own</string>
+    <string name="plus_feature_sticker">Sticker maker: layouts, colours and text of your own, and stickers to print</string>
     <string name="plus_once">One purchase, yours for good. No subscription. Cards shared with you always work.</string>
     <string name="plus_buy">Unlock for %1$s</string>
     <string name="plus_buy_no_price">Unlock Plus</string>

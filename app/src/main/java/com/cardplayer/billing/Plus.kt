@@ -39,6 +39,7 @@ enum class PlusReason(@param:StringRes val textRes: Int) {
     SPEED(R.string.plus_reason_speed),
     PICKER(R.string.plus_reason_picker),
     STICKER(R.string.plus_reason_sticker),
+    PRINT(R.string.plus_reason_print),
     GENERAL(R.string.plus_reason_general)
 }
 

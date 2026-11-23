@@ -1,5 +1,8 @@
 package com.cardplayer
 
+import com.cardplayer.sticker.StickerPng
+import com.cardplayer.data.StickerDesign
+import android.graphics.BitmapFactory
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -608,6 +611,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 onReady(file)
             } catch (e: Exception) {
                 _notices.tryEmit(Notice(app.getString(R.string.msg_boop_make_failed, errorText(e)), error = true))
+            } finally {
+                _boopBusy.value = false
+            }
+        }
+    }
+
+    /**
+     * The card's sticker as a picture to print, handed to [onReady] (on the main thread): the sticker as it stands
+     * in the editor ([source] is what the card says about itself there), or the finished one that came with the
+     * card. The .png carries its size, so printed at 100% it is as big as an NFC card (see [StickerPng]).
+     */
+    fun exportSticker(card: Card, source: StickerSource, onReady: (File) -> Unit) {
+        if (_boopBusy.value) return
+        _boopBusy.value = true
+        viewModelScope.launch {
+            try {
+                val file = withContext(Dispatchers.Default) {
+                    val came = card.stickerIfThere()?.takeIf { card.sticker == null }?.let { Uri.parse(it).path }?.let { BitmapFactory.decodeFile(it) }
+                    val sticker = came ?: StickerRenderer.render(app, source, card.sticker ?: StickerDesign()).bitmap
+                    val dir = File(app.cacheDir, "boop-out").apply { deleteRecursively(); mkdirs() }
+                    File(dir, BoopFile.fileNameFor(app, card).substringBeforeLast('.') + " sticker.png").also { it.writeBytes(StickerPng.encode(sticker)) }
+                }
+                onReady(file)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _notices.tryEmit(Notice(app.getString(R.string.msg_sticker_failed, errorText(e)), error = true))
             } finally {
                 _boopBusy.value = false
             }

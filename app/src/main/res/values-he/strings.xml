@@ -879,6 +879,10 @@
     <string name="plus_reason_speed">מהירות ניגון לכל כרטיס היא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_picker">מדף הכרטיסים (ניגון כרטיס מהתמונה שלו, בלי הכרטיס עצמו) הוא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_sticker">עיצוב מדבקה ביד (פריסות, צבעים, טקסט) הוא חלק מ־BoopBox Plus. המדבקה האוטומטית בחינם.</string>
+    <string name="plus_reason_print">שליחת מדבקה כתמונה להדפסה היא חלק מ־BoopBox Plus.</string>
+    <string name="editor_send_sticker">שליחת המדבקה כתמונה</string>
+    <string name="editor_send_sticker_note">המדבקה של הכרטיס כתמונה, בגודל של כרטיס NFC: &#x200E;54 × 85.6 מ\"מ. הדפיסו ב-100%%, לא \"התאמה לעמוד\".</string>
+    <string name="msg_sticker_failed">לא הצלחנו ליצור את תמונת המדבקה: %1$s</string>
     <string name="plus_reason_trim">חיתוך ההתחלה והסוף של שיר הוא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_general">פתיחת כל הכרטיסים וכל התוספות להורים.</string>
     <string name="plus_includes">מה יש ב־Plus</string>
@@ -895,7 +899,7 @@
     <string name="sticker_gallery_short">מהגלריה</string>
     <string name="plus_feature_card_extras">טיימר שינה ומהירות לכל כרטיס</string>
     <string name="plus_feature_picker">מדף הכרטיסים: ניגון כרטיס מהתמונה שלו כשהכרטיס לא בהישג יד</string>
-    <string name="plus_feature_sticker">יוצר המדבקות: פריסות, צבעים וטקסט משלכם</string>
+    <string name="plus_feature_sticker">יוצר המדבקות: פריסות, צבעים וטקסט משלכם, ומדבקות להדפסה</string>
     <string name="plus_once">רכישה אחת, שלכם לתמיד. בלי מנוי. כרטיסים ששותפו איתכם תמיד עובדים.</string>
     <string name="plus_buy">לפתוח ב־%1$s</string>
     <string name="plus_buy_no_price">לפתוח את Plus</string>

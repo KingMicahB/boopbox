@@ -2,6 +2,7 @@
 
 package com.cardplayer.ui.settings
 
+import com.cardplayer.sticker.StickerPng
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -1757,6 +1758,22 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 }
                             }
                         }
+                    )
+                    // The sticker as a picture to print: part of Plus, like making one's own.
+                    SettingRow(
+                        title = stringResource(R.string.editor_send_sticker),
+                        info = stringResource(R.string.editor_send_sticker_note),
+                        enabled = !boopBusy,
+                        onClick = {
+                            if (!plus) {
+                                viewModel.showPaywall(PlusReason.PRINT)
+                            } else {
+                                buildCardOrComplain()?.let { card ->
+                                    viewModel.exportSticker(card, stickerSource()) { file -> context.startActivity(StickerPng.shareIntent(context, file)) }
+                                }
+                            }
+                        },
+                        control = if (plus) null else { { PlusBadge() } }
                     )
                 }
                 if (boopBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
