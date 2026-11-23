@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cardplayer.billing.Plus
 import com.cardplayer.billing.PlusReason
+import com.cardplayer.data.PendingCardRepository
 import com.cardplayer.data.AppSettings
 import com.cardplayer.data.Backup
 import com.cardplayer.data.BoopFile
@@ -36,7 +37,6 @@ import java.io.File
 sealed class Screen {
     data object Player : Screen()
     data object Settings : Screen()
-    data object Scan : Screen()
     data class Editor(val uid: String) : Screen()
 }
 
@@ -110,6 +110,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun discardPending(card: Card) {
         _replacePrompt.value = null
         app.pending.discard(card.uid)
+        // A card made here and thrown away: the sticker drawn for it goes too.
+        if (app.pending.isDraft(card)) StickerStore.delete(app, card.stickerUrl)
     }
 
     /** The waiting card on screen right now: the first one the grown-up hasn't said "not now" to. */
@@ -120,6 +122,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** True for a waiting card made from a link shared from another app. */
     fun isLinkPending(card: Card) = app.pending.isLink(card)
+
+    /** True for a waiting card made in the editor here ("Add a card"). */
+    fun isDraftPending(card: Card) = app.pending.isDraft(card)
+
+    /** True for the id of a card being made in the editor before any NFC card is tapped for it. */
+    fun isDraft(uid: String) = PendingCardRepository.isDraftUid(uid)
 
     private val _replacePrompt = MutableStateFlow<ReplacePrompt?>(null)
     /** "This card already plays X. Put Y on it instead?" while a card is waiting. */
@@ -258,7 +266,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _screen.value = screen
     }
 
-    /** Card data read off a tag while on the scan screen, waiting for the editor to pick it up. */
+    /** Card data read off a tag tapped in settings, waiting for the editor to pick it up. */
     private val prefills = mutableMapOf<String, Card>()
 
     private var lastTapUid: String? = null
@@ -280,19 +288,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Tapped from outside the app with settings (or "add a card") left open: the child wants it played.
+        // Tapped from outside the app with settings left open: the child wants it played.
         // The card editor stays put, so unsaved changes there aren't lost.
-        if (openedApp && (_screen.value == Screen.Settings || _screen.value == Screen.Scan)) {
+        if (openedApp && _screen.value == Screen.Settings) {
             _editPrompt.value = null
             setScreen(Screen.Player)
         }
 
         when (_screen.value) {
-            Screen.Scan -> {
-                if (shared != null && app.cards.get(uid) == null) prefills[uid] = shared
-                setScreen(Screen.Editor(uid))
-                return
-            }
             Screen.Settings -> {
                 // Grown-up is in settings: a tap means "I want to edit this card", not "play it".
                 val known = app.cards.get(uid)
@@ -419,13 +422,77 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         setScreen(Screen.Settings)
     }
 
+    private val _debugEditorScroll = MutableStateFlow<Int?>(null)
+    /** Test builds only: how far down (pixels) to scroll the card editor that was asked for. */
+    val debugEditorScroll: StateFlow<Int?> = _debugEditorScroll.asStateFlow()
+
+    fun debugOpenEditor(uid: String, scrollPx: Int) {
+        // NEW = the editor as "Add a card" opens it, for a card with no NFC card yet.
+        if (uid == "NEW") {
+            _debugEditorScroll.value = scrollPx
+            openNewCard()
+            return
+        }
+        if (app.cards.get(uid) == null) return
+        _debugEditorScroll.value = scrollPx
+        setScreen(Screen.Editor(uid))
+    }
+
+    fun debugEditorScrollDone() {
+        _debugEditorScroll.value = null
+    }
+
+    private val _debugArtLink = MutableStateFlow<String?>(null)
+    /** Test builds only: a link to open the card editor's picture finder on ("Paste a link"). */
+    val debugArtLink: StateFlow<String?> = _debugArtLink.asStateFlow()
+
+    fun debugOpenArtLink(link: String) {
+        _debugArtLink.value = link
+    }
+
+    fun debugArtLinkDone() {
+        _debugArtLink.value = null
+    }
+
     /** The request has been acted on: opening settings the normal way must not replay it. */
     fun debugSettingsShown() {
         _debugSettings.value = null
     }
 
-    fun openScan() {
-        if (allowNewCard()) setScreen(Screen.Scan)
+    /**
+     * "Add a card": the card is made first, in the editor, under a stand-in id; [saveDraft] then waits for the
+     * NFC card it is to live on. (The other way to add one is to open a .boop: [receiveBoop].)
+     */
+    fun openNewCard() {
+        if (!allowNewCard()) return
+        _unknownCard.value = null
+        _editPrompt.value = null
+        setScreen(Screen.Editor(app.pending.newDraftUid()))
+    }
+
+    /**
+     * The card made in the editor is done: it waits on the player ("hold a card to the phone") and the next
+     * new card tapped gets it, exactly like an opened .boop. Its sticker is drawn first, so it lands with the card.
+     */
+    fun saveDraft(card: Card, source: StickerSource) {
+        _writeState.value = WriteState.Idle
+        _moveState.value = MoveState.Idle
+        _editPrompt.value = null
+        _replacePrompt.value = null
+        _unknownCard.value = null
+        setScreen(Screen.Player)
+        viewModelScope.launch {
+            val drawn = card.sticker?.let { design ->
+                try {
+                    withContext(Dispatchers.Default) { StickerStore.write(app, card.uid, StickerRenderer.render(app, source, design).bitmap) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            app.pending.addDraft(if (drawn != null) card.copy(stickerUrl = drawn) else card)
+        }
     }
 
     fun openEditor(uid: String) {
@@ -444,7 +511,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             when (_screen.value) {
                 Screen.Player -> Screen.Player
                 Screen.Settings -> Screen.Player
-                Screen.Scan -> Screen.Settings
                 is Screen.Editor -> Screen.Settings
             }
         )

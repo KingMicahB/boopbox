@@ -372,6 +372,7 @@ fun PlayerScreen(viewModel: MainViewModel) {
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val unknownCard by viewModel.unknownCard.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val plus by viewModel.plus.collectAsStateWithLifecycle()
     val nfc by viewModel.nfc.collectAsStateWithLifecycle()
     val cards by viewModel.cards.collectAsStateWithLifecycle()
     val noCards = cards.isEmpty()
@@ -490,7 +491,8 @@ fun PlayerScreen(viewModel: MainViewModel) {
                 noCards = noCards,
                 gearTaps = settings.gearTaps,
                 // Held as long as the picture is held to stop, so a hand that is only holding the phone doesn't open it.
-                logoHoldMs = if (settings.holdLogoToPick && pickable.isNotEmpty()) gripGuard(settings.gripGuard).holdMs else null,
+                // The picker is part of Plus. Without it the logo just doesn't answer: this is the child's screen.
+                logoHoldMs = if (plus && settings.holdLogoToPick && pickable.isNotEmpty()) gripGuard(settings.gripGuard).holdMs else null,
                 onLogoHold = {
                     if (settings.zoneHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     picking = true

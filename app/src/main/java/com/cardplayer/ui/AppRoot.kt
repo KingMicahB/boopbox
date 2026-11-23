@@ -16,7 +16,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cardplayer.MainViewModel
 import com.cardplayer.Screen
 import com.cardplayer.ui.settings.CardEditorScreen
-import com.cardplayer.ui.settings.ScanScreen
 import com.cardplayer.ui.settings.SettingsScreen
 
 @Composable
@@ -75,6 +74,7 @@ fun AppRoot(
                     total = pending.size,
                     shared = viewModel.isSharedPending(card),
                     fromLink = viewModel.isLinkPending(card),
+                    made = viewModel.isDraftPending(card),
                     pixelArt = settings.pixelArt,
                     replace = replacePrompt,
                     onReplace = { viewModel.replaceWithPending(it) },
@@ -88,7 +88,6 @@ fun AppRoot(
         }
         // Held across screens so coming back from the editor lands in the same section (and scroll spot), not settings home.
         Screen.Settings -> saveable.SaveableStateProvider("settings") { SettingsScreen(viewModel) }
-        Screen.Scan -> ScanScreen(nfc = nfc, onBack = viewModel::back)
         // Keyed so editing a different card (e.g. after a move) starts the editor's state afresh.
         is Screen.Editor -> key(s.uid) { CardEditorScreen(viewModel, s.uid) }
     }

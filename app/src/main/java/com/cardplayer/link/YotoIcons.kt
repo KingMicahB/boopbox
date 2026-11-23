@@ -24,7 +24,8 @@ object YotoIcons {
         val downloads: Int
     )
 
-    data class Page(val icons: List<Icon>, val total: Int, val page: Int) {
+    /** [failed] = the site couldn't be reached: no icons, but not because there are none. */
+    data class Page(val icons: List<Icon>, val total: Int, val page: Int, val failed: Boolean = false) {
         val hasMore: Boolean get() = icons.size >= 25
     }
 
@@ -56,7 +57,7 @@ object YotoIcons {
             client.newCall(request).execute().use { if (it.isSuccessful) it.body?.string() else null }
         } catch (_: Exception) {
             null
-        } ?: return@withContext Page(emptyList(), 0, page)
+        } ?: return@withContext Page(emptyList(), 0, page, failed = true)
 
         val icons = modalRegex.findAll(html).map { m ->
             val (id, category, tag1, tag2, author, downloads) = m.destructured

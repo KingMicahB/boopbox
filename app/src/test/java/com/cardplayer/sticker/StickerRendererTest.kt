@@ -72,12 +72,39 @@ class StickerRendererTest {
         val poster = Bitmap.createBitmap(400, 600, Bitmap.Config.ARGB_8888).apply { eraseColor(0xFF336699.toInt()) }
         val painted = StickerRenderer.Pictures { _, _ -> poster }
         val source = plain(songs(5)).copy(picture = "poster")
-        fun draw(design: StickerDesign) = runBlocking { StickerRenderer.render(context, source, design, painted) }
+        fun draw(design: StickerDesign, from: StickerSource = source) = runBlocking { StickerRenderer.render(context, from, design, painted) }
+        fun rows(result: StickerRenderer.Result) = result.regions.count { it.part == StickerRenderer.Part.ROW }
 
-        // Left alone, a poster fills the card from the top and prints no name over itself.
+        // Left alone, a few songs on a poster get the poster and the list of them: the poster prints its own name.
         val auto = draw(StickerDesign())
+        assertEquals("picture-list", auto.layout)
         assertEquals(0f, auto.region(StickerRenderer.Part.PICTURE)!!.rect.top, 0.01f)
         assertEquals(false, auto.titleShown)
+        assertEquals(5, rows(auto))
+
+        // A book is its cover, whole: no name printed over it, no list.
+        val book = draw(StickerDesign(), source.copy(kind = StickerKind.AUDIOBOOK))
+        assertEquals("picture", book.layout)
+        assertEquals(false, book.titleShown)
+        assertEquals(false, book.listShown)
+
+        // Each template starts with the name and the list it is named for...
+        fun has(layout: String) = draw(StickerDesign(layout = layout)).let { it.titleShown to it.listShown }
+        assertEquals(false to false, has("picture"))
+        assertEquals(true to false, has("picture-name"))
+        assertEquals(false to true, has("picture-list"))
+        assertEquals(true to true, has("picture-list-name"))
+        assertEquals(true to false, has("middle"))
+        // ...and either can still be added or taken off.
+        assertEquals(5, rows(draw(StickerDesign(layout = "picture", showList = true))))
+        assertEquals(false, draw(StickerDesign(layout = "picture-list-name", showTitle = false)).titleShown)
+        // A sticker made before the templates were split keeps the look it had.
+        assertEquals("picture", draw(StickerDesign(layout = "poster")).layout)
+        assertEquals("picture-list-name", draw(StickerDesign(layout = "block")).layout)
+
+        // The box behind the name: the block of colour in another colour, and a box of the name's own elsewhere.
+        assertNotNull(draw(StickerDesign(layout = "picture-name", titleBoxColor = 0xFF0B1647, titleBoxOpacity = 0.5f)).region(StickerRenderer.Part.TITLE))
+        assertNotNull(draw(StickerDesign(layout = "picture", showTitle = true, titleBoxOpacity = 0.7f)).region(StickerRenderer.Part.TITLE))
 
         // Dragged small and half off the edge: it keeps its shape, at the width it was given.
         val picture = draw(StickerDesign(picturePlace = StickerPlace(-100f, 50f, 300f, 0f))).region(StickerRenderer.Part.PICTURE)!!.rect
@@ -99,8 +126,70 @@ class StickerRendererTest {
         assertEquals(60f, title.textSize, 0.01f)
 
         // A layout that keeps room for the name prints it; every layout draws something for every part it has.
-        assertEquals(true, draw(StickerDesign(layout = "block")).titleShown)
+        assertEquals(true, draw(StickerDesign(layout = "picture-name")).titleShown)
         for (layout in StickerRenderer.LAYOUTS) assertNotNull(draw(StickerDesign(layout = layout)).region(StickerRenderer.Part.PICTURE))
+    }
+
+    @Test
+    fun aLongNameWrapsAndItsBoxCanBeTapped() {
+        fun title(source: StickerSource, design: StickerDesign = StickerDesign()) = render(source, design).region(StickerRenderer.Part.TITLE)!!
+        fun rows(region: StickerRenderer.Region) = if (region.rect.height() > region.textSize * 1.6f) 2 else 1
+
+        // A short name is one row; a long one takes two rather than being squeezed small on one.
+        assertEquals(1, rows(title(plain())))
+        val long = title(plain().copy(name = "Harry Potter and the Philosopher's Stone, the full-cast edition"))
+        assertEquals(2, rows(long))
+        assertEquals(true, long.textSize >= 30f)
+        // A line break that was typed is kept.
+        assertEquals(2, rows(title(plain(), StickerDesign(title = "Animal\nsongs"))))
+
+        // The block of colour behind the name is the name's box: tapping it (off the words) finds it.
+        val poster = Bitmap.createBitmap(400, 600, Bitmap.Config.ARGB_8888).apply { eraseColor(0xFF336699.toInt()) }
+        val named = runBlocking { StickerRenderer.render(context, plain().copy(picture = "poster"), StickerDesign(layout = "picture-name"), { _, _ -> poster }) }
+        val box = named.region(StickerRenderer.Part.NAMEBOX)!!.rect
+        assertEquals(StickerRenderer.Part.NAMEBOX, named.partAt(box.left + 6f, box.top + 6f)?.part)
+        // A name with a box of its own (asked for on a template that has none) has one to tap too.
+        val boxed = runBlocking { StickerRenderer.render(context, plain().copy(picture = "poster"), StickerDesign(layout = "picture", showTitle = true, titleBoxOpacity = 0.6f), { _, _ -> poster }) }
+        assertNotNull(boxed.region(StickerRenderer.Part.NAMEBOX))
+    }
+
+    @Test
+    fun whatTheCardPlaysPicksTheLayout() {
+        val poster = 2f / 3f
+        val square = 1f
+        val wide = 16f / 9f
+        fun pick(kind: StickerKind, aspect: Float?, songs: Int = 0, name: String = "Animal songs") =
+            StickerRenderer.recommended(plain(songs(songs), kind).copy(name = name), aspect)
+
+        // No picture: the small-picture template, whatever the card plays.
+        assertEquals("icon", pick(StickerKind.AUDIOBOOK, null))
+        assertEquals("icon", render(plain(songs(5))).layout)
+
+        // Songs and chapters: the list while it can be read, with the name unless the picture is a poster.
+        assertEquals("picture-list", pick(StickerKind.SONGS, poster, songs = 5))
+        assertEquals("picture-list-name", pick(StickerKind.SONGS, square, songs = 5))
+        assertEquals("picture-list-name", pick(StickerKind.CHAPTERS, wide, songs = 10))
+        // Too many to read on a card, only one, or names that would all be cut short: no list.
+        assertEquals("picture-name", pick(StickerKind.SONGS, square, songs = 11))
+        assertEquals("picture-name", pick(StickerKind.SONGS, square, songs = 1))
+        val wordy = plain((1..4).map { StickerRow("k$it", "A song with a name that goes on and on and on $it", null) })
+        assertEquals("picture-name", StickerRenderer.recommended(wordy, square))
+        assertEquals("middle", pick(StickerKind.SONGS, wide, songs = 1))
+        assertEquals("middle", pick(StickerKind.SONGS, wide, songs = 11))
+
+        // A book or a film: the cover or poster alone; with the name when the picture isn't a poster.
+        assertEquals("picture", pick(StickerKind.AUDIOBOOK, poster, songs = 30))
+        assertEquals("picture-name", pick(StickerKind.AUDIOBOOK, square))
+        assertEquals("picture", pick(StickerKind.MOVIE, poster))
+        assertEquals("middle", pick(StickerKind.MOVIE, wide))
+
+        // A show or a link: the picture and the name.
+        assertEquals("picture-name", pick(StickerKind.PODCAST, square))
+        assertEquals("picture-name", pick(StickerKind.LINK, square))
+        assertEquals("middle", pick(StickerKind.LINK, wide))
+
+        // A very long name under a poster is left to the poster.
+        assertEquals("picture", pick(StickerKind.SONGS, poster, songs = 12, name = "A very long name for a card that would never fit under its poster"))
     }
 
     @Test
@@ -138,7 +227,7 @@ class StickerRendererTest {
             render(
                 moanaSource,
                 StickerDesign(
-                    layout = "block",
+                    layout = "picture-list-name",
                     picturePlace = StickerPlace(-120f, -40f, 520f, 0f),
                     titlePlace = StickerPlace(260f, 380f, 340f, 120f), titleFont = "script", titleColor = 0xFFFFD54F,
                     subtitle = "Car songs", subtitleFont = "casual",
@@ -147,6 +236,14 @@ class StickerRendererTest {
             ).bitmap
         )
         save("moana-dark-box", render(moanaSource, StickerDesign(listColor = 0xFF0B1647, listOpacity = 0.6f)).bitmap)
+        // The box behind the name: the block in another colour, see-through, and a box of the name's own on a full picture.
+        save("moana-name-box-navy", render(moanaSource, StickerDesign(layout = "picture-list-name", titleBoxColor = 0xFF0B1647)).bitmap)
+        save("moana-name-box-glass", render(moanaSource, StickerDesign(layout = "picture-list-name", titleBoxColor = 0xFFFFFFFF, titleBoxOpacity = 0.45f, titleColor = 0xFF0B1647)).bitmap)
+        val hp = StickerSource("hp", "Harry Potter and the Philosopher's Stone (Full-Cast Edition)", "J.K. Rowling", File(art, "yoto-harry-potter-4.png").path, 0xFF26A69AL, StickerKind.AUDIOBOOK, emptyList(), (20 * 60 + 14) * 60_000L)
+        save("long-name-block", render(hp, StickerDesign(layout = "picture-name")).bitmap)
+        save("long-name-poster-box", render(hp, StickerDesign(layout = "picture", showTitle = true, titleBoxColor = 0xFF0B1647, titleBoxOpacity = 0.7f)).bitmap)
+        save("long-name-icon", render(plain().copy(name = "Harry Potter and the Philosopher's Stone (Full-Cast Edition)")).bitmap)
+        save("moana-name-box-poster", render(moanaSource, StickerDesign(layout = "picture", showTitle = true, titleBoxColor = 0xFF0B1647, titleBoxOpacity = 0.6f)).bitmap)
         save("moana-no-box", render(moanaSource, StickerDesign(listOpacity = 0f, listPlace = StickerPlace(30f, 600f, 578f, 320f))).bitmap)
 
         val (animals, animalRows) = card("rotemama-animals")

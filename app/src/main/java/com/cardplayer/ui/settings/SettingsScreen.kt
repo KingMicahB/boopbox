@@ -2,6 +2,7 @@
 
 package com.cardplayer.ui.settings
 
+import com.cardplayer.ui.PlusGate
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -88,6 +90,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -110,6 +113,7 @@ import com.cardplayer.data.BoopFile
 import com.cardplayer.data.Card as CardModel
 import com.cardplayer.playback.NowPlaying
 import com.cardplayer.ui.CardArtwork
+import com.cardplayer.ui.CardSticker
 import com.cardplayer.ui.PauseIcon
 import com.cardplayer.ui.PlusLockedRow
 import com.cardplayer.ui.StopIcon
@@ -123,7 +127,7 @@ import kotlin.math.roundToInt
 private enum class Section(@param:StringRes val titleRes: Int, val emoji: String, @param:StringRes val blurbRes: Int) {
     PLUS(R.string.settings_section_plus_title, "⭐", R.string.settings_section_plus_blurb),
     CARDS(R.string.settings_section_cards_title, "🃏", R.string.settings_section_cards_blurb),
-    PICKER(R.string.settings_section_picker_title, "👆", R.string.settings_section_picker_blurb),
+    PICKER(R.string.settings_section_picker_title, "🗂️", R.string.settings_section_picker_blurb),
     PLAYBACK(R.string.settings_section_playback_title, "▶️", R.string.settings_section_playback_blurb),
     ACCOUNTS(R.string.settings_section_accounts_title, "☁️", R.string.settings_section_accounts_blurb),
     SAFETY(R.string.settings_section_safety_title, "🔒", R.string.settings_section_safety_blurb),
@@ -160,6 +164,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
     LaunchedEffect(Unit) { viewModel.notices.collect { snackbar.showSnackbar(it.text) } }
 
     var section by rememberSaveable { mutableStateOf<Section?>(null) }
+    // "Add a card": make one here, or open a .boop someone sent. Either way the NFC card is tapped afterwards.
+    var adding by remember { mutableStateOf(false) }
     // Test builds only: a section asked for over adb (MainActivity.handleDebugIntent).
     val debugSettings by viewModel.debugSettings.collectAsStateWithLifecycle()
     // The row to scroll to once the asked-for section is showing.
@@ -167,11 +173,41 @@ fun SettingsScreen(viewModel: MainViewModel) {
     LaunchedEffect(debugSettings) {
         val asked = debugSettings ?: return@LaunchedEffect
         section = Section.entries.firstOrNull { it.name == asked.first }
+        // ADD = settings home with the "Add a card" sheet up.
+        if (asked.first == "ADD") adding = true
         debugRow = asked
         // Used once: the next time settings open, they open on their home as usual.
         viewModel.debugSettingsShown()
     }
     BackHandler(enabled = section != null) { section = null }
+
+    val boopPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) viewModel.receiveBoop(uri)
+    }
+    if (adding) {
+        // The settings' own colours: the rows sit on it as they do on the settings pages.
+        ModalBottomSheet(onDismissRequest = { adding = false }, containerColor = MaterialTheme.colorScheme.background) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+                Text(stringResource(R.string.settings_add_card), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 8.dp, bottom = 12.dp))
+                SettingsGroup {
+                    SettingRow(
+                        title = stringResource(R.string.add_card_make),
+                        onClick = {
+                            adding = false
+                            viewModel.openNewCard()
+                        }
+                    )
+                    SettingRow(
+                        title = stringResource(R.string.add_card_boop),
+                        onClick = {
+                            adding = false
+                            boopPicker.launch(arrayOf("*/*"))
+                        }
+                    )
+                }
+            }
+        }
+    }
 
     editPrompt?.let { card ->
         AlertDialog(
@@ -213,7 +249,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
     fun statusFor(s: Section): String = when (s) {
         Section.PLUS -> if (plus) stringResource(R.string.settings_status_plus_on) else stringResource(R.string.plus_cards_used, minOf(cards.size, Plus.FREE_CARD_LIMIT), Plus.FREE_CARD_LIMIT)
         Section.CARDS -> if (cards.isEmpty()) stringResource(R.string.settings_status_no_cards) else pluralStringResource(R.plurals.settings_status_cards, cards.size, cards.size)
-        Section.PICKER -> if (!settings.holdLogoToPick) stringResource(R.string.settings_off) else stringResource(
+        Section.PICKER -> if (!plus) stringResource(R.string.plus_badge) else if (!settings.holdLogoToPick) stringResource(R.string.settings_off) else stringResource(
             R.string.settings_picker_status,
             stringResource(if (settings.pickerStyle == "tiles") R.string.settings_picker_style_tiles else R.string.settings_picker_style_cards),
             cards.count { it.showInPicker },
@@ -275,7 +311,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
             floatingActionButton = {
                 if (current == null || current == Section.CARDS) {
                     ExtendedFloatingActionButton(
-                        onClick = { viewModel.openScan() },
+                        onClick = { adding = true },
                         icon = { Icon(Icons.Default.Add, contentDescription = null) },
                         text = { Text(stringResource(R.string.settings_add_card)) }
                     )
@@ -324,6 +360,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                             debugRow = null
                         }
                     }
+                    val page: @Composable () -> Unit = {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -344,6 +381,18 @@ fun SettingsScreen(viewModel: MainViewModel) {
                             Section.PERMISSIONS -> permissionsSection(settings, nfc, overlayGranted, mediaAccess, context)
                             Section.HELP -> helpSection()
                         }
+                    }
+                    }
+                    // The Card Shelf is part of Plus: a free install sees its page, blurred, under the way to get it.
+                    if (current == Section.PICKER && !plus) {
+                        PlusGate(
+                            what = stringResource(R.string.plus_gate_shelf),
+                            detail = stringResource(R.string.plus_gate_shelf_detail),
+                            onUpgrade = { viewModel.showPaywall(PlusReason.PICKER) },
+                            modifier = Modifier.fillMaxSize()
+                        ) { page() }
+                    } else {
+                        page()
                     }
                 }
             }
@@ -431,12 +480,49 @@ private fun SectionTile(section: Section, status: String, attention: Boolean, on
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(section.emoji, fontSize = 32.sp)
+            // The Card Shelf has no emoji that looks like it: its tile shows a few cards fanned out, drawn here.
+            if (section == Section.PICKER) FannedCards(Modifier.size(40.dp)) else Text(section.emoji, fontSize = 32.sp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(section.titleRes), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(section.blurbRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(status, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+/**
+ * Three cards held in a fan, as in a hand: the Card Shelf's picture. Each is a card of one of the card colours
+ * with a pale square where its picture goes, turned about a point under the middle card.
+ */
+@Composable
+private fun FannedCards(modifier: Modifier = Modifier) {
+    val edge = MaterialTheme.colorScheme.surface
+    androidx.compose.foundation.Canvas(modifier) {
+        val s = size.minDimension
+        val w = s * 0.44f
+        val h = w / (638f / 1011f)
+        val left = (size.width - w) / 2
+        val top = s * 0.10f
+        val pivot = androidx.compose.ui.geometry.Offset(size.width / 2, s * 1.12f)
+        val corner = androidx.compose.ui.geometry.CornerRadius(w * 0.16f)
+        val cards = listOf(-24f to Color(0xFF2EC4B6), 0f to Color(0xFFFFB74D), 24f to Color(0xFFE63970))
+        for ((angle, colour) in cards) {
+            rotate(angle, pivot) {
+                val at = androidx.compose.ui.geometry.Offset(left, top)
+                val card = androidx.compose.ui.geometry.Size(w, h)
+                drawRoundRect(colour, at, card, corner)
+                // A line of the tile's own colour round each, so the three stay apart where they overlap.
+                drawRoundRect(edge, at, card, corner, style = androidx.compose.ui.graphics.drawscope.Stroke(width = s * 0.035f))
+                // Where the card's picture is.
+                val side = w * 0.62f
+                drawRoundRect(
+                    Color.White.copy(alpha = 0.6f),
+                    androidx.compose.ui.geometry.Offset(left + (w - side) / 2, top + w * 0.19f),
+                    androidx.compose.ui.geometry.Size(side, side),
+                    androidx.compose.ui.geometry.CornerRadius(side * 0.18f)
+                )
             }
         }
     }
@@ -519,27 +605,6 @@ private fun LazyListScope.cardsSection(
             extra = { YouTubeCacheStatus(viewModel.player.youtubeCache, card, settings.youtubeAutoCache) }
         )
     }
-    // Last: .boop files normally open straight from WhatsApp, email or Files; this is for the app that won't hand one over.
-    item {
-        val busy by viewModel.boopBusy.collectAsStateWithLifecycle()
-        val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) viewModel.receiveBoop(uri)
-        }
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !busy) { Text(stringResource(R.string.settings_load_boop)) }
-                InfoIcon(text = stringResource(R.string.settings_load_boop_hint), title = stringResource(R.string.settings_load_boop))
-            }
-            if (busy) {
-                Text(
-                    stringResource(R.string.settings_load_boop_unpacking),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-    }
 }
 
 /** The card picker: playing a card from its picture when the card itself isn't there (hold the logo on the home screen). */
@@ -602,12 +667,13 @@ private fun LazyListScope.pickerSection(cards: List<CardModel>, settings: AppSet
                         title = card.displayName(context),
                         checked = card.showInPicker,
                         leading = {
-                            CardArtwork(
+                            CardSticker(
+                                sticker = card.stickerIfThere(),
                                 artwork = card.artworkUrl,
                                 seed = card.uid,
                                 color = card.color,
-                                modifier = Modifier.size(44.dp),
-                                cornerRadius = 10.dp,
+                                modifier = Modifier.height(56.dp),
+                                cornerRadius = 6.dp,
                                 pixel = settings.pixelArt
                             )
                         }
@@ -1285,17 +1351,19 @@ private fun CardRow(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CardArtwork(
+            // The card as it looks in the hand: its sticker, or its picture on a card of its own colour.
+            CardSticker(
+                sticker = card.stickerIfThere(),
                 artwork = card.artworkUrl,
                 seed = card.uid,
                 color = card.color,
-                modifier = Modifier.size(artSize),
-                cornerRadius = 14.dp,
+                modifier = Modifier.height(artSize * 1.3f),
+                cornerRadius = 8.dp,
                 pixel = pixel
             )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(card.emoji + "  " + card.displayName(context), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(card.displayName(context), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     text = stringResource(card.sourceType.labelRes) + (card.subtitle?.let { " · $it" } ?: ""),
                     style = MaterialTheme.typography.bodyMedium,

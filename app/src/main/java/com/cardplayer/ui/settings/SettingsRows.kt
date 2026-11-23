@@ -59,17 +59,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun SettingsGroup(title: String? = null, info: String? = null, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth()) {
-        if (title != null) {
-            InfoTitle(
-                title = title,
-                info = info,
-                modifier = Modifier
-                    .heightIn(min = 36.dp)
-                    .padding(start = 16.dp),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        if (title != null) GroupLabel(title, info)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -79,6 +69,40 @@ internal fun SettingsGroup(title: String? = null, info: String? = null, content:
             content = content
         )
     }
+}
+
+/**
+ * A group whose inside is free-form (text fields, a list being edited, buttons) rather than rows: the same
+ * label and the same card, with room round what is in it. The card editor's "what does it play" is one.
+ */
+@Composable
+internal fun ContentGroup(title: String? = null, info: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        if (title != null) GroupLabel(title, info)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = content
+        )
+    }
+}
+
+/** The small label over a group, starting where the rows' text starts. */
+@Composable
+private fun GroupLabel(title: String, info: String?) {
+    InfoTitle(
+        title = title,
+        info = info,
+        modifier = Modifier
+            .heightIn(min = 36.dp)
+            .padding(start = 16.dp),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
 
 /**
@@ -92,6 +116,8 @@ internal fun SettingRow(
     note: String? = null,
     info: String? = null,
     onClick: (() -> Unit)? = null,
+    /** False = can't be used right now: the name is greyed and a tap does nothing. */
+    enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
     below: (@Composable ColumnScope.() -> Unit)? = null,
     control: (@Composable RowScope.() -> Unit)? = null
@@ -100,7 +126,7 @@ internal fun SettingRow(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
     ) {
         Row(modifier = Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -109,7 +135,13 @@ internal fun SettingRow(
                 Spacer(Modifier.width(14.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (note != null) {
                     Text(note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

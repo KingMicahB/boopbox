@@ -142,9 +142,11 @@ data class StickerDesign(
     /** Songs left off the printed list, by key. */
     val hiddenRows: Set<String> = emptySet(),
     /**
-     * How the sticker is laid out: "poster" (the picture fills the card), "block" (picture on top, the name on a
-     * block of the card's colour), "middle" (picture across the middle of a blurred copy of itself) or "icon"
-     * (a small picture on a pixel checker). Null = picked from the shape of the card's picture.
+     * The template the sticker starts from (StickerRenderer.LAYOUTS): "picture" (the picture alone, filling the
+     * card), "picture-name", "picture-list", "picture-list-name" (the same with the name and / or the song
+     * list), "middle" (a wide picture across the middle of a blurred copy of itself) or "icon" (a small picture
+     * on a pixel checker). Null = the suggested one for this card (StickerRenderer.recommended).
+     * [showTitle] / [showList] still add or take away the name and the list on any of them.
      */
     val layout: String? = null,
     /** Where each part was dragged and how big it was made. Null = where the layout puts it. */
@@ -161,7 +163,13 @@ data class StickerDesign(
     val subtitleColor: Long? = null,
     /** The song list's box: its colour (ARGB; null = a pale tint of the card's colour) and how solid it is (0 = no box, only the songs; 1 = solid; null = frosted glass). */
     val listColor: Long? = null,
-    val listOpacity: Float? = null
+    val listOpacity: Float? = null,
+    /**
+     * The box behind the name: its colour (ARGB; null = the card's colour) and how solid it is (0 = no box,
+     * 1 = solid). Null = the layout's own: the solid block of colour of "block", no box anywhere else.
+     */
+    val titleBoxColor: Long? = null,
+    val titleBoxOpacity: Float? = null
 )
 
 /**

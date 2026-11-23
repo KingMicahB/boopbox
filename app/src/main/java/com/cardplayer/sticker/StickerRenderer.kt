@@ -36,10 +36,13 @@ import kotlin.random.Random
  * The same drawing is the preview in the sticker maker and the picture that gets printed.
  *
  * Layers, bottom to top: a background, the picture, the name and a line under it, the song list on a frosted
- * panel, the navy BoopBox bar. A layout ([StickerDesign.layout], else picked from the picture's shape) says
- * where each starts out; every part can then be dragged and resized anywhere ([StickerDesign.picturePlace] ...).
- *  - "poster": a poster or book cover fills the card and runs on behind the list; it carries its own title,
- *  - "block": the picture across the top, the name on a block of the card's colour under it,
+ * panel, the navy BoopBox bar. A template ([StickerDesign.layout], else [recommended] for this card) says which of
+ * them the sticker starts with and where; every part can then be added, taken off, dragged and resized
+ * ([StickerDesign.picturePlace] ...). The templates ([LAYOUTS]) are four ways of drawing, with or without the
+ * name and the song list:
+ *  - the picture filling the card ("picture"), running on behind the song list ("picture-list"),
+ *  - the picture across the top and the name on a block of the card's colour under it ("picture-name",
+ *    "picture-list-name"),
  *  - "middle": a wide video still across the middle of a blurred, darkened copy of itself,
  *  - "icon": a pixel icon (or the card's pixel creature) big on a checker of the card's colour.
  */
@@ -56,12 +59,76 @@ object StickerRenderer {
     /** Wider than this and the picture is a video still, not a cover. */
     private const val WIDE = 1.25f
 
-    val LAYOUTS = listOf("poster", "block", "middle", "icon")
+    /** Whether a template prints the song list: never, always, or only a short one. */
+    private enum class ListRule { NO, YES, SHORT }
+
+    /** A template: the way of drawing it uses, and whether it starts with the name and with the song list. */
+    private class Template(val geometry: String, val name: Boolean, val list: ListRule)
+
+    private val TEMPLATES = linkedMapOf(
+        "picture" to Template("poster", name = false, list = ListRule.NO),
+        "picture-name" to Template("block", name = true, list = ListRule.NO),
+        "picture-list" to Template("poster", name = false, list = ListRule.YES),
+        "picture-list-name" to Template("block", name = true, list = ListRule.YES),
+        "middle" to Template("middle", name = true, list = ListRule.NO),
+        "icon" to Template("icon", name = true, list = ListRule.SHORT)
+    )
+
+    /** The templates, in the order the sticker maker offers them. */
+    val LAYOUTS: List<String> = TEMPLATES.keys.toList()
+
+    /** Stickers made before the templates were split by name and list. */
+    private val OLD_LAYOUTS = mapOf("poster" to "picture", "block" to "picture-list-name")
+
+    /** More songs than this and the list is too small to read on a printed card: it isn't suggested. */
+    const val LIST_MAX = 10
+    /** Song names longer than this on average would nearly all be cut short: no list is suggested. */
+    private const val LONG_ROW = 28
+    /** A name longer than this is left off a poster, which carries its own title anyway. */
+    private const val LONG_NAME = 40
+    /** Narrower than this (width over height) and the picture is a poster or a book cover: it prints its own title. */
+    private const val POSTER = 0.8f
+
+    /**
+     * The template a card starts with, from what it plays, how many songs it has and its picture.
+     * [aspect] = the picture's width over height; null = no picture to speak of (none, or only a pixel icon).
+     *
+     *  - no picture: the small-picture template, whatever the card plays,
+     *  - songs / chapters: the song list while it is short enough to read (2..[LIST_MAX] songs, names not too long),
+     *    with the name too unless the picture is a poster that prints its own; otherwise the picture and the name,
+     *  - a book, a film: its cover or poster alone; with the name when the picture isn't poster-shaped,
+     *  - a show or a link: the picture and the name,
+     *  - a wide still with no list to print sits across the middle rather than over an empty block or cropped to a sliver.
+     */
+    fun recommended(source: StickerSource, aspect: Float?): String {
+        if (aspect == null) return "icon"
+        val poster = aspect <= POSTER
+        val wide = aspect >= WIDE
+        val rows = source.rows
+        val listable = rows.size in 2..LIST_MAX && rows.sumOf { it.title.length } <= LONG_ROW * rows.size
+        val pick = when (source.kind) {
+            StickerKind.SONGS, StickerKind.CHAPTERS -> when {
+                listable -> if (poster) "picture-list" else "picture-list-name"
+                // No list to print under it: a wide still sits better across the middle than over a big empty block.
+                wide -> "middle"
+                else -> "picture-name"
+            }
+            StickerKind.AUDIOBOOK, StickerKind.MOVIE -> when {
+                wide -> "middle"
+                poster -> "picture"
+                else -> "picture-name"
+            }
+            StickerKind.PODCAST, StickerKind.LINK -> if (wide) "middle" else "picture-name"
+        }
+        // A very long name under a poster: the poster says it already.
+        return if (pick == "picture-name" && poster && source.name.trim().length > LONG_NAME) "picture" else pick
+    }
+
     /** Font names a design may use; the first is the sticker's own. The rest are the phone's. */
     val FONTS = listOf("rubik", "black", "condensed", "serif", "casual", "script", "mono")
 
-    /** The parts of a sticker that can be picked, the one on top first. */
-    enum class Part { ROW, LIST, TITLE, SUBTITLE, PICTURE, FOOTER }
+    /** The parts of a sticker that can be picked, the one on top first. [NAMEBOX] = the box behind the name: tapping it picks the name. */
+    enum class Part { ROW, LIST, TITLE, SUBTITLE, NAMEBOX, PICTURE, FOOTER }
 
     /**
      * Where a part was drawn, in sticker pixels (a picture's box may hang off the card).
@@ -70,7 +137,11 @@ object StickerRenderer {
      */
     data class Region(val part: Part, val rect: RectF, val key: String? = null, val text: RectF? = null, val textSize: Float = 0f)
 
-    class Result(val bitmap: Bitmap, val regions: List<Region>, val titleShown: Boolean) {
+    /**
+     * [layout] = the template it was drawn from (the design's, or the suggested one); [geometry] = that template's
+     * way of drawing ("poster", "block", "middle", "icon"); [listShown] = whether the song list is on it.
+     */
+    class Result(val bitmap: Bitmap, val regions: List<Region>, val titleShown: Boolean, val layout: String, val geometry: String, val listShown: Boolean) {
         /** What is at this spot (sticker pixels). */
         fun partAt(x: Float, y: Float): Region? =
             Part.entries.firstNotNullOfOrNull { part -> regions.firstOrNull { it.part == part && it.rect.contains(x, y) } }
@@ -144,10 +215,32 @@ object StickerRenderer {
         val bleedH = BLEED.toFloat()
 
         val rows = content.rows
-        val listed = content.listed
         val title = content.title
         val rtl = HEBREW.containsMatchIn(title + rows.joinToString("") { it.title })
         fun iconOf(row: StickerRow): Bitmap? = row.icon?.let { icons[it] }
+
+        // ---- the template: the one chosen, else the one suggested for this card
+        val tiny = picture != null && max(picture.width, picture.height) <= TINY
+        val photo = picture?.takeIf { !tiny }
+        val aspect = photo?.let { it.width.toFloat() / it.height } ?: 1f
+        val ph = w / aspect // a photo's height when it spans the card
+        val chosen = design.layout?.let { OLD_LAYOUTS[it] ?: it }
+        val templateId = when {
+            // Nothing to fill a card with: the small-picture template, whichever was asked for.
+            photo == null -> "icon"
+            chosen in TEMPLATES -> chosen!!
+            else -> recommended(source, aspect)
+        }
+        val template = TEMPLATES.getValue(templateId)
+        val mode = template.geometry
+        val listed = content.listed(
+            when (template.list) {
+                ListRule.NO -> false
+                ListRule.YES -> true
+                // A few songs to tell apart, not a book's or a show's long run of parts.
+                ListRule.SHORT -> rows.size in 2..LIST_MAX && source.kind != StickerKind.AUDIOBOOK && source.kind != StickerKind.PODCAST
+            }
+        )
 
         // ---- the song list, where the layout puts it, decides how much room the top gets
         val autoCols = if (rows.size <= 7) 1 else 2
@@ -157,23 +250,20 @@ object StickerRenderer {
         val artH = bleedH - autoListH
         val listRect = if (!listed) null else design.listPlace?.let(::box) ?: RectF(0f, artH, w, bleedH)
 
-        val tiny = picture != null && max(picture.width, picture.height) <= TINY
-        val photo = picture?.takeIf { !tiny }
-        val aspect = photo?.let { it.width.toFloat() / it.height } ?: 1f
-        val ph = w / aspect // a photo's height when it spans the card
-        val mode = when {
-            photo == null -> "icon"
-            design.layout in LAYOUTS -> design.layout!!
-            aspect >= WIDE && !listed -> "middle"
-            artH - ph >= 40f -> "block"
-            else -> "poster"
-        }
+        // ---- the box behind the name. "block" has one of its own, the block of colour under the picture (while
+        // the name is where the layout put it); anywhere else the name gets a box only when one is asked for.
+        val band = mode == "block" && design.titlePlace == null
+        val boxAsked = design.titleBoxColor != null || design.titleBoxOpacity != null
+        val boxColor = design.titleBoxColor?.toInt() ?: color
+        val boxSolid = (design.titleBoxOpacity ?: if (band) 1f else if (design.titleBoxColor != null) LIST_OPACITY else 0f).coerceIn(0f, 1f)
 
         // ---- background, and where the layout puts the picture
         c.save()
         c.clipRect(0f, 0f, w, bleedH)
         var pic: RectF
         var picClip: RectF? = null
+        /** The part of the picture that counts as the picture when the card is tapped. */
+        var picPart: RectF? = null
         /** Block layout: where the picture stops and the block of colour starts. */
         var blockTop = 0f
         when (mode) {
@@ -194,7 +284,9 @@ object StickerRenderer {
                 blockTop = if (artH - ph >= 40f) ph else max(artH - 200f, artH * 0.5f)
                 if (listed) checker(c, 0f, bleedH, color) else c.drawRect(0f, 0f, w, bleedH, Paint().apply { this.color = color })
                 pic = RectF(0f, 0f, w, ph)
-                picClip = RectF(0f, 0f, w, blockTop)
+                picPart = RectF(0f, 0f, w, blockTop)
+                // A see-through block lets the rest of the picture show through it.
+                picClip = if (band && boxAsked) null else picPart
             }
             else -> {
                 backdrop(c, photo!!, bleedH)
@@ -207,6 +299,7 @@ object StickerRenderer {
         if (moved != null) {
             pic = RectF(moved.x, moved.y, moved.x + moved.w, moved.y + if (square) moved.w else moved.w / aspect)
             picClip = null
+            picPart = null
         }
 
         // ---- the picture
@@ -235,15 +328,19 @@ object StickerRenderer {
             }
             c.drawBitmap(photo, null, pic, SMOOTH)
             c.restore()
-            if (mode == "block" && listed && moved == null) c.drawRect(0f, blockTop, w, blockTop + 5f, Paint().apply { this.color = NAVY })
+            if (mode == "block" && listed && moved == null && !(band && boxAsked)) c.drawRect(0f, blockTop, w, blockTop + 5f, Paint().apply { this.color = NAVY })
         }
-        regions += Region(Part.PICTURE, RectF(pic).apply { picClip?.let { intersect(it) } })
+        regions += Region(Part.PICTURE, RectF(pic).apply { picPart?.let { intersect(it) } })
         c.restore()
+        // The block of "block" in a colour or a see-through of the grown-up's choosing.
+        if (band && boxAsked) frost(c, bitmap, RectF(0f, blockTop, w, artH), boxColor, boxSolid, rounded = false)
+        if (band) regions += Region(Part.NAMEBOX, RectF(0f, blockTop, w, artH))
 
         // ---- the name and the line under it
         val ownLine = !design.subtitle.isNullOrBlank()
         val room = artH - blockTop // block layout: the height of the block of colour
-        val strip = if (mode == "block" && listed && room >= 220f && !ownLine && design.titlePlace == null && design.subtitlePlace == null)
+        // The songs' icons under the name fill a roomy block, with or without the list of them.
+        val strip = if (mode == "block" && room >= 220f && !ownLine && design.titlePlace == null && design.subtitlePlace == null)
             rows.mapNotNull(::iconOf).distinct().take(5) else emptyList()
         // Where the layout puts the name, how big at most, and whether it prints it unasked.
         val nameCy: Float
@@ -292,49 +389,79 @@ object StickerRenderer {
             }
         }
 
-        /** One centred, outlined line of text; returns where it ended up. */
-        fun label(part: Part, text: String, cx: Float, cy: Float, maxSize: Int, minSize: Int, typeface: Typeface, fill: Int): Region {
-            val (shown, size) = fit(text, w - 40f, maxSize, minSize, typeface)
-            outlined(c, shown, cx, cy, size, typeface, fill, if (luminance(fill) > 0.55f) NAVY else Color.WHITE)
-            val half = paint(size.toFloat(), typeface, fill, Paint.Align.CENTER).measureText(shown) / 2 + 14f
-            val box = RectF(cx - half, cy - size * 0.75f, cx + half, cy + size * 0.75f)
-            return Region(part, box, text = box, textSize = size.toFloat()).also { regions += it }
+        /**
+         * Centred, outlined text; returns where it ended up. Too long for one row at a readable size, it wraps
+         * onto more. [boxH] = the height of the box it was given (null = where the template puts it), which the
+         * rows share. [dry] = only work out where it goes, print nothing.
+         */
+        fun label(part: Part, text: String, cx: Float, cy: Float, maxSize: Int, minSize: Int, typeface: Typeface, fill: Int, dry: Boolean, boxH: Float? = null): Region {
+            val (shown, size) = wrap(text, w - 40f, maxSize, minSize, typeface, boxH)
+            val rowH = size * ROW_PITCH
+            val total = rowH * shown.size
+            val measure = paint(size.toFloat(), typeface, fill, Paint.Align.CENTER)
+            var widest = 0f
+            shown.forEachIndexed { i, row ->
+                if (!dry) outlined(c, row, cx, cy - total / 2 + rowH * (i + 0.5f), size, typeface, fill, if (luminance(fill) > 0.55f) NAVY else Color.WHITE)
+                widest = max(widest, measure.measureText(row))
+            }
+            val half = widest / 2 + 14f
+            val tall = total / 2 + size * 0.16f
+            val box = RectF(cx - half, cy - tall, cx + half, cy + tall)
+            return Region(part, box, text = box, textSize = size.toFloat()).also { if (!dry) regions += it }
         }
 
         var titleShown = false
-        var titleBox: RectF? = null
-        val titlePlace = design.titlePlace
-        if (title.isNotEmpty() && (design.showTitle ?: (nameByDefault || titlePlace != null))) {
-            val face = typeface(context, design.titleFont, bold = true)
-            val fill = design.titleColor?.toInt() ?: Color.WHITE
-            titleBox = if (titlePlace != null) {
-                val size = (titlePlace.h / 1.5f).roundToInt().coerceIn(MIN_TEXT, MAX_TEXT)
-                label(Part.TITLE, title, titlePlace.x + titlePlace.w / 2, titlePlace.y + titlePlace.h / 2, size, min(size, MIN_TEXT), face, fill).rect
-            } else {
-                label(Part.TITLE, title, w / 2, nameCy, nameMax, 30, face, fill).rect
+        /** Prints the name and the line under it; returns the room the name and a line right under it take (null = no name). */
+        fun names(dry: Boolean): RectF? {
+            var name: Region? = null
+            var room: RectF? = null
+            val titlePlace = design.titlePlace
+            if (title.isNotEmpty() && (design.showTitle ?: ((template.name && nameByDefault) || titlePlace != null))) {
+                val face = typeface(context, design.titleFont, bold = true)
+                val fill = design.titleColor?.toInt() ?: Color.WHITE
+                name = if (titlePlace != null) {
+                    val size = (titlePlace.h / 1.5f).roundToInt().coerceIn(MIN_TEXT, MAX_TEXT)
+                    label(Part.TITLE, title, titlePlace.x + titlePlace.w / 2, titlePlace.y + titlePlace.h / 2, size, min(size, MIN_TEXT), face, fill, dry, boxH = titlePlace.h)
+                } else {
+                    label(Part.TITLE, title, w / 2, nameCy, nameMax, 30, face, fill, dry)
+                }
+                room = RectF(name.rect)
+                titleShown = true
             }
-            titleShown = true
+            val linePlace = design.subtitlePlace
+            if (content.subtitle.isNotEmpty() && (linePlace != null || (name != null && (ownLine || lineByDefault)))) {
+                val face = typeface(context, design.subtitleFont, bold = lineBold)
+                val fill = design.subtitleColor?.toInt() ?: lineFill
+                if (linePlace != null) {
+                    val size = (linePlace.h / 1.5f).roundToInt().coerceIn(MIN_TEXT, MAX_TEXT)
+                    label(Part.SUBTITLE, content.subtitle, linePlace.x + linePlace.w / 2, linePlace.y + linePlace.h / 2, size, min(size, MIN_TEXT), face, fill, dry, boxH = linePlace.h)
+                } else if (name != null) {
+                    // Under the name, wherever the name is and however many rows it took.
+                    val wrapped = name.rect.height() > name.textSize * 1.6f
+                    val drop = if (titlePlace != null || wrapped) name.rect.height() / 2 + lineSize * 0.9f else lineDrop
+                    room?.union(label(Part.SUBTITLE, content.subtitle, name.rect.centerX(), name.rect.centerY() + drop, lineSize, lineSize - 8, face, fill, dry).rect)
+                }
+            }
+            return room
         }
-        val linePlace = design.subtitlePlace
-        if (content.subtitle.isNotEmpty() && (linePlace != null || (titleBox != null && (ownLine || lineByDefault)))) {
-            val face = typeface(context, design.subtitleFont, bold = lineBold)
-            val fill = design.subtitleColor?.toInt() ?: lineFill
-            if (linePlace != null) {
-                val size = (linePlace.h / 1.5f).roundToInt().coerceIn(MIN_TEXT, MAX_TEXT)
-                label(Part.SUBTITLE, content.subtitle, linePlace.x + linePlace.w / 2, linePlace.y + linePlace.h / 2, size, min(size, MIN_TEXT), face, fill)
-            } else if (titleBox != null) {
-                // Under the name, wherever the name is.
-                val drop = if (titlePlace != null) titleBox.height() / 2 + lineSize * 0.9f else lineDrop
-                label(Part.SUBTITLE, content.subtitle, titleBox.centerX(), titleBox.centerY() + drop, lineSize, lineSize - 8, face, fill)
+        // A box of the name's own: measured first, so it can go under the words.
+        if (!band && boxSolid > 0.03f) {
+            names(dry = true)?.let { room ->
+                val box = RectF(room).apply { inset(-18f, -10f) }
+                frost(c, bitmap, box, boxColor, boxSolid, rounded = true)
+                regions += Region(Part.NAMEBOX, box)
             }
         }
-        if (strip.isNotEmpty() && titleBox != null) {
+        val nameRoom = names(dry = false)
+        if (strip.isNotEmpty() && titleShown) {
             // A row of the songs' icons under the name.
-            val side = min(64f, artH - (nameCy + 56f) - 16f)
+            // Under the name, however many rows it took.
+            val stripTop = max(nameCy + 56f, (nameRoom?.bottom ?: 0f) + 12f)
+            val side = min(64f, artH - stripTop - 16f)
             val between = 22f
             var x = (w - (strip.size * side + (strip.size - 1) * between)) / 2
             for (icon in strip) {
-                stamp(c, icon, x, nameCy + 56f, side)
+                stamp(c, icon, x, stripTop, side)
                 x += side + between
             }
         }
@@ -359,7 +486,7 @@ object StickerRenderer {
         write(c, footer(context, content, rtl), w - 22f, mid, paint(24f, fonts.regular, mix(NAVY, Color.WHITE, 0.75f), Paint.Align.RIGHT))
         regions += Region(Part.FOOTER, RectF(0f, bleedH, w, H.toFloat()))
 
-        return Result(bitmap, regions, titleShown)
+        return Result(bitmap, regions, titleShown, templateId, mode, listed)
     }
 
     /**
@@ -466,6 +593,26 @@ object StickerRenderer {
         c.restore()
     }
 
+    /**
+     * A box of [colour] over [rect], [solid] from 0 (nothing drawn) to 1, on a softened copy of what is behind it
+     * (frosted glass): the box behind the name. Square where it is the block of a layout, [rounded] when it floats.
+     */
+    private fun frost(c: Canvas, bitmap: Bitmap, rect: RectF, colour: Int, solid: Float, rounded: Boolean) {
+        if (solid <= 0.03f) return
+        c.save()
+        c.clipRect(0f, 0f, W.toFloat(), BLEED.toFloat())
+        if (rounded) c.clipPath(Path().apply { addRoundRect(rect, 22f, 22f, Path.Direction.CW) }) else c.clipRect(rect)
+        val behind = Rect(max(0, rect.left.toInt()), max(0, rect.top.toInt()), min(W, rect.right.roundToInt()), min(BLEED, rect.bottom.roundToInt()))
+        if (solid < 0.97f && behind.width() > 8 && behind.height() > 8) {
+            c.drawBitmap(soften(Bitmap.createBitmap(bitmap, behind.left, behind.top, behind.width(), behind.height()), 16), behind.left.toFloat(), behind.top.toFloat(), null)
+        }
+        c.drawRect(rect, Paint().apply {
+            this.color = colour
+            alpha = (solid * 255).roundToInt()
+        })
+        c.restore()
+    }
+
     /** "12 songs · 26 min", "Audiobook · 20 hr 14 min", "Podcast", "Movie": in the language the card is written in. */
     private fun footer(context: Context, content: StickerContent, hebrew: Boolean): String {
         val res = wordsIn(context, if (hebrew) Locale.forLanguageTag("he") else Locale.ENGLISH)
@@ -556,6 +703,75 @@ object StickerRenderer {
         }
         write(c, text, x, cy, edge)
         write(c, text, x, cy, paint(size.toFloat(), typeface, fill, Paint.Align.CENTER))
+    }
+
+    /** A row of wrapped text takes this many times its text size. */
+    private const val ROW_PITCH = 1.18f
+
+    /**
+     * [text] as the rows it is printed in, and the size they are printed at (from [maxSize] down to [minSize]).
+     * One row when it fits at close to full size; otherwise as many (two, or three in a box that has the
+     * height for them: [boxH]) as print it biggest, split between words so the rows are about as wide as each
+     * other. Line breaks typed into the text are kept. Still too wide at the smallest size, rows end in an ellipsis.
+     */
+    private fun wrap(text: String, maxW: Float, maxSize: Int, minSize: Int, typeface: Typeface, boxH: Float?): Pair<List<String>, Int> {
+        val p = paint(maxSize.toFloat(), typeface, Color.BLACK, Paint.Align.LEFT)
+        /** The largest size up to [cap] at which every row fits; one under [minSize] when none does. */
+        fun sizeFor(rows: List<String>, cap: Int): Int {
+            for (s in cap downTo minSize) {
+                p.textSize = s.toFloat()
+                if (rows.all { p.measureText(it) <= maxW }) return s
+            }
+            return minSize - 1
+        }
+        /** [words] in [n] rows, split where the widest row is narrowest. */
+        fun balanced(words: List<String>, n: Int): List<String> {
+            p.textSize = maxSize.toFloat()
+            if (n <= 1 || words.size < n) return listOf(words.joinToString(" "))
+            var best: List<String>? = null
+            var bestW = Float.MAX_VALUE
+            fun tryCuts(cuts: List<Int>) {
+                val rows = (listOf(0) + cuts + listOf(words.size)).zipWithNext { a, b -> words.subList(a, b).joinToString(" ") }
+                val widest = rows.maxOf { p.measureText(it) }
+                if (widest < bestW) {
+                    bestW = widest
+                    best = rows
+                }
+            }
+            if (n == 2) for (i in 1 until words.size) tryCuts(listOf(i))
+            else for (i in 1 until words.size - 1) for (j in i + 1 until words.size) tryCuts(listOf(i, j))
+            return best ?: listOf(words.joinToString(" "))
+        }
+
+        val typed = text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+        val words = text.trim().split(Regex("\\s+"))
+        val most = if (boxH != null) 3 else 2
+        val ways = if (typed.size > 1) listOf(typed) else (1..min(most, words.size)).map { balanced(words, it) }.distinct()
+        var rows = ways.first()
+        var size = minSize - 1
+        for (way in ways) {
+            val n = way.size
+            val cap = when {
+                // In a box of its own the rows share the box's height.
+                boxH != null -> min(maxSize, (boxH / (ROW_PITCH * n + 0.32f)).toInt())
+                n == 1 -> maxSize
+                // Where the template puts it there is room for two rows a little smaller, not two at full size.
+                else -> (maxSize * 0.78f).toInt()
+            }.coerceAtLeast(minSize)
+            val s = sizeFor(way, cap)
+            // More rows only when they print bigger.
+            if (s > size) {
+                size = s
+                rows = way
+            }
+            // Fits well on fewer rows: leave it there.
+            if (s >= cap * 0.8f) break
+        }
+        if (size < minSize) {
+            size = minSize
+            rows = rows.map { fit(it, maxW, minSize, minSize, typeface).first }
+        }
+        return rows to size
     }
 
     /** The largest size from [size] down to [minSize] at which [text] fits [maxW]; an ellipsis if even the smallest doesn't. */

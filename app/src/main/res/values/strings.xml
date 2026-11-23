@@ -149,10 +149,11 @@
     <string name="settings_sleep_after_song">Sleep after this song</string>
 
     <!-- SettingsScreen: Cards section -->
-    <string name="settings_cards_empty">No cards yet. Tap \"Add a card\", then hold any NFC card, sticker or toy against the back of the phone.</string>
-    <string name="settings_load_boop">Load a .boop</string>
-    <string name="settings_load_boop_unpacking">Unpacking…</string>
-    <string name="settings_load_boop_hint">Got a .boop from someone? Just open it (WhatsApp, email, Files…) and BoopBox takes over. Or pick the file here.</string>
+    <string name="settings_cards_empty">No cards yet. Tap \"Add a card\" to make the first one.</string>
+    <string name="add_card_make">Make a new card</string>
+    <string name="add_card_boop">Open a .boop file</string>
+    <string name="editor_save_then_tap">Next: tap a card</string>
+    <string name="pending_made_here">Your new card</string>
     <string name="settings_backup_title">Backup</string>
     <string name="settings_backup_body">Every card, every setting, the Yoto sign-in and every song and picture the cards use (also the ones picked from the phone\'s own folders), in one file. With lots of songs from the phone the file can get big.</string>
     <string name="settings_backup_save">Save backup</string>
@@ -269,7 +270,7 @@
     <string name="settings_taps">Taps</string>
     <string name="settings_idle_screen">Idle screen</string>
     <string name="settings_show_clock">Show the clock</string>
-    <string name="settings_section_picker_title">Card picker</string>
+    <string name="settings_section_picker_title">Card Shelf</string>
     <string name="settings_section_picker_blurb">Play without the card: hold the logo, pick a picture</string>
     <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
     <string name="settings_logo_picker_title">Hold the logo to open</string>
@@ -278,7 +279,7 @@
     <string name="settings_picker_style_cards">Cards</string>
     <string name="settings_picker_style_tiles">Tiles</string>
     <string name="settings_picker_tiles_per_screen">Tiles per screen</string>
-    <string name="settings_picker_cards">Cards in the picker</string>
+    <string name="settings_picker_cards">Cards on the shelf</string>
     <string name="settings_picker_cards_hint">A card that is switched off here plays only with its real card.</string>
     <string name="settings_picker_show_all">Show all</string>
     <string name="settings_picker_hide_all">Hide all</string>
@@ -386,8 +387,10 @@
     <string name="sticker_layouts">Layouts</string>
     <string name="sticker_layouts_hint">Pick one to start from. Everything on it can still be moved and changed.</string>
     <string name="sticker_layout_auto">Suggested</string>
-    <string name="sticker_layout_poster">Full picture</string>
-    <string name="sticker_layout_block">Picture and name</string>
+    <string name="sticker_layout_picture">Just the picture</string>
+    <string name="sticker_layout_name">Picture and name</string>
+    <string name="sticker_layout_list">Picture and song list</string>
+    <string name="sticker_layout_list_name">Picture, name and song list</string>
     <string name="sticker_layout_middle">Picture in the middle</string>
     <string name="sticker_layout_icon">Small picture</string>
     <string name="sticker_put_back">Put back where it was</string>
@@ -548,19 +551,17 @@
 
     <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
     <string name="editor_fetching">Fetching details…</string>
-    <string name="editor_tap_again_title">When the card is tapped again later</string>
     <string name="editor_resume_continue">Continue where it left off (audiobooks, podcasts)</string>
     <string name="editor_resume_restart">Start from the beginning (songs, albums)</string>
     <string name="editor_shuffle">Shuffle</string>
-    <string name="editor_lifted_title">When the card is lifted off the phone</string>
-    <string name="editor_lifted_stop">Stop</string>
-    <string name="editor_lifted_pause">Pause (tap again to carry on)</string>
-    <string name="editor_lifted_nothing">Keep playing</string>
-    <string name="editor_sleep_title">Sleep timer when this card is tapped (minutes)</string>
     <string name="editor_sleep_note">For bedtime stories: the sound fades out and pauses after this long, every time the card is tapped. Off = only the bedtime-hours timer applies.</string>
     <string name="editor_sleep_off">Off</string>
+    <string name="editor_tap_again_short">When tapped again</string>
+    <string name="editor_resume_continue_short">Continue</string>
+    <string name="editor_resume_restart_short">Start over</string>
+    <string name="editor_lifted_short">When lifted off the phone</string>
+    <string name="editor_sleep_short">Sleep timer on tap</string>
     <!-- Card editor: looks -->
-    <string name="editor_section_looks">Looks</string>
     <string name="editor_name">Name</string>
     <string name="editor_find_picture">Find a picture</string>
     <string name="editor_change_picture">Change picture</string>
@@ -572,8 +573,6 @@
     <string name="editor_remove_picture_cd">Remove picture</string>
     <string name="editor_pick">Pick</string>
     <string name="editor_first_80">Showing the first 80 tracks.</string>
-    <string name="editor_icon_title">Little icon for the card list</string>
-    <string name="editor_colour">Colour</string>
     <string name="editor_artwork_url">Artwork image URL (optional)</string>
 
     <!-- Card editor: another tag, sharing -->
@@ -619,12 +618,13 @@
     <!-- Artwork picker (ArtworkPicker.kt) -->
     <string name="art_title">Find a picture</string>
     <string name="art_source_icons">Pixel icons</string>
-    <string name="art_source_album">Album art</string>
+    <string name="art_source_album">Covers</string>
     <string name="art_search_icons_hint">Search icons (e.g. dinosaur, train, moon)</string>
     <string name="art_search_album_hint">Album, song, podcast or book</string>
     <string name="art_find">Find</string>
     <string name="art_searching">Searching…</string>
     <string name="art_nothing_found">Nothing found. Try another word.</string>
+    <string name="art_unreachable">Couldn\'t search. Check the connection and try again.</string>
     <plurals name="art_icon_count">
         <item quantity="one">%d icon</item>
         <item quantity="other">%d icons</item>
@@ -632,7 +632,7 @@
     <string name="art_loading">Loading…</string>
     <string name="art_more_icons">More icons</string>
     <string name="art_credit_icons">Icons drawn by the yotoicons.com community</string>
-    <string name="art_credit_album">Artwork via iTunes Search</string>
+    <string name="art_credit_album">Covers from iTunes, Open Library and Deezer</string>
 
     <!-- ==== 41_split.en.xml ==== -->
     <!-- Split-into-songs editor (SplitEditorDialog.kt) -->
@@ -699,10 +699,6 @@
     <string name="receive_fetching_link_hint">Fetching its title and picture</string>
     <string name="receive_failed_title">Couldn\'t open that file</string>
 
-    <!-- ScanScreen -->
-    <string name="scan_title">Add a card</string>
-    <string name="scan_hold_card">Hold a card against the back of the phone</string>
-    <string name="scan_hint">Any NFC card, sticker or toy will do. The NFC antenna is usually near the camera.</string>
 
     <!-- Settings password dialogs (SettingsLock) -->
     <string name="lock_title">Grown-ups only</string>
@@ -805,9 +801,22 @@
 
     <!-- Artwork picker: paste a link -->
     <string name="art_source_url">Paste a link</string>
-    <string name="art_url_hint">Image address (https://…)</string>
+    <string name="art_url_hint">Link to a picture</string>
     <string name="art_use_url">Use this picture</string>
     <string name="art_url_note">Any picture on the web: copy its link and paste it here.</string>
+    <string name="art_listing_reading">Reading the card…</string>
+    <string name="art_listing_failed">Couldn\'t read that card. Check the link, or try again.</string>
+    <string name="art_use_listing">Use picture and icons</string>
+    <plurals name="art_listing_icons">
+        <item quantity="one">%d track icon</item>
+        <item quantity="other">%d track icons</item>
+    </plurals>
+    <string name="msg_listing_picture">Picture set. Add the tracks, then paste the link again for their icons.</string>
+    <string name="msg_listing_no_match">Picture set. The tracks here don\'t match the card\'s, so no icons.</string>
+    <plurals name="msg_listing_icons">
+        <item quantity="one">Picture set, and %d track got its icon.</item>
+        <item quantity="other">Picture set, and %d tracks got their icons.</item>
+    </plurals>
 
     <!-- Settings: accounts section, card list sorting, bedtime times -->
     <string name="settings_section_accounts_title">Accounts &amp; data</string>
@@ -822,8 +831,6 @@
     <string name="settings_played_ago">Played %1$s</string>
 
     <!-- Scan screen -->
-    <string name="scan_existing_hint">Tapping a card that is already set up opens it for editing.</string>
-    <string name="scan_nfc_off">NFC is off, so nothing can be read right now.</string>
     <string name="msg_no_link_shared">There was no link in what was shared.</string>
 
     <!-- BoopBox Plus -->
@@ -834,6 +841,8 @@
     <string name="plus_reason_night_light">Night light colours and brightness are part of BoopBox Plus.</string>
     <string name="plus_reason_card_sleep">A sleep timer for each card is part of BoopBox Plus.</string>
     <string name="plus_reason_speed">A playback speed for each card is part of BoopBox Plus.</string>
+    <string name="plus_reason_picker">The Card Shelf (playing a card from its picture, without the card) is part of BoopBox Plus.</string>
+    <string name="plus_reason_sticker">Changing a sticker by hand (layouts, colours, text) is part of BoopBox Plus. The automatic sticker is free.</string>
     <string name="plus_reason_trim">Trimming the start and end of a song is part of BoopBox Plus.</string>
     <string name="plus_reason_general">Unlock every card and grown-up extra.</string>
     <string name="plus_includes">Plus includes</string>
@@ -841,7 +850,16 @@
     <string name="plus_feature_split">Split a file into songs, trim a song\'s start and end, mark audiobook chapters</string>
     <string name="plus_feature_bedtime">Bedtime hours: quieter, sleep timer and night light on their own</string>
     <string name="plus_feature_night_light">Night light colours and brightness</string>
+    <string name="plus_gate_shelf">Play without the card</string>
+    <string name="plus_gate_shelf_detail">Left the cards at home? Pick one from its picture.</string>
+    <string name="plus_gate_sticker">Design your own sticker</string>
+    <string name="plus_gate_sticker_detail">Pick a layout, colours and fonts, and write what you like.</string>
+    <string name="plus_gate_upgrade">Unlock Plus</string>
+    <string name="sticker_picture_remove">Remove picture</string>
+    <string name="sticker_gallery_short">From gallery</string>
     <string name="plus_feature_card_extras">A sleep timer and speed for each card</string>
+    <string name="plus_feature_picker">Card Shelf: play a card from its picture when the card isn\'t there</string>
+    <string name="plus_feature_sticker">Sticker maker: layouts, colours and text of your own</string>
     <string name="plus_once">One purchase, yours for good. No subscription. Cards shared with you always work.</string>
     <string name="plus_buy">Unlock for %1$s</string>
     <string name="plus_buy_no_price">Unlock Plus</string>

@@ -42,9 +42,8 @@ class StickerContent(val source: StickerSource, val design: StickerDesign) {
         .map { row -> design.rowTitles[row.key]?.let { row.copy(title = it) } ?: row }
         .take(MAX_ROWS)
 
-    /** The list is on unless told otherwise, for cards with a few songs to tell apart. */
-    val listed: Boolean = rows.isNotEmpty() &&
-        (design.showList ?: (rows.size >= 2 && source.kind != StickerKind.AUDIOBOOK && source.kind != StickerKind.PODCAST))
+    /** Whether the song list is printed: as asked for, else as the template has it ([byDefault]). */
+    fun listed(byDefault: Boolean): Boolean = rows.isNotEmpty() && (design.showList ?: byDefault)
 
     companion object {
         /** Two columns of thirteen is what still reads at card size. */

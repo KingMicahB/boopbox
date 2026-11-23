@@ -80,6 +80,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,13 +113,16 @@ import com.cardplayer.WriteState
 import com.cardplayer.audio.Audiobook
 import com.cardplayer.data.BoopFile
 import com.cardplayer.data.Card
+import com.cardplayer.data.StickerDesign
 import com.cardplayer.data.Chapter
 import com.cardplayer.data.Clip
 import com.cardplayer.data.PlaylistItem
 import com.cardplayer.data.PodcastFeed
 import com.cardplayer.data.PodcastMode
 import com.cardplayer.data.SourceType
+import com.cardplayer.link.ArtworkSearch
 import com.cardplayer.link.LinkResolver
+import com.cardplayer.link.YotoStore
 import com.cardplayer.link.YouTubeChapters
 import com.cardplayer.util.MediaScan
 import com.cardplayer.yoto.YotoClient
@@ -195,6 +199,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // A card already saved on this phone, or data read off a shared tag (not saved yet).
     val saved = remember(uid) { viewModel.cardRepo.get(uid) }
     val existing = remember(uid) { saved ?: viewModel.consumePrefill(uid) }
+    /** "Add a card": made here first, with no NFC card yet. Saving it asks for the card to put it on. */
+    val draft = viewModel.isDraft(uid)
     val writeState by viewModel.writeState.collectAsStateWithLifecycle()
     val moveState by viewModel.moveState.collectAsStateWithLifecycle()
     val appSettings by viewModel.settings.collectAsStateWithLifecycle()
@@ -202,7 +208,9 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var emoji by remember { mutableStateOf(existing?.emoji ?: EmojiChoices.first()) }
-    var color by remember { mutableStateOf(existing?.color ?: CardColorChoices.first()) }
+    // Nobody picks a colour any more (the sticker is the card's look): a new card takes one of the card colours
+    // by its id, so cards without a picture still differ from each other.
+    var color by remember { mutableStateOf(existing?.color ?: CardColorChoices[(uid.hashCode() and 0x7FFFFFFF) % CardColorChoices.size]) }
     var category by remember { mutableStateOf(existing?.let { categoryOf(it) } ?: Category.LINK) }
     var uri by remember { mutableStateOf(existing?.uri ?: "") }
     var artworkUrl by remember { mutableStateOf(existing?.artworkUrl ?: "") }
@@ -620,7 +628,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             uri = uri.trim(),
             artworkUrl = artworkUrl.trim().ifBlank { null },
             stickerUrl = stickerUrl,
-            sticker = sticker,
+            // Every card has a sticker: one that was never made by hand, and didn't come with one, gets the automatic one.
+            sticker = sticker ?: StickerDesign().takeIf { stickerUrl == null },
             subtitle = subtitle,
             podcastMode = podcastMode,
             episodeUrl = episodeUrl,
@@ -710,6 +719,16 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         if (card.sticker != null) viewModel.saveSticker(card, stickerSource())
     }
 
+    /** Done with the card: one with no NFC card yet goes to wait for a tap, any other is saved and the editor left. */
+    fun saveAndLeave(card: Card) {
+        if (draft) {
+            viewModel.saveDraft(card, stickerSource())
+        } else {
+            saveCard(card)
+            viewModel.back()
+        }
+    }
+
     // ---- unsaved-changes guard: everything the editor can change, compared with how it started.
     fun snapshot(): List<Any?> = listOf(
         name, emoji, color, category, uri, artworkUrl, subtitle, podcastMode, episodeUrl, episodeTitle,
@@ -732,9 +751,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 TextButton(onClick = {
                     val card = buildCardOrComplain()
                     if (card != null) {
-                        saveCard(card)
                         showLeaveDialog = false
-                        viewModel.back()
+                        saveAndLeave(card)
                     } else {
                         showLeaveDialog = false // the snackbar and status text explain what is missing
                     }
@@ -774,6 +792,33 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         }
     }
 
+    val editorScroll = rememberScrollState()
+    // Test builds only: a place to scroll to, asked for over adb (MainActivity.handleDebugIntent). Used once.
+    val debugScroll by viewModel.debugEditorScroll.collectAsStateWithLifecycle()
+    LaunchedEffect(debugScroll) {
+        debugScroll?.let { px ->
+            delay(600)
+            editorScroll.scrollTo(px)
+            viewModel.debugEditorScrollDone()
+        }
+    }
+    // Test builds only: the picture finder opened on "Paste a link" with this link already in. Used once.
+    val debugArtLink by viewModel.debugArtLink.collectAsStateWithLifecycle()
+    var pickerLink by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(debugArtLink) {
+        debugArtLink?.let { link ->
+            delay(600)
+            // STICKER in place of a link: the sticker page instead.
+            if (link == "STICKER") {
+                showStickerMaker = true
+            } else {
+                pickerLink = link
+                pickerTarget = ""
+            }
+            viewModel.debugArtLinkDone()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -807,19 +852,16 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Button(
-                        onClick = {
-                            buildCardOrComplain()?.let {
-                                saveCard(it)
-                                viewModel.back()
-                            }
-                        },
+                        onClick = { buildCardOrComplain()?.let { saveAndLeave(it) } },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.common_save), fontWeight = FontWeight.Bold)
+                        // A card with no NFC card yet: the next thing is to tap the card it goes on.
+                        Text(stringResource(if (draft) R.string.editor_save_then_tap else R.string.common_save), fontWeight = FontWeight.Bold)
                     }
-                    OutlinedButton(
+                    // Playing it straight away is for a card that has its NFC card: a new one plays when it is tapped.
+                    if (!draft) OutlinedButton(
                         onClick = {
                             buildCardOrComplain()?.let {
                                 saveCard(it)
@@ -841,54 +883,57 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(editorScroll)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Preview: the card's sticker (its printed face). Tapping it opens the sticker maker.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val stickerCd = stringResource(R.string.editor_sticker_cd)
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClickLabel = stringResource(R.string.sticker_maker_title)) { showStickerMaker = true }
-                        .semantics { contentDescription = stickerCd }
-                ) {
-                    StickerThumb(
-                        source = stickerSource(),
-                        design = sticker,
-                        imported = stickerUrl,
-                        modifier = Modifier.width(84.dp),
-                        cornerRadius = 12.dp,
-                        pixel = appSettings.pixelArt
-                    )
-                    // A pencil in the corner: the sticker is a button, not only a preview.
+            ContentGroup {
+                // Preview: the card's sticker (its printed face). Tapping it opens the sticker maker.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val stickerCd = stringResource(R.string.editor_sticker_cd)
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(4.dp)
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(onClickLabel = stringResource(R.string.sticker_maker_title)) { showStickerMaker = true }
+                            .semantics { contentDescription = stickerCd }
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                        StickerThumb(
+                            source = stickerSource(),
+                            design = sticker,
+                            imported = stickerUrl,
+                            modifier = Modifier.width(84.dp),
+                            cornerRadius = 12.dp,
+                            pixel = appSettings.pixelArt
+                        )
+                        // A pencil in the corner: the sticker is a button, not only a preview.
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                        }
                     }
-                }
-                Spacer(Modifier.width(16.dp))
-                Column(Modifier.weight(1f)) {
-                    // The name lives next to the picture it belongs with, not far down under "Looks".
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text(stringResource(R.string.editor_name)) },
-                        placeholder = { Text(stringResource(R.string.editor_untitled)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text(stringResource(R.string.editor_card_id, uid), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (saved == null && existing != null) {
-                        Text(stringResource(R.string.editor_read_from_shared), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        // The name lives next to the picture it belongs with, not far down under "Looks".
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text(stringResource(R.string.editor_name)) },
+                            placeholder = { Text(stringResource(R.string.editor_untitled)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        // No NFC card yet, no id to show.
+                        if (!draft) Text(stringResource(R.string.editor_card_id, uid), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (saved == null && existing != null) {
+                            Text(stringResource(R.string.editor_read_from_shared), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             }
@@ -896,612 +941,592 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             // Each section is its own composable lambda, so it compiles to its own method: as one huge method D8 mis-allocated
             // registers and ART rejected CardEditorScreenKt (VerifyError) in release builds.
             val playSection: @Composable ColumnScope.() -> Unit = {
-                SectionTitle(stringResource(R.string.editor_section_play))
-                var typeMenuOpen by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = typeMenuOpen,
-                    onExpandedChange = { typeMenuOpen = it }
-                ) {
-                    OutlinedTextField(
-                        value = stringResource(category.labelRes),
-                        onValueChange = {},
-                        readOnly = true,
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.editor_card_type)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuOpen) },
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
+                ContentGroup(stringResource(R.string.editor_section_play)) {
+                    var typeMenuOpen by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
                         expanded = typeMenuOpen,
-                        onDismissRequest = { typeMenuOpen = false }
+                        onExpandedChange = { typeMenuOpen = it }
                     ) {
-                        Category.entries.forEach { c ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(stringResource(c.labelRes), style = MaterialTheme.typography.bodyLarge)
-                                        Text(stringResource(c.hintRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                },
-                                leadingIcon = if (category == c) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(18.dp)) }
-                                } else {
-                                    { Spacer(Modifier.size(18.dp)) }
-                                },
-                                onClick = {
-                                    typeMenuOpen = false
-                                    if (category != c) {
-                                        // A file or folder already chosen carries over between "File" / "Folder" and "Audiobook".
-                                        val keep = uri.isNotBlank() && when {
-                                            c == Category.AUDIOBOOK -> category == Category.FILE || category == Category.FOLDER
-                                            category == Category.AUDIOBOOK -> c == (if (bookFolder) Category.FOLDER else Category.FILE)
-                                            else -> false
+                        OutlinedTextField(
+                            value = stringResource(category.labelRes),
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.editor_card_type)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuOpen) },
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = typeMenuOpen,
+                            onDismissRequest = { typeMenuOpen = false }
+                        ) {
+                            Category.entries.forEach { c ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(stringResource(c.labelRes), style = MaterialTheme.typography.bodyLarge)
+                                            Text(stringResource(c.hintRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                        // Switching away from something already chosen throws it away: ask first.
-                                        if (!keep && (uri.isNotBlank() || playlist.isNotEmpty())) pendingCategory = c
-                                        else applyCategory(c, keep)
-                                    }
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                            )
+                                    },
+                                    leadingIcon = if (category == c) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(18.dp)) }
+                                    } else {
+                                        { Spacer(Modifier.size(18.dp)) }
+                                    },
+                                    onClick = {
+                                        typeMenuOpen = false
+                                        if (category != c) {
+                                            // A file or folder already chosen carries over between "File" / "Folder" and "Audiobook".
+                                            val keep = uri.isNotBlank() && when {
+                                                c == Category.AUDIOBOOK -> category == Category.FILE || category == Category.FOLDER
+                                                category == Category.AUDIOBOOK -> c == (if (bookFolder) Category.FOLDER else Category.FILE)
+                                                else -> false
+                                            }
+                                            // Switching away from something already chosen throws it away: ask first.
+                                            if (!keep && (uri.isNotBlank() || playlist.isNotEmpty())) pendingCategory = c
+                                            else applyCategory(c, keep)
+                                        }
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
+                            }
                         }
                     }
-                }
-                Text(stringResource(category.hintRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(category.hintRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                when (category) {
-                    Category.LINK, Category.AUDIBLE, Category.VIDEO, Category.STREAM -> {
-                        OutlinedTextField(
-                            value = uri,
-                            onValueChange = { uri = it },
-                            label = {
-                                Text(
-                                    stringResource(
-                                        when (category) {
-                                            Category.LINK -> R.string.editor_paste_link
-                                            Category.AUDIBLE -> R.string.editor_paste_audible
-                                            Category.VIDEO -> R.string.editor_paste_video
-                                            else -> R.string.editor_stream_url
-                                        }
-                                    )
-                                )
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                            trailingIcon = {
-                                TextButton(onClick = {
-                                    paste { text ->
-                                        uri = text
-                                        // An Audible link pasted into the music field is still an Audible card.
-                                        if (category == Category.LINK && LinkResolver.detect(text) == SourceType.AUDIBLE) category = Category.AUDIBLE
-                                        // Same for a Netflix / Disney+ link: it is a video card.
-                                        if (category == Category.LINK && LinkResolver.detect(text) == SourceType.VIDEO) category = Category.VIDEO
-                                    }
-                                }) { Text(stringResource(R.string.editor_paste)) }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (uri.isBlank() && clipboardHasText) {
-                            Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                        }
-                        if (category == Category.LINK && uri.isNotBlank()) {
-                            val appName = when (linkType) {
-                                SourceType.SPOTIFY -> R.string.source_spotify
-                                SourceType.YOUTUBE_MUSIC -> R.string.source_youtube_music
-                                SourceType.YOUTUBE -> R.string.source_youtube
-                                else -> null
-                            }
-                            // YouTube cards say where they play in their download status below.
-                            if (linkType != SourceType.YOUTUBE && linkType != SourceType.YOUTUBE_MUSIC) {
-                                Text(
-                                    if (appName != null) stringResource(R.string.editor_will_open_in, stringResource(appName))
-                                    else stringResource(R.string.editor_will_open_in_other),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            if (linkType == SourceType.YOUTUBE || linkType == SourceType.YOUTUBE_MUSIC) {
-                                val draft = Card(uid = uid, sourceType = linkType, uri = uri.trim())
-                                YouTubeCacheStatus(
-                                    cache = viewModel.player.youtubeCache,
-                                    card = draft,
-                                    autoCache = appSettings.youtubeAutoCache,
-                                    onDownload = {
-                                        scope.launch {
-                                            try {
-                                                viewModel.player.youtubeCache.ensure(draft)
-                                            } catch (e: Exception) {
-                                                status = e.message
+                    when (category) {
+                        Category.LINK, Category.AUDIBLE, Category.VIDEO, Category.STREAM -> {
+                            OutlinedTextField(
+                                value = uri,
+                                onValueChange = { uri = it },
+                                label = {
+                                    Text(
+                                        stringResource(
+                                            when (category) {
+                                                Category.LINK -> R.string.editor_paste_link
+                                                Category.AUDIBLE -> R.string.editor_paste_audible
+                                                Category.VIDEO -> R.string.editor_paste_video
+                                                else -> R.string.editor_stream_url
                                             }
-                                        }
-                                    }
-                                )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        when {
-                                            scanningChapters -> stringResource(R.string.editor_scanning_tracklist)
-                                            chapters.size > 1 -> stringResource(R.string.editor_found_songs, chapters.size)
-                                            scannedChapters -> stringResource(R.string.editor_no_tracklist)
-                                            else -> ""
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.weight(1f)
+                                        )
                                     )
-                                    OutlinedButton(onClick = { scanChapters(uri) }, enabled = !scanningChapters) { Text(stringResource(R.string.editor_rescan)) }
-                                }
-                                if (chapters.size > 1) {
-                                    Text(
-                                        stringResource(R.string.editor_skip_needs_access),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                // Split into songs and / or trim the start and end (Plus). A video that isn't downloaded
-                                // (always, in the Play build) is listened to through YouTube's own player in the editor.
-                                if (LinkResolver.isSingleTrack(linkType, uri.trim())) {
-                                    MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
-                                    OutlinedButton(onClick = openSplitEditor) {
-                                        Text(stringResource(if (chapters.size > 1) R.string.editor_edit_songs else R.string.editor_split_into_songs))
-                                    }
-                                }
-                            }
-                        }
-                        if (category == Category.VIDEO && uri.isNotBlank()) {
-                            val app = LinkResolver.videoApp(uri)
-                            Text(
-                                if (app != null) stringResource(R.string.editor_will_open_in, stringResource(app.second))
-                                else stringResource(R.string.editor_video_unknown),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (app != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                            )
-                            InfoLink(stringResource(R.string.editor_video_note))
-                        }
-                        if (category == Category.AUDIBLE) {
-                            InfoLink(stringResource(R.string.editor_audible_note))
-                        }
-                    }
-                    Category.PODCAST -> {
-                        OutlinedTextField(
-                            value = uri,
-                            onValueChange = { uri = it },
-                            label = { Text(stringResource(R.string.editor_rss_address)) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                            trailingIcon = {
-                                TextButton(onClick = { paste { text -> uri = text } }) { Text(stringResource(R.string.editor_paste)) }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (uri.isBlank() && clipboardHasText) {
-                            Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedButton(onClick = { loadFeed() }, enabled = uri.isNotBlank() && !fetching) {
-                                Text(stringResource(if (feed == null) R.string.editor_load_feed else R.string.editor_reload))
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            OutlinedButton(
-                                enabled = uri.isNotBlank(),
-                                onClick = {
-                                    val temp = Card(uid = uid, sourceType = SourceType.PODCAST, uri = uri.trim(), podcastMode = podcastMode, episodeUrl = episodeUrl)
-                                    scope.launch {
-                                        status = context.getString(R.string.editor_status_downloading_newest)
-                                        val f = viewModel.player.podcastCache.refresh(temp, download = true)
-                                        status = if (f == null) {
-                                            context.getString(R.string.editor_status_feed_unreachable)
-                                        } else {
-                                            context.getString(
-                                                R.string.editor_status_downloaded,
-                                                viewModel.player.podcastCache.targetEpisode(temp, f)?.title ?: context.getString(R.string.editor_newest_episode_fallback)
-                                            )
-                                        }
-                                    }
-                                }
-                            ) { Text(stringResource(R.string.editor_download_newest)) }
-                        }
-                        // Own line: beside the buttons it was squeezed into a column a few letters wide.
-                        feed?.let {
-                            Text(
-                                pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size),
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        PodcastMode.entries.forEach { mode ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        podcastMode = mode
-                                        if (mode == PodcastMode.LATEST) {
-                                            episodeUrl = feed?.episodes?.firstOrNull()?.url ?: episodeUrl
-                                            episodeTitle = feed?.episodes?.firstOrNull()?.title ?: episodeTitle
-                                        }
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = podcastMode == mode, onClick = null)
-                                Text(stringResource(mode.labelRes), style = MaterialTheme.typography.bodyLarge)
-                            }
-                        }
-                        if (podcastMode == PodcastMode.EPISODE) {
-                            val episodes = feed?.episodes
-                            if (episodes == null) {
-                                Text(
-                                    episodeTitle?.let { stringResource(R.string.editor_episode_chosen, it) } ?: stringResource(R.string.editor_episode_load_feed),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                // Long feeds: a search box, so an episode from years ago is a few letters away.
-                                if (episodes.size > 10) {
-                                    OutlinedTextField(
-                                        value = episodeQuery,
-                                        onValueChange = { episodeQuery = it },
-                                        label = { Text(stringResource(R.string.editor_episode_search)) },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                                val wanted = episodeQuery.trim()
-                                val shown = episodes.filter { wanted.isEmpty() || it.title.contains(wanted, ignoreCase = true) }
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .padding(8.dp)
-                                ) {
-                                    if (shown.isEmpty()) {
-                                        Text(stringResource(R.string.editor_episode_none_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    shown.take(60).forEach { ep ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    episodeUrl = ep.url
-                                                    episodeTitle = ep.title
-                                                }
-                                                .padding(vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            RadioButton(selected = episodeUrl == ep.url, onClick = null)
-                                            Column {
-                                                Text(ep.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
-                                                val meta = listOfNotNull(ep.pubDate?.take(16), ep.durationText).joinToString(" · ")
-                                                if (meta.isNotBlank()) {
-                                                    Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Category.FILE -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.editor_choose_file)) }
-                            Spacer(Modifier.width(12.dp))
-                            Text(pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_file_chosen else R.string.editor_no_file), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                        }
-                        if (uri.isNotBlank()) {
-                            InfoTitle(stringResource(R.string.editor_songs_inside), stringResource(R.string.editor_split_hint), style = MaterialTheme.typography.titleMedium)
-                            if (chapters.size > 1) {
-                                Text(
-                                    stringResource(R.string.editor_split_done, chapters.size),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedButton(onClick = openSplitEditor) {
-                                    Text(stringResource(if (chapters.size > 1) R.string.editor_edit_songs else R.string.editor_split_into_songs))
-                                }
-                                if (chapters.isNotEmpty()) {
-                                    TextButton(onClick = { chapters = emptyList() }) { Text(stringResource(R.string.editor_remove_split)) }
-                                }
-                            }
-                            if (chapters.isEmpty() && fileChapters.size > 1) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        pluralStringResource(R.plurals.editor_file_has_chapters, fileChapters.size, fileChapters.size),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                                trailingIcon = {
                                     TextButton(onClick = {
-                                        chapters = fileChapters
-                                        scannedChapters = true
-                                    }) { Text(stringResource(R.string.editor_use_file_chapters)) }
-                                }
-                            }
-                        }
-                    }
-                    Category.AUDIOBOOK -> {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.editor_book_choose_file))
-                            }
-                            OutlinedButton(onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.editor_book_choose_folder))
-                            }
-                        }
-                        InfoLink(stringResource(R.string.editor_book_note))
-                        if (uri.isNotBlank()) {
-                            Text(
-                                pickedLabel ?: stringResource(if (bookFolder) R.string.editor_folder_chosen else R.string.editor_file_chosen),
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                        paste { text ->
+                                            uri = text
+                                            // An Audible link pasted into the music field is still an Audible card.
+                                            if (category == Category.LINK && LinkResolver.detect(text) == SourceType.AUDIBLE) category = Category.AUDIBLE
+                                            // Same for a Netflix / Disney+ link: it is a video card.
+                                            if (category == Category.LINK && LinkResolver.detect(text) == SourceType.VIDEO) category = Category.VIDEO
+                                        }
+                                    }) { Text(stringResource(R.string.editor_paste)) }
+                                },
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (readingBook) {
-                                    CircularProgressIndicator(Modifier.size(18.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(
-                                    when {
-                                        readingBook -> stringResource(R.string.editor_book_reading)
-                                        bookFolder -> pluralStringResource(R.plurals.editor_book_parts, folderTracks.size, folderTracks.size)
-                                        chapters.size > 1 -> pluralStringResource(R.plurals.editor_book_chapters, chapters.size, chapters.size)
-                                        else -> stringResource(R.string.editor_book_no_chapters)
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            if (uri.isBlank() && clipboardHasText) {
+                                Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                             }
-                            if (!bookFolder && !readingBook) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    OutlinedButton(onClick = openSplitEditor) {
-                                        Text(stringResource(if (chapters.size > 1) R.string.editor_book_edit_chapters else R.string.editor_book_mark_chapters))
-                                    }
-                                    // Hand-made chapters can always go back to the ones the file came with.
-                                    if (fileChapters.size > 1 && chapters != fileChapters) {
-                                        TextButton(onClick = { chapters = fileChapters }) { Text(stringResource(R.string.editor_use_file_chapters)) }
-                                    }
+                            if (category == Category.LINK && uri.isNotBlank()) {
+                                val appName = when (linkType) {
+                                    SourceType.SPOTIFY -> R.string.source_spotify
+                                    SourceType.YOUTUBE_MUSIC -> R.string.source_youtube_music
+                                    SourceType.YOUTUBE -> R.string.source_youtube
+                                    else -> null
                                 }
-                            }
-                            // Where the book stopped (saved card, "continue where it left off"), with a way back to the start.
-                            val pos = savedPos
-                            val where: String? = when {
-                                pos == null || saved == null -> null
-                                bookFolder -> folderTracks.indexOfFirst { it.uri == pos.mediaId }.takeIf { it >= 0 }?.let { i ->
-                                    stringResource(R.string.editor_book_at_part, i + 1, folderTracks.size, folderTracks[i].title, YouTubeChapters.formatTime(pos.positionMs))
-                                }
-                                pos.mediaId != uri -> null
-                                chapters.size > 1 -> {
-                                    val i = chapters.indexOfLast { it.startMs <= pos.positionMs }.coerceAtLeast(0)
-                                    stringResource(
-                                        R.string.editor_book_at_chapter, i + 1, chapters.size, chapters[i].title,
-                                        YouTubeChapters.formatTime(pos.positionMs - chapters[i].startMs)
+                                // YouTube cards say where they play in their download status below.
+                                if (linkType != SourceType.YOUTUBE && linkType != SourceType.YOUTUBE_MUSIC) {
+                                    Text(
+                                        if (appName != null) stringResource(R.string.editor_will_open_in, stringResource(appName))
+                                        else stringResource(R.string.editor_will_open_in_other),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                else -> stringResource(R.string.editor_book_at_time, YouTubeChapters.formatTime(pos.positionMs))
-                            }
-                            if (where != null) {
-                                Text(stringResource(R.string.editor_book_progress_title), style = MaterialTheme.typography.titleMedium)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(where, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    TextButton(onClick = {
-                                        viewModel.clearPosition(uid)
-                                        savedPos = null
-                                    }) { Text(stringResource(R.string.editor_book_start_over)) }
-                                }
-                            }
-                        }
-                    }
-                    Category.FOLDER -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedButton(onClick = { folderPicker.launch(null) }) { Text(stringResource(R.string.editor_choose_folder)) }
-                            Spacer(Modifier.width(12.dp))
-                            // "<folder> · 12 tracks": what the folder holds, right where it was picked.
-                            Text(
-                                (pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_folder_chosen else R.string.editor_no_folder)) +
-                                    if (folderTracks.isNotEmpty()) " · " + pluralStringResource(R.plurals.editor_folder_track_count, folderTracks.size, folderTracks.size) else "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2
-                            )
-                        }
-                    }
-                    Category.YOTO -> {
-                        val physicalYoto = YotoClient.isCardLink(uri)
-                        if (yotoTokens == null && !physicalYoto) {
-                            InfoLink(stringResource(R.string.editor_yoto_signin_note))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Button(onClick = { viewModel.player.yoto.startLogin() }, enabled = yotoLogin != YotoClient.LoginState.Waiting) {
-                                    Text(stringResource(if (yotoLogin == YotoClient.LoginState.Waiting) R.string.editor_yoto_waiting else R.string.editor_yoto_connect))
-                                }
-                                if (yotoLogin == YotoClient.LoginState.Waiting) {
-                                    TextButton(onClick = { viewModel.player.yoto.cancelLogin() }) { Text(stringResource(R.string.common_cancel)) }
-                                }
-                            }
-                            (yotoLogin as? YotoClient.LoginState.Error)?.let {
-                                Text(it.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (yotoTokens != null) {
-                                    OutlinedButton(onClick = { showYotoPicker = true }) { Text(stringResource(if (uri.isBlank()) R.string.editor_yoto_choose else R.string.editor_yoto_change)) }
-                                    Spacer(Modifier.width(12.dp))
-                                }
-                                Text(
-                                    when {
-                                        uri.isBlank() -> stringResource(R.string.editor_yoto_none)
-                                        physicalYoto -> stringResource(R.string.editor_yoto_real_card, name.ifBlank { stringResource(R.string.editor_yoto_plays_from_card) })
-                                        else -> name.ifBlank { stringResource(R.string.source_yoto) }
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            if (yotoChapters.isNotEmpty()) {
-                                Text(
-                                    pluralStringResource(R.plurals.editor_yoto_chapters_note, yotoChapters.size, yotoChapters.size),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                val downloading by viewModel.player.podcastCache.downloading.collectAsStateWithLifecycle()
-                                val cacheVersion by viewModel.player.podcastCache.version.collectAsStateWithLifecycle()
-                                val group = "yoto:$uri"
-                                val progress = downloading[group]
-                                val haveCount = remember(cacheVersion, yotoChapters) {
-                                    yotoChapters.sumOf { ch -> ch.tracks.count { t -> viewModel.player.podcastCache.cachedFileKeyed(group, ch.key + "/" + t.key) != null } }
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    OutlinedButton(
-                                        enabled = progress == null,
-                                        onClick = {
+                                if (linkType == SourceType.YOUTUBE || linkType == SourceType.YOUTUBE_MUSIC) {
+                                    val draft = Card(uid = uid, sourceType = linkType, uri = uri.trim())
+                                    YouTubeCacheStatus(
+                                        cache = viewModel.player.youtubeCache,
+                                        card = draft,
+                                        autoCache = appSettings.youtubeAutoCache,
+                                        onDownload = {
                                             scope.launch {
                                                 try {
-                                                    val detail = viewModel.player.yoto.card(uri)
-                                                    if (detail != null) viewModel.player.downloadYoto(Card(uid = uid, sourceType = SourceType.YOTO, uri = uri), detail)
+                                                    viewModel.player.youtubeCache.ensure(draft)
                                                 } catch (e: Exception) {
                                                     status = e.message
                                                 }
                                             }
                                         }
-                                    ) { Text(if (progress != null) stringResource(R.string.editor_downloading_percent, (progress * 100).toInt()) else stringResource(R.string.editor_download_offline)) }
-                                    Spacer(Modifier.width(12.dp))
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            when {
+                                                scanningChapters -> stringResource(R.string.editor_scanning_tracklist)
+                                                chapters.size > 1 -> stringResource(R.string.editor_found_songs, chapters.size)
+                                                scannedChapters -> stringResource(R.string.editor_no_tracklist)
+                                                else -> ""
+                                            },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        OutlinedButton(onClick = { scanChapters(uri) }, enabled = !scanningChapters) { Text(stringResource(R.string.editor_rescan)) }
+                                    }
+                                    if (chapters.size > 1) {
+                                        Text(
+                                            stringResource(R.string.editor_skip_needs_access),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    // Split into songs and / or trim the start and end (Plus). A video that isn't downloaded
+                                    // (always, in the Play build) is listened to through YouTube's own player in the editor.
+                                    if (LinkResolver.isSingleTrack(linkType, uri.trim())) {
+                                        MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
+                                        OutlinedButton(onClick = openSplitEditor) {
+                                            Text(stringResource(if (chapters.size > 1) R.string.editor_edit_songs else R.string.editor_split_into_songs))
+                                        }
+                                    }
+                                }
+                            }
+                            if (category == Category.VIDEO && uri.isNotBlank()) {
+                                val app = LinkResolver.videoApp(uri)
+                                Text(
+                                    if (app != null) stringResource(R.string.editor_will_open_in, stringResource(app.second))
+                                    else stringResource(R.string.editor_video_unknown),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (app != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                                InfoLink(stringResource(R.string.editor_video_note))
+                            }
+                            if (category == Category.AUDIBLE) {
+                                InfoLink(stringResource(R.string.editor_audible_note))
+                            }
+                        }
+                        Category.PODCAST -> {
+                            OutlinedTextField(
+                                value = uri,
+                                onValueChange = { uri = it },
+                                label = { Text(stringResource(R.string.editor_rss_address)) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                                trailingIcon = {
+                                    TextButton(onClick = { paste { text -> uri = text } }) { Text(stringResource(R.string.editor_paste)) }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            if (uri.isBlank() && clipboardHasText) {
+                                Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(onClick = { loadFeed() }, enabled = uri.isNotBlank() && !fetching) {
+                                    Text(stringResource(if (feed == null) R.string.editor_load_feed else R.string.editor_reload))
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedButton(
+                                    enabled = uri.isNotBlank(),
+                                    onClick = {
+                                        val temp = Card(uid = uid, sourceType = SourceType.PODCAST, uri = uri.trim(), podcastMode = podcastMode, episodeUrl = episodeUrl)
+                                        scope.launch {
+                                            status = context.getString(R.string.editor_status_downloading_newest)
+                                            val f = viewModel.player.podcastCache.refresh(temp, download = true)
+                                            status = if (f == null) {
+                                                context.getString(R.string.editor_status_feed_unreachable)
+                                            } else {
+                                                context.getString(
+                                                    R.string.editor_status_downloaded,
+                                                    viewModel.player.podcastCache.targetEpisode(temp, f)?.title ?: context.getString(R.string.editor_newest_episode_fallback)
+                                                )
+                                            }
+                                        }
+                                    }
+                                ) { Text(stringResource(R.string.editor_download_newest)) }
+                            }
+                            // Own line: beside the buttons it was squeezed into a column a few letters wide.
+                            feed?.let {
+                                Text(
+                                    pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            PodcastMode.entries.forEach { mode ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            podcastMode = mode
+                                            if (mode == PodcastMode.LATEST) {
+                                                episodeUrl = feed?.episodes?.firstOrNull()?.url ?: episodeUrl
+                                                episodeTitle = feed?.episodes?.firstOrNull()?.title ?: episodeTitle
+                                            }
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(selected = podcastMode == mode, onClick = null)
+                                    Text(stringResource(mode.labelRes), style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                            if (podcastMode == PodcastMode.EPISODE) {
+                                val episodes = feed?.episodes
+                                if (episodes == null) {
                                     Text(
-                                        if (haveCount == 0) stringResource(R.string.editor_nothing_downloaded) else pluralStringResource(R.plurals.editor_tracks_on_phone, haveCount, haveCount),
+                                        episodeTitle?.let { stringResource(R.string.editor_episode_chosen, it) } ?: stringResource(R.string.editor_episode_load_feed),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    // Long feeds: a search box, so an episode from years ago is a few letters away.
+                                    if (episodes.size > 10) {
+                                        OutlinedTextField(
+                                            value = episodeQuery,
+                                            onValueChange = { episodeQuery = it },
+                                            label = { Text(stringResource(R.string.editor_episode_search)) },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    val wanted = episodeQuery.trim()
+                                    val shown = episodes.filter { wanted.isEmpty() || it.title.contains(wanted, ignoreCase = true) }
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(8.dp)
+                                    ) {
+                                        if (shown.isEmpty()) {
+                                            Text(stringResource(R.string.editor_episode_none_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        shown.take(60).forEach { ep ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        episodeUrl = ep.url
+                                                        episodeTitle = ep.title
+                                                    }
+                                                    .padding(vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                RadioButton(selected = episodeUrl == ep.url, onClick = null)
+                                                Column {
+                                                    Text(ep.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
+                                                    val meta = listOfNotNull(ep.pubDate?.take(16), ep.durationText).joinToString(" · ")
+                                                    if (meta.isNotBlank()) {
+                                                        Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Category.FILE -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.editor_choose_file)) }
+                                Spacer(Modifier.width(12.dp))
+                                Text(pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_file_chosen else R.string.editor_no_file), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                            }
+                            if (uri.isNotBlank()) {
+                                InfoTitle(stringResource(R.string.editor_songs_inside), stringResource(R.string.editor_split_hint), style = MaterialTheme.typography.titleMedium)
+                                if (chapters.size > 1) {
+                                    Text(
+                                        stringResource(R.string.editor_split_done, chapters.size),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                                MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    OutlinedButton(onClick = openSplitEditor) {
+                                        Text(stringResource(if (chapters.size > 1) R.string.editor_edit_songs else R.string.editor_split_into_songs))
+                                    }
+                                    if (chapters.isNotEmpty()) {
+                                        TextButton(onClick = { chapters = emptyList() }) { Text(stringResource(R.string.editor_remove_split)) }
+                                    }
+                                }
+                                if (chapters.isEmpty() && fileChapters.size > 1) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            pluralStringResource(R.plurals.editor_file_has_chapters, fileChapters.size, fileChapters.size),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        TextButton(onClick = {
+                                            chapters = fileChapters
+                                            scannedChapters = true
+                                        }) { Text(stringResource(R.string.editor_use_file_chapters)) }
+                                    }
+                                }
+                            }
+                        }
+                        Category.AUDIOBOOK -> {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.editor_book_choose_file))
+                                }
+                                OutlinedButton(onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(R.string.editor_book_choose_folder))
+                                }
+                            }
+                            InfoLink(stringResource(R.string.editor_book_note))
+                            if (uri.isNotBlank()) {
+                                Text(
+                                    pickedLabel ?: stringResource(if (bookFolder) R.string.editor_folder_chosen else R.string.editor_file_chosen),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (readingBook) {
+                                        CircularProgressIndicator(Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        when {
+                                            readingBook -> stringResource(R.string.editor_book_reading)
+                                            bookFolder -> pluralStringResource(R.plurals.editor_book_parts, folderTracks.size, folderTracks.size)
+                                            chapters.size > 1 -> pluralStringResource(R.plurals.editor_book_chapters, chapters.size, chapters.size)
+                                            else -> stringResource(R.string.editor_book_no_chapters)
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (!bookFolder && !readingBook) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedButton(onClick = openSplitEditor) {
+                                            Text(stringResource(if (chapters.size > 1) R.string.editor_book_edit_chapters else R.string.editor_book_mark_chapters))
+                                        }
+                                        // Hand-made chapters can always go back to the ones the file came with.
+                                        if (fileChapters.size > 1 && chapters != fileChapters) {
+                                            TextButton(onClick = { chapters = fileChapters }) { Text(stringResource(R.string.editor_use_file_chapters)) }
+                                        }
+                                    }
+                                }
+                                // Where the book stopped (saved card, "continue where it left off"), with a way back to the start.
+                                val pos = savedPos
+                                val where: String? = when {
+                                    pos == null || saved == null -> null
+                                    bookFolder -> folderTracks.indexOfFirst { it.uri == pos.mediaId }.takeIf { it >= 0 }?.let { i ->
+                                        stringResource(R.string.editor_book_at_part, i + 1, folderTracks.size, folderTracks[i].title, YouTubeChapters.formatTime(pos.positionMs))
+                                    }
+                                    pos.mediaId != uri -> null
+                                    chapters.size > 1 -> {
+                                        val i = chapters.indexOfLast { it.startMs <= pos.positionMs }.coerceAtLeast(0)
+                                        stringResource(
+                                            R.string.editor_book_at_chapter, i + 1, chapters.size, chapters[i].title,
+                                            YouTubeChapters.formatTime(pos.positionMs - chapters[i].startMs)
+                                        )
+                                    }
+                                    else -> stringResource(R.string.editor_book_at_time, YouTubeChapters.formatTime(pos.positionMs))
+                                }
+                                if (where != null) {
+                                    Text(stringResource(R.string.editor_book_progress_title), style = MaterialTheme.typography.titleMedium)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(where, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                        TextButton(onClick = {
+                                            viewModel.clearPosition(uid)
+                                            savedPos = null
+                                        }) { Text(stringResource(R.string.editor_book_start_over)) }
+                                    }
+                                }
+                            }
+                        }
+                        Category.FOLDER -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(onClick = { folderPicker.launch(null) }) { Text(stringResource(R.string.editor_choose_folder)) }
+                                Spacer(Modifier.width(12.dp))
+                                // "<folder> · 12 tracks": what the folder holds, right where it was picked.
+                                Text(
+                                    (pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_folder_chosen else R.string.editor_no_folder)) +
+                                        if (folderTracks.isNotEmpty()) " · " + pluralStringResource(R.plurals.editor_folder_track_count, folderTracks.size, folderTracks.size) else "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2
+                                )
+                            }
+                        }
+                        Category.YOTO -> {
+                            val physicalYoto = YotoClient.isCardLink(uri)
+                            if (yotoTokens == null && !physicalYoto) {
+                                InfoLink(stringResource(R.string.editor_yoto_signin_note))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Button(onClick = { viewModel.player.yoto.startLogin() }, enabled = yotoLogin != YotoClient.LoginState.Waiting) {
+                                        Text(stringResource(if (yotoLogin == YotoClient.LoginState.Waiting) R.string.editor_yoto_waiting else R.string.editor_yoto_connect))
+                                    }
+                                    if (yotoLogin == YotoClient.LoginState.Waiting) {
+                                        TextButton(onClick = { viewModel.player.yoto.cancelLogin() }) { Text(stringResource(R.string.common_cancel)) }
+                                    }
+                                }
+                                (yotoLogin as? YotoClient.LoginState.Error)?.let {
+                                    Text(it.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (yotoTokens != null) {
+                                        OutlinedButton(onClick = { showYotoPicker = true }) { Text(stringResource(if (uri.isBlank()) R.string.editor_yoto_choose else R.string.editor_yoto_change)) }
+                                        Spacer(Modifier.width(12.dp))
+                                    }
+                                    Text(
+                                        when {
+                                            uri.isBlank() -> stringResource(R.string.editor_yoto_none)
+                                            physicalYoto -> stringResource(R.string.editor_yoto_real_card, name.ifBlank { stringResource(R.string.editor_yoto_plays_from_card) })
+                                            else -> name.ifBlank { stringResource(R.string.source_yoto) }
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                if (yotoChapters.isNotEmpty()) {
+                                    Text(
+                                        pluralStringResource(R.plurals.editor_yoto_chapters_note, yotoChapters.size, yotoChapters.size),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    val downloading by viewModel.player.podcastCache.downloading.collectAsStateWithLifecycle()
+                                    val cacheVersion by viewModel.player.podcastCache.version.collectAsStateWithLifecycle()
+                                    val group = "yoto:$uri"
+                                    val progress = downloading[group]
+                                    val haveCount = remember(cacheVersion, yotoChapters) {
+                                        yotoChapters.sumOf { ch -> ch.tracks.count { t -> viewModel.player.podcastCache.cachedFileKeyed(group, ch.key + "/" + t.key) != null } }
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedButton(
+                                            enabled = progress == null,
+                                            onClick = {
+                                                scope.launch {
+                                                    try {
+                                                        val detail = viewModel.player.yoto.card(uri)
+                                                        if (detail != null) viewModel.player.downloadYoto(Card(uid = uid, sourceType = SourceType.YOTO, uri = uri), detail)
+                                                    } catch (e: Exception) {
+                                                        status = e.message
+                                                    }
+                                                }
+                                            }
+                                        ) { Text(if (progress != null) stringResource(R.string.editor_downloading_percent, (progress * 100).toInt()) else stringResource(R.string.editor_download_offline)) }
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            if (haveCount == 0) stringResource(R.string.editor_nothing_downloaded) else pluralStringResource(R.plurals.editor_tracks_on_phone, haveCount, haveCount),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Category.PLAYLIST -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(onClick = { songsPicker.launch(arrayOf("audio/*", "video/*", "*/*")) }) { Text(stringResource(R.string.editor_add_songs)) }
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    if (playlist.isEmpty()) stringResource(R.string.editor_no_songs) else pluralStringResource(R.plurals.editor_song_count, playlist.size, playlist.size),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = streamToAdd,
+                                    onValueChange = { streamToAdd = it },
+                                    label = { Text(stringResource(R.string.editor_add_stream_label)) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedButton(
+                                    enabled = streamToAdd.trim().startsWith("http"),
+                                    onClick = {
+                                        val s = streamToAdd.trim()
+                                        val detected = LinkResolver.detect(s)
+                                        if (detected.isExternal) {
+                                            status = context.getString(R.string.editor_status_playlist_external, context.getString(detected.labelRes))
+                                        } else {
+                                            status = null
+                                            if (playlist.none { it.uri == s }) {
+                                                val title = s.substringAfterLast('/').substringBefore('?').substringBeforeLast('.').ifBlank { Uri.parse(s).host ?: context.getString(R.string.editor_default_stream_title) }
+                                                playlist = playlist + PlaylistItem(s, title)
+                                            }
+                                            streamToAdd = ""
+                                            if (uri.isBlank()) uri = "playlist:$uid"
+                                        }
+                                    }
+                                ) { Text(stringResource(R.string.common_add)) }
                             }
                         }
                     }
-                    Category.PLAYLIST -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedButton(onClick = { songsPicker.launch(arrayOf("audio/*", "video/*", "*/*")) }) { Text(stringResource(R.string.editor_add_songs)) }
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                if (playlist.isEmpty()) stringResource(R.string.editor_no_songs) else pluralStringResource(R.plurals.editor_song_count, playlist.size, playlist.size),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                value = streamToAdd,
-                                onValueChange = { streamToAdd = it },
-                                label = { Text(stringResource(R.string.editor_add_stream_label)) },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            OutlinedButton(
-                                enabled = streamToAdd.trim().startsWith("http"),
-                                onClick = {
-                                    val s = streamToAdd.trim()
-                                    val detected = LinkResolver.detect(s)
-                                    if (detected.isExternal) {
-                                        status = context.getString(R.string.editor_status_playlist_external, context.getString(detected.labelRes))
-                                    } else {
-                                        status = null
-                                        if (playlist.none { it.uri == s }) {
-                                            val title = s.substringAfterLast('/').substringBefore('?').substringBeforeLast('.').ifBlank { Uri.parse(s).host ?: context.getString(R.string.editor_default_stream_title) }
-                                            playlist = playlist + PlaylistItem(s, title)
-                                        }
-                                        streamToAdd = ""
-                                        if (uri.isBlank()) uri = "playlist:$uid"
-                                    }
-                                }
-                            ) { Text(stringResource(R.string.common_add)) }
-                        }
-                    }
-                }
 
-                if (fetching) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(stringResource(R.string.editor_fetching), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-                status?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-
-                if (!linkType.isExternal) {
-                    Text(stringResource(R.string.editor_tap_again_title), style = MaterialTheme.typography.titleMedium)
-                    listOf(
-                        true to stringResource(R.string.editor_resume_continue),
-                        false to stringResource(R.string.editor_resume_restart)
-                    ).forEach { (value, label) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { resume = value },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = resume == value, onClick = null)
-                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                    if (fetching) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text(stringResource(R.string.editor_fetching), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
+                    status?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                 }
-                if (!linkType.isExternal) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.editor_speed_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
-                        if (!plus) PlusBadge(Modifier.padding(start = 8.dp))
-                    }
-                    Text(
-                        stringResource(R.string.editor_speed_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(0.75f, 0.9f, 1f, 1.1f, 1.25f, 1.5f).forEach { s ->
-                            FilterChip(
-                                selected = speed == s,
-                                onClick = { if (plus || s == 1f) speed = s else viewModel.showPaywall(PlusReason.SPEED) },
-                                label = { Text(if (s == 1f) stringResource(R.string.editor_speed_normal) else DecimalFormat("0.##").format(s) + "×") }
-                            )
-                        }
-                    }
-                }
-                if (category != Category.AUDIOBOOK && (linkType == SourceType.LOCAL_FOLDER || linkType == SourceType.PODCAST || linkType == SourceType.PLAYLIST)) {
-                    SwitchLine(stringResource(R.string.editor_shuffle), null, shuffle) { shuffle = it }
-                }
-                Text(stringResource(R.string.editor_lifted_title), style = MaterialTheme.typography.titleMedium)
-                listOf(
-                    "stop" to stringResource(R.string.editor_lifted_stop),
-                    "pause" to stringResource(R.string.editor_lifted_pause),
-                    "nothing" to stringResource(R.string.editor_lifted_nothing)
-                ).forEach { (value, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { cardRemoved = value },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = cardRemoved == value, onClick = null)
-                        Text(label, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.editor_sleep_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
-                    InfoIcon(text = stringResource(R.string.editor_sleep_note), title = stringResource(R.string.editor_sleep_title))
-                    if (!plus) PlusBadge(Modifier.padding(start = 8.dp))
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0, 15, 30, 45, 60).forEach { mins ->
-                        FilterChip(
-                            selected = sleepMinutes == mins,
-                            onClick = { if (plus || mins == 0) sleepMinutes = mins else viewModel.showPaywall(PlusReason.CARD_SLEEP) },
-                            label = { Text(if (mins == 0) stringResource(R.string.editor_sleep_off) else "$mins") }
+                SettingsGroup(stringResource(R.string.settings_section_playback_title)) {
+                    if (!linkType.isExternal) {
+                        SettingRow(
+                            title = stringResource(R.string.editor_tap_again_short),
+                            info = stringResource(R.string.editor_resume_continue) + "\n\n" + stringResource(R.string.editor_resume_restart),
+                            below = {
+                                Segments(
+                                    options = listOf(
+                                        true to stringResource(R.string.editor_resume_continue_short),
+                                        false to stringResource(R.string.editor_resume_restart_short)
+                                    ),
+                                    selected = resume
+                                ) { resume = it }
+                            }
                         )
+                        SettingRow(title = stringResource(R.string.editor_speed_title), info = stringResource(R.string.editor_speed_note)) {
+                            if (!plus) PlusBadge(Modifier.padding(end = 4.dp))
+                            ValueMenu(
+                                options = listOf(0.75f, 0.9f, 1f, 1.1f, 1.25f, 1.5f).map { s ->
+                                    s to if (s == 1f) stringResource(R.string.editor_speed_normal) else DecimalFormat("0.##").format(s) + "×"
+                                },
+                                selected = speed
+                            ) { s -> if (plus || s == 1f) speed = s else viewModel.showPaywall(PlusReason.SPEED) }
+                        }
+                    }
+                    if (category != Category.AUDIOBOOK && (linkType == SourceType.LOCAL_FOLDER || linkType == SourceType.PODCAST || linkType == SourceType.PLAYLIST)) {
+                        SwitchSetting(title = stringResource(R.string.editor_shuffle), checked = shuffle) { shuffle = it }
+                    }
+                    SettingRow(
+                        title = stringResource(R.string.editor_lifted_short),
+                        below = {
+                            Segments(
+                                options = listOf(
+                                    "stop" to stringResource(R.string.settings_card_removed_stop),
+                                    "pause" to stringResource(R.string.settings_card_removed_pause),
+                                    "nothing" to stringResource(R.string.settings_card_removed_keep)
+                                ),
+                                selected = cardRemoved
+                            ) { cardRemoved = it }
+                        }
+                    )
+                    SettingRow(title = stringResource(R.string.editor_sleep_short), info = stringResource(R.string.editor_sleep_note)) {
+                        if (!plus) PlusBadge(Modifier.padding(end = 4.dp))
+                        ValueMenu(
+                            options = listOf(0, 15, 30, 45, 60).map { mins ->
+                                mins to if (mins == 0) stringResource(R.string.editor_sleep_off) else stringResource(R.string.settings_minutes_short, mins)
+                            },
+                            selected = sleepMinutes
+                        ) { mins -> if (plus || mins == 0) sleepMinutes = mins else viewModel.showPaywall(PlusReason.CARD_SLEEP) }
                     }
                 }
             }
             playSection()
 
             val looksSection: @Composable ColumnScope.() -> Unit = {
-                SectionTitle(stringResource(R.string.editor_section_looks))
                 // The card's own picture is chosen in the sticker maker (the sticker at the top of the editor).
 
                 val tracks: List<Pair<String, String>> = when (category) {
@@ -1526,189 +1551,151 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 }
                 val editable = category == Category.PLAYLIST
                 if (tracks.size > 1 || (editable && tracks.isNotEmpty())) {
-                    InfoTitle(stringResource(if (editable) R.string.editor_tracks_songs_title else R.string.editor_tracks_each_title), stringResource(R.string.editor_tracks_note), style = MaterialTheme.typography.titleMedium)
-                    // Drag-to-reorder state (playlists only): which row is held, how far it has moved, row heights.
-                    var dragIndex by remember { mutableStateOf<Int?>(null) }
-                    var dragOffset by remember { mutableFloatStateOf(0f) }
-                    val rowHeights = remember { mutableStateMapOf<Int, Int>() }
-                    fun moveSong(from: Int, to: Int) {
-                        if (from == to || from !in playlist.indices || to !in playlist.indices) return
-                        val l = playlist.toMutableList()
-                        val item = l.removeAt(from)
-                        l.add(to, item)
-                        playlist = l
-                    }
+                    ContentGroup(
+                        title = stringResource(if (editable) R.string.editor_tracks_songs_title else R.string.editor_tracks_each_title),
+                        info = stringResource(R.string.editor_tracks_note)
+                    ) {
+                        // Drag-to-reorder state (playlists only): which row is held, how far it has moved, row heights.
+                        var dragIndex by remember { mutableStateOf<Int?>(null) }
+                        var dragOffset by remember { mutableFloatStateOf(0f) }
+                        val rowHeights = remember { mutableStateMapOf<Int, Int>() }
+                        fun moveSong(from: Int, to: Int) {
+                            if (from == to || from !in playlist.indices || to !in playlist.indices) return
+                            val l = playlist.toMutableList()
+                            val item = l.removeAt(from)
+                            l.add(to, item)
+                            playlist = l
+                        }
 
-                    tracks.take(80).forEachIndexed { index, (trackUri, trackTitle) ->
-                      key(trackUri) {
-                        val held = editable && dragIndex == index
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .onGloballyPositioned { rowHeights[index] = it.size.height }
-                                .zIndex(if (held) 1f else 0f)
-                                .graphicsLayer {
-                                    translationY = if (held) dragOffset else 0f
-                                    scaleX = if (held) 1.02f else 1f
-                                    scaleY = if (held) 1.02f else 1f
-                                }
-                                .then(if (held) Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)) else Modifier),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (editable) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = stringResource(R.string.editor_drag_cd),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(8.dp)
-                                        .pointerInput(playlist.size) {
-                                            detectDragGestures(
-                                                onDragStart = {
-                                                    dragIndex = index
-                                                    dragOffset = 0f
-                                                },
-                                                onDragEnd = {
-                                                    dragIndex = null
-                                                    dragOffset = 0f
-                                                },
-                                                onDragCancel = {
-                                                    dragIndex = null
-                                                    dragOffset = 0f
-                                                }
-                                            ) { change, amount ->
-                                                change.consume()
-                                                val from = dragIndex ?: return@detectDragGestures
-                                                dragOffset += amount.y
-                                                val h = (rowHeights[from] ?: 150).toFloat()
-                                                if (dragOffset > h * 0.55f && from < playlist.lastIndex) {
-                                                    moveSong(from, from + 1)
-                                                    dragIndex = from + 1
-                                                    dragOffset -= h
-                                                } else if (dragOffset < -h * 0.55f && from > 0) {
-                                                    moveSong(from, from - 1)
-                                                    dragIndex = from - 1
-                                                    dragOffset += h
+                        tracks.take(80).forEachIndexed { index, (trackUri, trackTitle) ->
+                          key(trackUri) {
+                            val held = editable && dragIndex == index
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { rowHeights[index] = it.size.height }
+                                    .zIndex(if (held) 1f else 0f)
+                                    .graphicsLayer {
+                                        translationY = if (held) dragOffset else 0f
+                                        scaleX = if (held) 1.02f else 1f
+                                        scaleY = if (held) 1.02f else 1f
+                                    }
+                                    .then(if (held) Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)) else Modifier),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (editable) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = stringResource(R.string.editor_drag_cd),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(8.dp)
+                                            .pointerInput(playlist.size) {
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        dragIndex = index
+                                                        dragOffset = 0f
+                                                    },
+                                                    onDragEnd = {
+                                                        dragIndex = null
+                                                        dragOffset = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        dragIndex = null
+                                                        dragOffset = 0f
+                                                    }
+                                                ) { change, amount ->
+                                                    change.consume()
+                                                    val from = dragIndex ?: return@detectDragGestures
+                                                    dragOffset += amount.y
+                                                    val h = (rowHeights[from] ?: 150).toFloat()
+                                                    if (dragOffset > h * 0.55f && from < playlist.lastIndex) {
+                                                        moveSong(from, from + 1)
+                                                        dragIndex = from + 1
+                                                        dragOffset -= h
+                                                    } else if (dragOffset < -h * 0.55f && from > 0) {
+                                                        moveSong(from, from - 1)
+                                                        dragIndex = from - 1
+                                                        dragOffset += h
+                                                    }
                                                 }
                                             }
-                                        }
-                                )
-                            }
-                            CardArtwork(
-                                artwork = trackArt[trackUri] ?: defaultTrackArt[trackUri],
-                                seed = uid + trackUri,
-                                color = color,
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clickable { pickerTarget = trackUri },
-                                cornerRadius = 10.dp,
-                                pixel = appSettings.pixelArt
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            // Songs of a playlist can each be trimmed (Plus): a file / stream of the hand-built list,
-                            // or a downloaded song of a YouTube playlist.
-                            val trimSource: SongSource? = when {
-                                category == Category.PLAYLIST -> SongSource.File(trackUri)
-                                ytListTracks != null -> ytListTracks.firstOrNull { it.id == trackUri }
-                                    ?.let { SongSource.File(android.net.Uri.fromFile(it.file).toString()) }
-                                else -> null
-                            }
-                            val trackClip = clips[trackUri]?.takeIf { trimSource != null && it.isSet }
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    "${index + 1}. $trackTitle",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (trackClip != null) {
-                                    Text(
-                                        clipLabel(trackClip),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                            }
-                            if (trimSource != null) {
-                                IconButton(onClick = { openSongEditor(trackUri, trimSource) }) {
+                                CardArtwork(
+                                    artwork = trackArt[trackUri] ?: defaultTrackArt[trackUri],
+                                    seed = uid + trackUri,
+                                    color = color,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clickable { pickerTarget = trackUri },
+                                    cornerRadius = 10.dp,
+                                    pixel = appSettings.pixelArt
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                // Songs of a playlist can each be trimmed (Plus): a file / stream of the hand-built list,
+                                // or a downloaded song of a YouTube playlist.
+                                val trimSource: SongSource? = when {
+                                    category == Category.PLAYLIST -> SongSource.File(trackUri)
+                                    ytListTracks != null -> ytListTracks.firstOrNull { it.id == trackUri }
+                                        ?.let { SongSource.File(android.net.Uri.fromFile(it.file).toString()) }
+                                    else -> null
+                                }
+                                val trackClip = clips[trackUri]?.takeIf { trimSource != null && it.isSet }
+                                Column(Modifier.weight(1f)) {
                                     Text(
-                                        "✂",
-                                        color = if (trackClip != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.semantics { contentDescription = context.getString(R.string.editor_trim) }
+                                        "${index + 1}. $trackTitle",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                }
-                            }
-                            if (editable) {
-                                IconButton(onClick = {
-                                    playlist = playlist.filterNot { it.uri == trackUri }
-                                    trackArt = trackArt - trackUri
-                                }) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.editor_remove_song_cd)) }
-                            } else if (trackArt.containsKey(trackUri)) {
-                                IconButton(onClick = { trackArt = trackArt - trackUri }) {
-                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.editor_remove_picture_cd))
-                                }
-                            }
-                            if (category == Category.AUDIOBOOK) {
-                                IconButton(onClick = {
-                                    buildCardOrComplain()?.let { card ->
-                                        saveCard(card)
-                                        val chapter = chapters.firstOrNull { it.artKey == trackUri }
-                                        if (chapter != null) viewModel.playFrom(card, null, chapter.startMs) else viewModel.playFrom(card, trackUri, 0L)
+                                    if (trackClip != null) {
+                                        Text(
+                                            clipLabel(trackClip),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
-                                }) { Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.editor_book_play_from_cd)) }
+                                }
+                                if (trimSource != null) {
+                                    IconButton(onClick = { openSongEditor(trackUri, trimSource) }) {
+                                        Text(
+                                            "✂",
+                                            color = if (trackClip != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.semantics { contentDescription = context.getString(R.string.editor_trim) }
+                                        )
+                                    }
+                                }
+                                if (editable) {
+                                    IconButton(onClick = {
+                                        playlist = playlist.filterNot { it.uri == trackUri }
+                                        trackArt = trackArt - trackUri
+                                    }) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.editor_remove_song_cd)) }
+                                } else if (trackArt.containsKey(trackUri)) {
+                                    IconButton(onClick = { trackArt = trackArt - trackUri }) {
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.editor_remove_picture_cd))
+                                    }
+                                }
+                                if (category == Category.AUDIOBOOK) {
+                                    IconButton(onClick = {
+                                        buildCardOrComplain()?.let { card ->
+                                            saveCard(card)
+                                            val chapter = chapters.firstOrNull { it.artKey == trackUri }
+                                            if (chapter != null) viewModel.playFrom(card, null, chapter.startMs) else viewModel.playFrom(card, trackUri, 0L)
+                                        }
+                                    }) { Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.editor_book_play_from_cd)) }
+                                }
+                                if (!editable) {
+                                    OutlinedButton(onClick = { pickerTarget = trackUri }) { Text(stringResource(R.string.editor_pick)) }
+                                }
                             }
-                            if (!editable) {
-                                OutlinedButton(onClick = { pickerTarget = trackUri }) { Text(stringResource(R.string.editor_pick)) }
-                            }
+                          }
                         }
-                      }
-                    }
-                    if (tracks.size > 80) {
-                        Text(stringResource(R.string.editor_first_80), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Text(stringResource(R.string.editor_icon_title), style = MaterialTheme.typography.titleMedium)
-                // Any emoji from the keyboard, or one of the suggestions in a single scrolling row.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = emoji,
-                        onValueChange = { emoji = it.take(8) },
-                        singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 24.sp),
-                        modifier = Modifier.width(84.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        EmojiChoices.forEach { e ->
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (e == emoji) Color(color) else Color.Transparent)
-                                    .clickable { emoji = e },
-                                contentAlignment = Alignment.Center
-                            ) { Text(e, fontSize = 24.sp) }
+                        if (tracks.size > 80) {
+                            Text(stringResource(R.string.editor_first_80), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    }
-                }
-                Text(stringResource(R.string.editor_colour), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    CardColorChoices.forEach { c ->
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(Color(c))
-                                .border(if (c == color) 4.dp else 0.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-                                .clickable { color = c }
-                        )
                     }
                 }
             }
@@ -1716,58 +1703,51 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
             val tagAndShareSection: @Composable ColumnScope.() -> Unit = {
                 if (saved != null) {
-                    SectionTitle(stringResource(R.string.editor_section_tag), stringResource(R.string.editor_tag_note))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
+                    SettingsGroup(title = stringResource(R.string.editor_section_tag), info = stringResource(R.string.editor_tag_note)) {
+                        SettingRow(
+                            title = stringResource(R.string.editor_move_tag),
                             onClick = {
                                 buildCardOrComplain()?.let {
                                     saveCard(it)
                                     viewModel.startMove(it, copy = false)
                                 }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(stringResource(R.string.editor_move_tag)) }
-                        OutlinedButton(
+                            }
+                        )
+                        SettingRow(
+                            title = stringResource(R.string.editor_copy_tag),
                             onClick = {
                                 buildCardOrComplain()?.let {
                                     saveCard(it)
                                     viewModel.startMove(it, copy = true)
                                 }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(stringResource(R.string.editor_copy_tag)) }
+                            }
+                        )
                     }
                 }
 
                 val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST || category == Category.AUDIOBOOK
                 val shareable = !localOnly && uri.isNotBlank()
-                SectionTitle(stringResource(R.string.editor_section_share), if (localOnly) null else stringResource(R.string.editor_share_note))
-                if (localOnly) {
-                    Text(
-                        stringResource(R.string.editor_share_local_only),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                OutlinedButton(
-                    enabled = shareable,
-                    onClick = {
-                        buildCardOrComplain()?.let {
-                            saveCard(it)
-                            viewModel.startWrite(it)
+                SettingsGroup(stringResource(R.string.editor_section_share)) {
+                    SettingRow(
+                        title = stringResource(R.string.editor_write_to_card),
+                        // Why it can't be written, right where it is greyed out; otherwise what writing does, behind the ⓘ.
+                        info = stringResource(if (localOnly) R.string.editor_share_local_only else R.string.editor_share_note),
+                        enabled = shareable,
+                        onClick = {
+                            buildCardOrComplain()?.let {
+                                saveCard(it)
+                                viewModel.startWrite(it)
+                            }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(stringResource(R.string.editor_write_to_card)) }
-                InfoLink(stringResource(R.string.editor_boop_note))
-                if (boopBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
+                    )
+                    SettingRow(
+                        title = stringResource(R.string.editor_send_boop),
+                        info = stringResource(R.string.editor_boop_note),
                         enabled = !boopBusy,
-                        onClick = sendBoop,
-                        modifier = Modifier.weight(1f)
-                    ) { Text(stringResource(R.string.editor_send_boop)) }
-                    OutlinedButton(
+                        onClick = sendBoop
+                    )
+                    SettingRow(
+                        title = stringResource(R.string.editor_save_boop),
                         enabled = !boopBusy,
                         onClick = {
                             buildCardOrComplain()?.let { card ->
@@ -1776,10 +1756,10 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                     boopSaver.launch(file.name)
                                 }
                             }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) { Text(stringResource(R.string.editor_save_boop)) }
+                        }
+                    )
                 }
+                if (boopBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             }
             tagAndShareSection()
 
@@ -1840,17 +1820,28 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         )
     }
 
+    // Who each picture this card has had is credited to, so one that is put back keeps its credit.
+    val pictureCredits = remember { mutableMapOf<String, String?>() }
+    SideEffect { if (artworkUrl.isNotBlank()) pictureCredits[artworkUrl] = artworkCredit }
+
     if (showStickerMaker) {
         StickerMakerDialog(
             source = stickerSource(),
             design = sticker,
             imported = stickerUrl,
             pixel = appSettings.pixelArt,
+            plus = plus,
+            onNeedPlus = { viewModel.showPaywall(PlusReason.STICKER) },
             onFindPicture = { pickerTarget = "" },
             onGalleryPicture = { galleryPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             onRemovePicture = {
                 artworkUrl = ""
                 artworkCredit = null
+            },
+            // Undo in the sticker maker, or closing it without the tick: an earlier picture comes back, with its credit.
+            onRestorePicture = { url ->
+                artworkUrl = url.orEmpty()
+                artworkCredit = url?.let { pictureCredits[it] }
             },
             onDone = {
                 sticker = it
@@ -1903,8 +1894,43 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     trackArt = trackArt + (target to url)
                 }
                 pickerTarget = null
+                pickerLink = null
             },
-            onDismiss = { pickerTarget = null }
+            onDismiss = {
+                pickerTarget = null
+                pickerLink = null
+            },
+            // A card's page in the Yoto store, pasted for the card's own picture: its art becomes the picture and
+            // every song or chapter that has a namesake there (or, failing names, the same place) gets its icon.
+            onPickListing = if (target.isNotEmpty()) null else { listing ->
+                listing.cover?.let {
+                    artworkUrl = it
+                    artworkCredit = YotoCredit
+                }
+                val songs = stickerSource().rows.map { it.key to it.title }
+                val icons = YotoStore.match(listing.tracks, songs)
+                trackArt = trackArt + icons
+                if (name.isBlank()) listing.title?.let { name = it }
+                pickerTarget = null
+                pickerLink = null
+                val said = when {
+                    listing.icons.isEmpty() -> null
+                    songs.isEmpty() -> context.getString(R.string.msg_listing_picture)
+                    icons.isEmpty() -> context.getString(R.string.msg_listing_no_match)
+                    else -> context.resources.getQuantityString(R.plurals.msg_listing_icons, icons.size, icons.size)
+                }
+                said?.let { scope.launch { snackbar.showSnackbar(it) } }
+            },
+            // A tab's name in place of a link (ICONS, ALBUM) opens that tab instead.
+            kind = when (category) {
+                Category.AUDIOBOOK, Category.AUDIBLE -> ArtworkSearch.Kind.BOOK
+                Category.PODCAST -> ArtworkSearch.Kind.PODCAST
+                Category.LINK, Category.FOLDER, Category.PLAYLIST -> ArtworkSearch.Kind.MUSIC
+                // A file, a Yoto card, a film, a stream: could be anything.
+                else -> ArtworkSearch.Kind.ANY
+            },
+            startTab = pickerLink?.let { if (it.startsWith("http")) "URL" else it },
+            startLink = pickerLink?.takeIf { it.startsWith("http") }.orEmpty()
         )
     }
 
@@ -1992,25 +2018,6 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             },
             dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
-    }
-}
-
-@Composable
-private fun SwitchLine(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) {
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
     }
 }
 

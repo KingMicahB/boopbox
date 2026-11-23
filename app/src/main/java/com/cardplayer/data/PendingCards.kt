@@ -78,6 +78,18 @@ class PendingCardRepository(private val context: Context, private val cards: Car
         _imported.tryEmit(context.getString(R.string.msg_card_ready, card.displayName(context)))
     }
 
+    /** True for a waiting card made in this app's own editor ("Add a card"), still to be given an NFC card. */
+    fun isDraft(card: Card) = isDraftUid(card.uid)
+
+    /** The id a card made in the editor goes by until an NFC card is tapped for it. */
+    fun newDraftUid() = DRAFT_PREFIX + System.currentTimeMillis()
+
+    /** A card just made in the editor: it goes to the front of the queue, like a .boop opened on purpose. */
+    fun addDraft(card: Card) {
+        val waiting = card.copy(createdAt = System.currentTimeMillis())
+        store.update { list -> listOf(waiting) + list.filterNot { it.uid == card.uid } }
+    }
+
     /** Drops a waiting card without giving it to anyone. Its audio stays in the library until pushed again. */
     fun discard(uid: String) = store.update { list -> list.filterNot { it.uid == uid } }
 
@@ -127,15 +139,19 @@ class PendingCardRepository(private val context: Context, private val cards: Car
     private fun Card.libraryMarkerMatches(marker: String): Boolean =
         uri.contains(marker) || artworkUrl?.contains(marker) == true || playlist.any { it.uri.contains(marker) }
 
-    /** Waiting cards are keyed by where they came from: `pending:<id>` (computer), `shared:<id>` (.boop) or `link:<time>`. */
+    /** Waiting cards are keyed by where they came from: `pending:<id>` (computer), `shared:<id>` (.boop), `link:<time>` or `draft:<time>` (the editor). */
     private fun waitingUid(push: InboxCard) = (if (push.origin == BoopFile.ORIGIN) SHARED_PREFIX else PENDING_PREFIX) + push.id
 
     private fun Card.isWaitingFor(id: String) = uid == PENDING_PREFIX + id || uid == SHARED_PREFIX + id
 
-    private companion object {
-        const val PENDING_PREFIX = "pending:"
-        const val SHARED_PREFIX = "shared:"
-        const val LINK_PREFIX = "link:"
+    companion object {
+        private const val PENDING_PREFIX = "pending:"
+        private const val SHARED_PREFIX = "shared:"
+        private const val LINK_PREFIX = "link:"
+        private const val DRAFT_PREFIX = "draft:"
+
+        /** True for the stand-in id of a card made in the editor that has no NFC card yet. */
+        fun isDraftUid(uid: String) = uid.startsWith(DRAFT_PREFIX)
     }
 
     private fun resolve(card: Card, id: String): Card {

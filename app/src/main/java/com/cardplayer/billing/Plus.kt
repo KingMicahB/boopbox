@@ -37,6 +37,8 @@ enum class PlusReason(@param:StringRes val textRes: Int) {
     NIGHT_LIGHT(R.string.plus_reason_night_light),
     CARD_SLEEP(R.string.plus_reason_card_sleep),
     SPEED(R.string.plus_reason_speed),
+    PICKER(R.string.plus_reason_picker),
+    STICKER(R.string.plus_reason_sticker),
     GENERAL(R.string.plus_reason_general)
 }
 

@@ -1,5 +1,14 @@
 package com.cardplayer.ui
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import android.os.Build
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -43,7 +52,9 @@ fun PlusDialog(reason: PlusReason, price: String?, onDismiss: () -> Unit) {
                     R.string.plus_feature_split,
                     R.string.plus_feature_bedtime,
                     R.string.plus_feature_night_light,
-                    R.string.plus_feature_card_extras
+                    R.string.plus_feature_card_extras,
+                    R.string.plus_feature_picker,
+                    R.string.plus_feature_sticker
                 ).forEach { Text("✓  " + stringResource(it), style = MaterialTheme.typography.bodyMedium) }
                 Text(
                     stringResource(R.string.plus_once),
@@ -79,6 +90,50 @@ fun PlusBadge(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
         )
+    }
+}
+
+/**
+ * A Plus feature as a free install sees it: the real thing, blurred and out of reach, under a card that says
+ * [what] it would let them do (and, in a line, [detail]) and opens the Plus sheet. It is there on arrival, not
+ * only once something has been tried.
+ */
+@Composable
+fun PlusGate(what: String, detail: String, onUpgrade: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        // Blurring needs Android 12; before that the feature is only faded.
+        Box(
+            Modifier
+                .blur(9.dp)
+                .alpha(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.75f else 0.25f)
+                .clearAndSetSemantics { }
+        ) { content() }
+        // Over all of it: nothing underneath can be touched, and a tap anywhere is a tap on the card.
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onUpgrade)
+        )
+        Surface(
+            onClick = onUpgrade,
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 10.dp,
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .widthIn(max = 290.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PlusBadge()
+                Text(what, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Button(onClick = onUpgrade) { Text(stringResource(R.string.plus_gate_upgrade)) }
+            }
+        }
     }
 }
 

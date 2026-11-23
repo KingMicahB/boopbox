@@ -11,24 +11,19 @@ import com.cardplayer.playback.CarLink
 import com.cardplayer.playback.PlayerController
 
 class BoopBoxApp : Application() {
-    lateinit var cards: CardRepository
-        private set
-    lateinit var settings: SettingsRepository
-        private set
-    lateinit var positions: PositionStore
-        private set
+    // Made on first use, by whoever asks first: the car asks CardArtProvider for a picture on another thread, and
+    // when that is what starts the app (it was closed, or the phone killed it) the question can arrive before
+    // onCreate has run. Stores made in onCreate were not there yet, and that first picture failed.
+    val cards: CardRepository by lazy { CardRepository(this) }
+    val settings: SettingsRepository by lazy { SettingsRepository(this) }
+    val positions: PositionStore by lazy { PositionStore(this) }
+    val pending: PendingCardRepository by lazy { PendingCardRepository(this, cards) }
     lateinit var player: PlayerController
-        private set
-    lateinit var pending: PendingCardRepository
         private set
 
     override fun onCreate() {
         super.onCreate()
         Plus.init(this)
-        cards = CardRepository(this)
-        settings = SettingsRepository(this)
-        positions = PositionStore(this)
-        pending = PendingCardRepository(this, cards)
         player = PlayerController(this, cards, settings, positions)
         CarLink.start(this)
     }

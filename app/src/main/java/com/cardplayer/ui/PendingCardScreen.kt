@@ -66,6 +66,8 @@ fun PendingCardScreen(
     shared: Boolean,
     /** It was made from a link shared from another app (YouTube, Spotify, Audible…). */
     fromLink: Boolean,
+    /** It was made in the card editor here ("Add a card"). */
+    made: Boolean,
     pixelArt: Boolean,
     /** A card already in use was tapped: ask whether to put [card] on it instead. */
     replace: ReplacePrompt?,
@@ -118,6 +120,7 @@ fun PendingCardScreen(
             )
             Text(
                 text = when {
+                    made -> stringResource(R.string.pending_made_here)
                     fromLink -> stringResource(R.string.pending_from_link, stringResource(card.sourceType.labelRes))
                     shared -> stringResource(R.string.pending_shared_with_you)
                     else -> stringResource(R.string.pending_sent_from_computer)

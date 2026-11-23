@@ -149,10 +149,11 @@
     <string name="settings_sleep_after_song">שינה אחרי השיר הזה</string>
 
     <!-- SettingsScreen: Cards section -->
-    <string name="settings_cards_empty">עדיין אין כרטיסים. הקישו על \"הוספת כרטיס\" והצמידו כל כרטיס, מדבקה או צעצוע עם NFC לגב הטלפון.</string>
-    <string name="settings_load_boop">טעינת ‎.boop</string>
-    <string name="settings_load_boop_unpacking">פותח את הקובץ…</string>
-    <string name="settings_load_boop_hint">קיבלתם קובץ ‎.boop ממישהו? פשוט פתחו אותו (WhatsApp, אימייל, קבצים…) ו-BoopBox ייקח את זה משם. אפשר גם לבחור את הקובץ כאן.</string>
+    <string name="settings_cards_empty">עדיין אין כרטיסים. הקישו על \"הוספת כרטיס\" כדי ליצור את הראשון.</string>
+    <string name="add_card_make">יצירת כרטיס חדש</string>
+    <string name="add_card_boop">פתיחת קובץ ‎.boop</string>
+    <string name="editor_save_then_tap">הבא: הצמידו כרטיס</string>
+    <string name="pending_made_here">הכרטיס החדש שלכם</string>
     <string name="settings_backup_title">גיבוי</string>
     <string name="settings_backup_body">כל כרטיס, כל הגדרה, ההתחברות ל-Yoto וכל השירים והתמונות שהכרטיסים משתמשים בהם (גם אלה שנבחרו מהתיקיות של הטלפון), בקובץ אחד. עם הרבה שירים מהטלפון הקובץ יכול להיות גדול.</string>
     <string name="settings_backup_save">שמירת גיבוי</string>
@@ -273,7 +274,7 @@
     <string name="settings_taps">הקשות</string>
     <string name="settings_idle_screen">מסך המתנה</string>
     <string name="settings_show_clock">הצגת השעון</string>
-    <string name="settings_section_picker_title">בוחר הכרטיסים</string>
+    <string name="settings_section_picker_title">מדף הכרטיסים</string>
     <string name="settings_section_picker_blurb">ניגון בלי הכרטיס: לחיצה ארוכה על הלוגו ובחירת תמונה</string>
     <string name="settings_picker_status">%1$s · %2$d / %3$d</string>
     <string name="settings_logo_picker_title">לחיצה ארוכה על הלוגו</string>
@@ -282,7 +283,7 @@
     <string name="settings_picker_style_cards">כרטיסים</string>
     <string name="settings_picker_style_tiles">אריחים</string>
     <string name="settings_picker_tiles_per_screen">אריחים במסך</string>
-    <string name="settings_picker_cards">כרטיסים בבוחר</string>
+    <string name="settings_picker_cards">כרטיסים על המדף</string>
     <string name="settings_picker_cards_hint">כרטיס שכבוי כאן מתנגן רק עם הכרטיס האמיתי.</string>
     <string name="settings_picker_show_all">הצגת הכול</string>
     <string name="settings_picker_hide_all">הסתרת הכול</string>
@@ -390,8 +391,10 @@
     <string name="sticker_layouts">פריסות</string>
     <string name="sticker_layouts_hint">בחרו אחת להתחיל ממנה. אפשר עדיין להזיז ולשנות בה הכול.</string>
     <string name="sticker_layout_auto">מומלץ</string>
-    <string name="sticker_layout_poster">תמונה מלאה</string>
-    <string name="sticker_layout_block">תמונה ושם</string>
+    <string name="sticker_layout_picture">רק התמונה</string>
+    <string name="sticker_layout_name">תמונה ושם</string>
+    <string name="sticker_layout_list">תמונה ורשימת שירים</string>
+    <string name="sticker_layout_list_name">תמונה, שם ורשימת שירים</string>
     <string name="sticker_layout_middle">תמונה באמצע</string>
     <string name="sticker_layout_icon">תמונה קטנה</string>
     <string name="sticker_put_back">החזרה למקום</string>
@@ -570,19 +573,17 @@
 
     <!-- Card editor: fetching, replay behaviour, lifted off, sleep -->
     <string name="editor_fetching">מביאים פרטים…</string>
-    <string name="editor_tap_again_title">כשמצמידים את הכרטיס שוב, בהמשך</string>
     <string name="editor_resume_continue">להמשיך מהמקום שבו עצרנו (ספרי שמע, פודקאסטים)</string>
     <string name="editor_resume_restart">להתחיל מההתחלה (שירים, אלבומים)</string>
     <string name="editor_shuffle">ערבוב</string>
-    <string name="editor_lifted_title">כשמרימים את הכרטיס מהטלפון</string>
-    <string name="editor_lifted_stop">עצירה</string>
-    <string name="editor_lifted_pause">השהיה (הצמידו שוב כדי להמשיך)</string>
-    <string name="editor_lifted_nothing">להמשיך לנגן</string>
-    <string name="editor_sleep_title">טיימר שינה כשמצמידים את הכרטיס הזה (בדקות)</string>
     <string name="editor_sleep_note">לסיפורי לילה טוב: הצליל נחלש ומושהה אחרי הזמן הזה, בכל פעם שמצמידים את הכרטיס. כבוי = חל רק הטיימר של שעות השינה.</string>
     <string name="editor_sleep_off">כבוי</string>
+    <string name="editor_tap_again_short">בהצמדה חוזרת</string>
+    <string name="editor_resume_continue_short">להמשיך</string>
+    <string name="editor_resume_restart_short">מההתחלה</string>
+    <string name="editor_lifted_short">כשמרימים מהטלפון</string>
+    <string name="editor_sleep_short">טיימר שינה בהצמדה</string>
     <!-- Card editor: looks -->
-    <string name="editor_section_looks">מראה</string>
     <string name="editor_name">שם</string>
     <string name="editor_find_picture">חיפוש תמונה</string>
     <string name="editor_change_picture">החלפת תמונה</string>
@@ -594,8 +595,6 @@
     <string name="editor_remove_picture_cd">הסרת תמונה</string>
     <string name="editor_pick">בחירה</string>
     <string name="editor_first_80">מוצגים 80 הקטעים הראשונים.</string>
-    <string name="editor_icon_title">סמל קטן לרשימת הכרטיסים</string>
-    <string name="editor_colour">צבע</string>
     <string name="editor_artwork_url">כתובת תמונה (לא חובה)</string>
 
     <!-- Card editor: another tag, sharing -->
@@ -641,12 +640,13 @@
     <!-- Artwork picker (ArtworkPicker.kt) -->
     <string name="art_title">חיפוש תמונה</string>
     <string name="art_source_icons">סמלי פיקסלים</string>
-    <string name="art_source_album">עטיפת אלבום</string>
+    <string name="art_source_album">עטיפות</string>
     <string name="art_search_icons_hint">חיפוש סמלים באנגלית (למשל dinosaur, train, moon)</string>
     <string name="art_search_album_hint">אלבום, שיר, פודקאסט או ספר</string>
     <string name="art_find">חיפוש</string>
     <string name="art_searching">מחפשים…</string>
     <string name="art_nothing_found">לא נמצא כלום. נסו מילה אחרת.</string>
+    <string name="art_unreachable">החיפוש נכשל. בדקו את החיבור ונסו שוב.</string>
     <plurals name="art_icon_count">
         <item quantity="one">סמל אחד</item>
         <item quantity="two">%d סמלים</item>
@@ -656,7 +656,7 @@
     <string name="art_loading">טוענים…</string>
     <string name="art_more_icons">עוד סמלים</string>
     <string name="art_credit_icons">הסמלים צוירו על ידי קהילת yotoicons.com</string>
-    <string name="art_credit_album">תמונות דרך iTunes Search</string>
+    <string name="art_credit_album">עטיפות מ-iTunes, Open Library ו-Deezer</string>
 
     <!-- ==== 41_split.he.xml ==== -->
     <!-- Split-into-songs editor (SplitEditorDialog.kt) -->
@@ -727,10 +727,6 @@
     <string name="receive_fetching_link_hint">מביא את השם והתמונה שלו</string>
     <string name="receive_failed_title">לא הצלחנו לפתוח את הקובץ</string>
 
-    <!-- ScanScreen -->
-    <string name="scan_title">הוספת כרטיס</string>
-    <string name="scan_hold_card">הצמידו כרטיס לגב הטלפון</string>
-    <string name="scan_hint">כל כרטיס, מדבקה או צעצוע עם NFC יתאימו. אנטנת ה-NFC נמצאת בדרך כלל ליד המצלמה.</string>
 
     <!-- Settings password dialogs (SettingsLock) -->
     <string name="lock_title">למבוגרים בלבד</string>
@@ -837,9 +833,26 @@
 
     <!-- Artwork picker: paste a link -->
     <string name="art_source_url">הדבקת קישור</string>
-    <string name="art_url_hint">כתובת של תמונה (https://…)</string>
+    <string name="art_url_hint">קישור לתמונה</string>
     <string name="art_use_url">שימוש בתמונה הזו</string>
     <string name="art_url_note">כל תמונה ברשת: העתיקו את הקישור שלה והדביקו אותו כאן.</string>
+    <string name="art_listing_reading">קוראים את הכרטיס…</string>
+    <string name="art_listing_failed">לא הצלחנו לקרוא את הכרטיס. בדקו את הקישור או נסו שוב.</string>
+    <string name="art_use_listing">שימוש בתמונה ובסמלים</string>
+    <plurals name="art_listing_icons">
+        <item quantity="one">סמל אחד לשיר</item>
+        <item quantity="two">%d סמלים לשירים</item>
+        <item quantity="many">%d סמלים לשירים</item>
+        <item quantity="other">%d סמלים לשירים</item>
+    </plurals>
+    <string name="msg_listing_picture">התמונה נקבעה. הוסיפו את השירים והדביקו שוב את הקישור כדי לקבל את הסמלים.</string>
+    <string name="msg_listing_no_match">התמונה נקבעה. השירים כאן לא תואמים לכרטיס, ולכן אין סמלים.</string>
+    <plurals name="msg_listing_icons">
+        <item quantity="one">התמונה נקבעה, ושיר אחד קיבל סמל.</item>
+        <item quantity="two">התמונה נקבעה, ו-%d שירים קיבלו סמלים.</item>
+        <item quantity="many">התמונה נקבעה, ו-%d שירים קיבלו סמלים.</item>
+        <item quantity="other">התמונה נקבעה, ו-%d שירים קיבלו סמלים.</item>
+    </plurals>
 
     <!-- Settings: accounts section, card list sorting, bedtime times -->
     <string name="settings_section_accounts_title">חשבונות ונתונים</string>
@@ -854,8 +867,6 @@
     <string name="settings_played_ago">נוגן %1$s</string>
 
     <!-- Scan screen -->
-    <string name="scan_existing_hint">הצמדת כרטיס שכבר מוגדר פותחת אותו לעריכה.</string>
-    <string name="scan_nfc_off">ה־NFC כבוי, ולכן אי אפשר לקרוא כלום כרגע.</string>
     <string name="msg_no_link_shared">לא היה קישור במה ששותף.</string>
 
     <!-- BoopBox Plus -->
@@ -866,6 +877,8 @@
     <string name="plus_reason_night_light">הצבעים והבהירות של מנורת הלילה הם חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_card_sleep">טיימר שינה לכל כרטיס הוא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_speed">מהירות ניגון לכל כרטיס היא חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_picker">מדף הכרטיסים (ניגון כרטיס מהתמונה שלו, בלי הכרטיס עצמו) הוא חלק מ־BoopBox Plus.</string>
+    <string name="plus_reason_sticker">עיצוב מדבקה ביד (פריסות, צבעים, טקסט) הוא חלק מ־BoopBox Plus. המדבקה האוטומטית בחינם.</string>
     <string name="plus_reason_trim">חיתוך ההתחלה והסוף של שיר הוא חלק מ־BoopBox Plus.</string>
     <string name="plus_reason_general">פתיחת כל הכרטיסים וכל התוספות להורים.</string>
     <string name="plus_includes">מה יש ב־Plus</string>
@@ -873,7 +886,16 @@
     <string name="plus_feature_split">חלוקת קובץ לשירים, חיתוך התחלה וסוף של שיר, סימון פרקים בספר שמע</string>
     <string name="plus_feature_bedtime">שעות שינה: שקט יותר, טיימר שינה ומנורת לילה מעצמם</string>
     <string name="plus_feature_night_light">צבעים ובהירות למנורת הלילה</string>
+    <string name="plus_gate_shelf">ניגון בלי הכרטיס</string>
+    <string name="plus_gate_shelf_detail">הכרטיסים נשארו בבית? בחרו כרטיס לפי התמונה שלו.</string>
+    <string name="plus_gate_sticker">עיצוב מדבקה משלכם</string>
+    <string name="plus_gate_sticker_detail">בחרו פריסה, צבעים וגופנים, וכתבו מה שתרצו.</string>
+    <string name="plus_gate_upgrade">לפתוח את Plus</string>
+    <string name="sticker_picture_remove">הסרת התמונה</string>
+    <string name="sticker_gallery_short">מהגלריה</string>
     <string name="plus_feature_card_extras">טיימר שינה ומהירות לכל כרטיס</string>
+    <string name="plus_feature_picker">מדף הכרטיסים: ניגון כרטיס מהתמונה שלו כשהכרטיס לא בהישג יד</string>
+    <string name="plus_feature_sticker">יוצר המדבקות: פריסות, צבעים וטקסט משלכם</string>
     <string name="plus_once">רכישה אחת, שלכם לתמיד. בלי מנוי. כרטיסים ששותפו איתכם תמיד עובדים.</string>
     <string name="plus_buy">לפתוח ב־%1$s</string>
     <string name="plus_buy_no_price">לפתוח את Plus</string>

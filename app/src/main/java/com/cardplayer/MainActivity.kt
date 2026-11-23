@@ -107,10 +107,24 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
     /**
      * Test builds only, for screenshots (adb can't tap on every phone):
      * `adb shell am start -n <package>/com.cardplayer.MainActivity --es debug_settings LOOK --ei debug_scroll 4`
-     * opens that settings section (HOME = the section tiles) scrolled to that row. The Play build ignores it.
+     * opens that settings section (HOME = the section tiles, ADD = those with the "Add a card" sheet up) scrolled to that row;
+     * `--es debug_editor NEW` opens the editor for a new card, as "Add a card" does;
+     * `--es debug_editor <card uid> --ei debug_scroll 900` opens that card's editor, scrolled that many pixels down;
+     * with `--es debug_art_link <link>` its picture finder opens too, on "Paste a link" with that link in.
+     * The Play build ignores both.
      */
     private fun handleDebugIntent(intent: Intent?) {
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        intent?.getStringExtra("debug_editor")?.let { uid ->
+            val px = intent.getIntExtra("debug_scroll", 0)
+            intent.removeExtra("debug_editor")
+            viewModel.debugOpenEditor(uid, px)
+            intent.getStringExtra("debug_art_link")?.let { link ->
+                intent.removeExtra("debug_art_link")
+                viewModel.debugOpenArtLink(link)
+            }
+            return
+        }
         val section = intent?.getStringExtra("debug_settings") ?: return
         val row = intent.getIntExtra("debug_scroll", 0)
         // Once only: the intent stays with the activity, and would ask again after a rotation.
@@ -265,11 +279,9 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
             runOnUiThread { viewModel.onWriteResult(pending, result) }
             return
         }
-        // Only bother reading the tag's data when we don't already know this card,
-        // or when the grown-up is on the "add a card" screen.
+        // Only bother reading the tag's data when we don't already know this card.
         val isNew = viewModel.cardRepo.get(uid) == null
-        val wantData = isNew || viewModel.screen.value == Screen.Scan
-        val message = if (!wantData) null else (ndefFromIntent ?: CardTag.readMessage(tag))
+        val message = if (!isNew) null else (ndefFromIntent ?: CardTag.readMessage(tag))
         // A BoopBox-shared card, or a real Yoto card (plays from the yoto.io link on its tag).
         val shared = CardTag.decode(message, uid) ?: CardTag.yotoCard(message, uid)
         val openedApp = !cardSeenSinceResume && SystemClock.elapsedRealtime() - resumedAt < LAUNCH_TAP_WINDOW_MS
@@ -281,7 +293,7 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
         // is still lying there, which stops playback as if it had been lifted. A fresh run checks again, so a tag
         // wiped or rewritten since is still put right.
         if (uid in checkedThisRun) return
-        val current = if (wantData) message else (ndefFromIntent ?: CardTag.readMessage(tag))
+        val current = if (isNew) message else (ndefFromIntent ?: CardTag.readMessage(tag))
         val wrote = CardTag.heal(tag, current)
         // Done with this card if it was written, or read fine and needs nothing (right link, someone else's tag, too
         // small). A blank or unreadable tag that couldn't be written is tried again next tap.

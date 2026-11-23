@@ -1,5 +1,6 @@
 package com.cardplayer.ui.settings
 
+import androidx.compose.material3.OutlinedButton
 import android.graphics.Bitmap
 import android.graphics.RectF
 import androidx.activity.compose.BackHandler
@@ -87,6 +88,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -109,6 +112,7 @@ import com.cardplayer.sticker.StickerRenderer.Part
 import com.cardplayer.sticker.StickerSource
 import com.cardplayer.sticker.StickerStore
 import com.cardplayer.ui.CardSticker
+import com.cardplayer.ui.PlusGate
 import com.cardplayer.ui.StickerAspect
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -217,6 +221,8 @@ private fun StickerRenderer.Region.toSel(): Sel? = when (part) {
     Part.PICTURE -> Sel.Picture
     Part.TITLE -> Sel.Title
     Part.SUBTITLE -> Sel.Subtitle
+    // The box behind the name is the name's: its colour and see-through are among the name's tools.
+    Part.NAMEBOX -> Sel.Title
     Part.LIST -> Sel.Songs
     Part.ROW -> Sel.Row(key.orEmpty())
     Part.FOOTER -> null
@@ -296,7 +302,8 @@ private fun StickerDesign.placing(sel: Sel, r: RectF): StickerDesign {
  *
  * [design] is what the card has now (null = no sticker made here yet); [imported] a finished sticker that came
  * with the card. The picture is the card's own: the three picture callbacks change it in the editor, and
- * [source] comes back with the new one.
+ * [source] comes back with the new one. A new picture is a step like any other: undo and redo put the
+ * earlier one back through [onRestorePicture], and so does closing the maker without the tick.
  */
 @Composable
 fun StickerMakerDialog(
@@ -304,22 +311,57 @@ fun StickerMakerDialog(
     design: StickerDesign?,
     imported: String?,
     pixel: Boolean,
+    /** BoopBox Plus is on. Without it there is no maker: the suggested sticker, and its picture to change ([FreeStickerPage]). */
+    plus: Boolean,
+    /** The locked maker was tapped, without Plus: say what Plus is. */
+    onNeedPlus: () -> Unit,
     onFindPicture: () -> Unit,
     onGalleryPicture: () -> Unit,
     onRemovePicture: () -> Unit,
+    onRestorePicture: (String?) -> Unit,
     onDone: (StickerDesign) -> Unit,
     onDismiss: () -> Unit
 ) {
+    if (!plus) {
+        FreeStickerPage(source, design, imported, pixel, onNeedPlus, onFindPicture, onGalleryPicture, onRemovePicture, onRestorePicture, onDone, onDismiss)
+        return
+    }
     // Null = still looking at the finished sticker that came with the card.
     var work by remember { mutableStateOf(design ?: if (imported == null) Untouched else null) }
-    val undo = remember { mutableStateListOf<StickerDesign>() }
-    val redo = remember { mutableStateListOf<StickerDesign>() }
+    val undo = remember { mutableStateListOf<Step>() }
+    val redo = remember { mutableStateListOf<Step>() }
+    /** The card's picture as the maker last saw it, and as it was when the maker opened. */
+    var seenPicture by remember { mutableStateOf(source.picture) }
+    val openedPicture = remember { source.picture }
+    /** The picture is being put back by undo / redo: that is not a new step. */
+    var restoring by remember { mutableStateOf(false) }
     /** Remembers how the sticker is now, before something changes it. */
     fun checkpoint() {
-        val now = work ?: return
+        val now = Step(work ?: return, seenPicture)
         if (undo.lastOrNull() != now) undo += now
         if (undo.size > 80) undo.removeAt(0)
         redo.clear()
+    }
+    /** Goes to a remembered step: the sticker as it was, and the card's picture as it was. */
+    fun goTo(step: Step) {
+        work = step.design
+        if (step.picture != source.picture) {
+            restoring = true
+            onRestorePicture(step.picture)
+        }
+    }
+    // The card got another picture (found, from the gallery, removed): a step to undo, like any other.
+    LaunchedEffect(source.picture) {
+        if (source.picture != seenPicture) {
+            if (!restoring) checkpoint()
+            restoring = false
+            seenPicture = source.picture
+        }
+    }
+    /** Closed without the tick: the sticker stays as it was, and so does the card's picture. */
+    val close = {
+        if (source.picture != openedPicture) onRestorePicture(openedPicture)
+        onDismiss()
     }
     fun change(next: StickerDesign) {
         if (next != work) {
@@ -329,12 +371,13 @@ fun StickerMakerDialog(
     }
     var titleShown by remember { mutableStateOf(true) }
     var lineShown by remember { mutableStateOf(false) }
+    var listShown by remember { mutableStateOf(true) }
     // A card with no sticker yet starts at the layouts: pick one, then change what you like.
     var showLayouts by remember { mutableStateOf(design == null && imported == null) }
     var addOpen by remember { mutableStateOf(false) }
     val newLine = stringResource(R.string.sticker_new_line)
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
+    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.96f)
@@ -345,29 +388,30 @@ fun StickerMakerDialog(
             Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 val current = work
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = close) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
                     }
                     if (current == null) {
                         Text(stringResource(R.string.sticker_maker_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(48.dp))
                     } else {
+                        val here = Step(current, source.picture)
                         IconButton(
-                            enabled = undo.any { it != current },
+                            enabled = undo.any { it != here },
                             onClick = {
                                 // A checkpoint taken for a touch that changed nothing is skipped over.
-                                while (undo.isNotEmpty() && undo.last() == current) undo.removeAt(undo.lastIndex)
+                                while (undo.isNotEmpty() && undo.last() == here) undo.removeAt(undo.lastIndex)
                                 if (undo.isNotEmpty()) {
-                                    redo += current
-                                    work = undo.removeAt(undo.lastIndex)
+                                    redo += here
+                                    goTo(undo.removeAt(undo.lastIndex))
                                 }
                             }
                         ) { Icon(StickerIcons.Undo, contentDescription = stringResource(R.string.sticker_undo)) }
                         IconButton(
                             enabled = redo.isNotEmpty(),
                             onClick = {
-                                undo += current
-                                work = redo.removeAt(redo.lastIndex)
+                                undo += here
+                                goTo(redo.removeAt(redo.lastIndex))
                             }
                         ) { Icon(StickerIcons.Redo, contentDescription = stringResource(R.string.sticker_redo)) }
                         Spacer(Modifier.weight(1f))
@@ -379,7 +423,7 @@ fun StickerMakerDialog(
                             val content = StickerContent(source, current)
                             val addName = !titleShown && content.title.isNotEmpty()
                             val addLine = !lineShown
-                            val addList = !content.listed && source.rows.isNotEmpty()
+                            val addList = !listShown && source.rows.isNotEmpty()
                             val addRows = current.hiddenRows.isNotEmpty()
                             val addPicture = source.picture == null
                             IconButton(onClick = { addOpen = true }, enabled = addName || addLine || addList || addRows || addPicture) {
@@ -443,6 +487,7 @@ fun StickerMakerDialog(
                             onChange = ::change,
                             onRendered = {
                                 titleShown = it.titleShown
+                                listShown = it.listShown
                                 lineShown = it.region(Part.SUBTITLE) != null
                             },
                             onFindPicture = onFindPicture,
@@ -476,18 +521,96 @@ fun StickerMakerDialog(
     }
 }
 
+/**
+ * The sticker page without BoopBox Plus: the card's sticker in the suggested layout, and its picture to change.
+ * That is all. What the maker does besides (layouts, colours, text, moving things about) is shown out of reach
+ * behind a [PlusGate], with this card's own sticker in the other layouts.
+ *
+ * A sticker the card already has (one that came with it, or was made while Plus was on) is kept as it is; one
+ * that is only a finished picture gives way to the suggested sticker once the card's picture is changed, or
+ * the change would not show.
+ */
+@Composable
+private fun FreeStickerPage(
+    source: StickerSource,
+    design: StickerDesign?,
+    imported: String?,
+    pixel: Boolean,
+    onNeedPlus: () -> Unit,
+    onFindPicture: () -> Unit,
+    onGalleryPicture: () -> Unit,
+    onRemovePicture: () -> Unit,
+    onRestorePicture: (String?) -> Unit,
+    onDone: (StickerDesign) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val openedPicture = remember { source.picture }
+    val shown = design ?: if (imported == null || source.picture != openedPicture) Untouched else null
+    /** Closed without the tick: the card's picture stays as it was. */
+    val close = {
+        if (source.picture != openedPicture) onRestorePicture(openedPicture)
+        onDismiss()
+    }
+    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.94f),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = close) {
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
+                    }
+                    Text(stringResource(R.string.sticker_maker_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { if (shown != null) onDone(shown) else onDismiss() }) {
+                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.common_done), tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                // The sticker itself is the card's own and free: sharp, as big as the room allows.
+                Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+                    StickerThumb(source = source, design = shown, imported = imported, modifier = Modifier.shadow(12.dp, RoundedCornerShape(20.dp)), cornerRadius = 20.dp, pixel = pixel)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = onFindPicture) { Text(stringResource(R.string.editor_find_picture)) }
+                    OutlinedButton(onClick = onGalleryPicture) { Text(stringResource(R.string.sticker_gallery_short)) }
+                }
+                if (source.picture != null) {
+                    TextButton(onClick = onRemovePicture) { Text(stringResource(R.string.sticker_picture_remove)) }
+                }
+                Spacer(Modifier.height(6.dp))
+                PlusGate(
+                    what = stringResource(R.string.plus_gate_sticker),
+                    detail = stringResource(R.string.plus_gate_sticker_detail),
+                    onUpgrade = onNeedPlus,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                ) {
+                    // What Plus adds, with this very card in it: the other layouts.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        for (layout in StickerRenderer.LAYOUTS.take(3)) {
+                            StickerThumb(source = source, design = Untouched.copy(layout = layout), imported = null, modifier = Modifier.weight(1f), pixel = pixel)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One step of the sticker maker's undo history: the sticker, and the card's picture it was drawn with. */
+private data class Step(val design: StickerDesign, val picture: String?)
+
 /** The ready-made layouts, each shown with this card's own picture and songs: tap one to start from it. */
 @Composable
 private fun LayoutPicker(source: StickerSource, design: StickerDesign, onPick: (StickerDesign) -> Unit, onDismiss: () -> Unit) {
-    // A layout puts every part in its own place: what was dragged about goes back.
-    val loose = design.copy(picturePlace = null, titlePlace = null, subtitlePlace = null, listPlace = null)
-    val options = listOf(
-        null to R.string.sticker_layout_auto,
-        "poster" to R.string.sticker_layout_poster,
-        "block" to R.string.sticker_layout_block,
-        "middle" to R.string.sticker_layout_middle,
-        "icon" to R.string.sticker_layout_icon
-    )
+    // A template puts every part in its own place and decides on the name and the list afresh: what was dragged
+    // about goes back, and what was added or taken off no longer counts.
+    val loose = design.copy(picturePlace = null, titlePlace = null, subtitlePlace = null, listPlace = null, showTitle = null, showList = null)
+    val options = listOf<Pair<String?, Int>>(null to R.string.sticker_layout_auto) + StickerRenderer.LAYOUTS.map { it to LayoutNames.getValue(it) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxWidth(0.96f), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.padding(16.dp)) {
@@ -497,11 +620,14 @@ private fun LayoutPicker(source: StickerSource, design: StickerDesign, onPick: (
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     for ((key, label) in options) {
                         val chosen = design.layout == key
+                        // No words under them: each is this card drawn that way. The name is there for a screen reader.
+                        val name = stringResource(label)
                         Column(
                             modifier = Modifier
                                 .width(132.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .clickable { onPick(loose.copy(layout = key)) }
+                                .clickable(onClickLabel = name) { onPick(loose.copy(layout = key)) }
+                                .semantics { contentDescription = name }
                                 .padding(4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -513,8 +639,6 @@ private fun LayoutPicker(source: StickerSource, design: StickerDesign, onPick: (
                                     .fillMaxWidth()
                                     .border(if (chosen) 3.dp else 0.dp, if (chosen) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(12.dp))
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -527,6 +651,16 @@ private fun LayoutPicker(source: StickerSource, design: StickerDesign, onPick: (
         }
     }
 }
+
+/** What each template is called (read out by a screen reader; the picker shows them as pictures). */
+private val LayoutNames = mapOf(
+    "picture" to R.string.sticker_layout_picture,
+    "picture-name" to R.string.sticker_layout_name,
+    "picture-list" to R.string.sticker_layout_list,
+    "picture-list-name" to R.string.sticker_layout_list_name,
+    "middle" to R.string.sticker_layout_middle,
+    "icon" to R.string.sticker_layout_icon
+)
 
 /** The colours the song list's box can be given (the first = a pale tint of the card's own). */
 private val BoxColors = listOf<Long?>(null, 0xFFFFFFFF, 0xFFFFF3E0, 0xFFFFE0EC, 0xFFE1F5FE, 0xFFE8F5E9, 0xFF0B1647, 0xFF000000)
@@ -915,8 +1049,9 @@ private fun StickerCanvas(
                         }
                     }
 
+                    /** A box's colour and how see-through it is: the song list's, or the one behind the name. */
                     @Composable
-                    fun boxTool() {
+                    fun boxTool(current: Long?, opacity: Float, withColour: (Long?) -> StickerDesign, withOpacity: (Float) -> StickerDesign) {
                         Box {
                             IconButton(onClick = { boxOpen = true }, modifier = Modifier.size(44.dp)) {
                                 // A little box, in the box's colour.
@@ -924,7 +1059,7 @@ private fun StickerCanvas(
                                     Modifier
                                         .size(24.dp, 20.dp)
                                         .clip(RoundedCornerShape(5.dp))
-                                        .background(design.listColor?.let { Color(it) } ?: Color(source.color).copy(alpha = 0.35f))
+                                        .background(current?.let { Color(it) } ?: Color(source.color).copy(alpha = 0.35f))
                                         .border(2.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(5.dp))
                                 )
                             }
@@ -933,14 +1068,14 @@ private fun StickerCanvas(
                                     Text(stringResource(R.string.sticker_box_colour), style = MaterialTheme.typography.labelLarge)
                                     Row(Modifier.padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                         for (colour in BoxColors) {
-                                            val chosen = colour == design.listColor
+                                            val chosen = colour == current
                                             Box(
                                                 modifier = Modifier
                                                     .size(30.dp)
                                                     .clip(CircleShape)
                                                     .background(colour?.let { Color(it) } ?: MaterialTheme.colorScheme.surfaceVariant)
                                                     .border(if (chosen) 3.dp else 1.dp, if (chosen) accent else MaterialTheme.colorScheme.outline, CircleShape)
-                                                    .clickable { onChange(design.copy(listColor = colour)) },
+                                                    .clickable { onChange(withColour(colour)) },
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 // The first one: back to the tint of the card's own colour.
@@ -952,13 +1087,13 @@ private fun StickerCanvas(
                                     // One undo step for the whole slide, not one for every point along it.
                                     var sliding by remember { mutableStateOf(false) }
                                     Slider(
-                                        value = design.listOpacity ?: StickerRenderer.LIST_OPACITY,
+                                        value = opacity,
                                         onValueChange = {
                                             if (!sliding) {
                                                 sliding = true
                                                 check()
                                             }
-                                            live(design.copy(listOpacity = it))
+                                            live(withOpacity(it))
                                         },
                                         onValueChangeFinished = { sliding = false },
                                         valueRange = 0f..1f
@@ -983,8 +1118,18 @@ private fun StickerCanvas(
                             tool(Icons.Default.Edit, R.string.sticker_change_text) { startTyping(Sel.Title) }
                             fontTool(design.titleFont) { onChange(design.copy(titleFont = it)) }
                             colourTool(design.titleColor) { onChange(design.copy(titleColor = it)) }
-                            if (design.title != null || design.titlePlace != null || design.titleFont != null || design.titleColor != null) {
-                                tool(Icons.Default.Refresh, R.string.sticker_use_card_text) { onChange(design.copy(title = null, titlePlace = null, titleFont = null, titleColor = null)) }
+                            // The box behind the name: the block of colour of "Picture and name", or one of its own round the words.
+                            val band = result.geometry == "block" && design.titlePlace == null
+                            boxTool(
+                                design.titleBoxColor,
+                                design.titleBoxOpacity ?: if (band) 1f else if (design.titleBoxColor != null) StickerRenderer.LIST_OPACITY else 0f,
+                                { design.copy(titleBoxColor = it) },
+                                { design.copy(titleBoxOpacity = it) }
+                            )
+                            if (design.title != null || design.titlePlace != null || design.titleFont != null || design.titleColor != null || design.titleBoxColor != null || design.titleBoxOpacity != null) {
+                                tool(Icons.Default.Refresh, R.string.sticker_use_card_text) {
+                                    onChange(design.copy(title = null, titlePlace = null, titleFont = null, titleColor = null, titleBoxColor = null, titleBoxOpacity = null))
+                                }
                             }
                             tool(Icons.Default.Delete, R.string.sticker_remove_text) {
                                 selected = null
@@ -1005,7 +1150,7 @@ private fun StickerCanvas(
                         }
                         Sel.Songs -> {
                             fontTool(design.listFont) { onChange(design.copy(listFont = it)) }
-                            boxTool()
+                            boxTool(design.listColor, design.listOpacity ?: StickerRenderer.LIST_OPACITY, { design.copy(listColor = it) }, { design.copy(listOpacity = it) })
                             if (design.listPlace != null || design.listFont != null || design.listColor != null || design.listOpacity != null) {
                                 tool(Icons.Default.Refresh, R.string.sticker_put_back) { onChange(design.copy(listPlace = null, listFont = null, listColor = null, listOpacity = null)) }
                             }
