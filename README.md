@@ -12,6 +12,7 @@ a deliberate double tap.
 | Files on the phone (MP3, M4A, M4B, FLAC, OGG, OPUS, WAV, video files…) | Inside BoopBox (ExoPlayer) | Yes |
 | A folder on the phone (an album / audiobook chapters) | Inside BoopBox, in natural name order (2 before 10), optional shuffle | Yes |
 | Downloaded audiobook (one M4B / MP3 file, or a folder of chapter files) | Inside BoopBox, with the book's own chapters, cover and resume (see [Downloaded audiobooks](#downloaded-audiobooks)) | Yes |
+| Your own recording (a story read aloud, a song, a message from Grandma) | Recorded in the card editor with the phone's microphone, then played inside BoopBox (see [Record it yourself](#record-it-yourself)) | Yes |
 | Podcast (paste an RSS feed) | Inside BoopBox. Newest episode, or a specific one. Whole feed is queued so the next episode follows. | Yes |
 | Direct audio stream URL | Inside BoopBox | Yes |
 | Spotify (track / album / playlist link) | Opens Spotify with a `:play` link so it starts immediately, then BoopBox comes back on top | Yes (best effort, see below) |
@@ -48,6 +49,7 @@ a deliberate double tap.
 | Every card already on the phone keeps playing, always (after a restore, a refund…) | |
 | Cards that arrive ready-made: real Yoto cards, tags written by **Write to card**, opened `.boop` files | |
 | Book files' own chapter marks | Split into songs / mark chapters by hand (split editor) |
+| Record it yourself, and trim the recording's start and end | Split a recording into songs |
 | Manual sleep timer | Bedtime hours, per-card sleep timer |
 | Night light in the default colour | Night light colours and brightness |
 | Normal speed | Speed per card |
@@ -57,6 +59,17 @@ a deliberate double tap.
 * Plus features are also switched off at playback time (`Bedtime.isBedtime`, `PlayerController`), so a refund really turns them off; settings the grown-up picked are kept for when Plus comes back.
 * Ownership is cached in shared prefs (not in backups or `.boop` files) and re-checked against Play on every connection. Purchases are acknowledged, or Play refunds them after 3 days.
 * Debug builds show **Pretend Plus is bought** in the Plus section to try both versions without paying.
+
+## Record it yourself
+
+Card type **Record it yourself** (card editor → *What it plays*): the phone's microphone straight onto a card.
+
+* **Record**, **Pause** / **Carry on**, **Done**; then **Listen** and **Record again**. A level bar shows the microphone is hearing something. The screen stays on while recording; leaving the app or locking the phone ends the take and keeps what was recorded. Saving, leaving the editor and changing the card type wait until the take is done (Back means *Done*).
+* The microphone permission is asked for the first time **Record** is pressed (`RECORD_AUDIO`; the microphone is an optional feature in the manifest, so a tablet without one still gets the app).
+* A take is one AAC file, mono, 96 kbit/s (about 43 MB an hour), at most 3 hours: `files/library/rec<id>/recording.m4a` (`audio/VoiceRecorder.kt`). The card is an ordinary *File* card pointing at it, so it plays, backs up, travels in a .boop and gets a sticker like any song in the library; the editor shows it as a recording again because of where the file is (`data/Recordings.kt`).
+* **Trim the start and end** is free for a recording (the same cut editor as Plus, without the splitting); with Plus the button opens the full split & trim editor.
+* **Nothing is left behind**: a take recorded again or abandoned in the editor is deleted there and then; a card's recording goes when the card is deleted, recorded again or given something else to play, unless another card (a copy on a second tag) still plays it; anything else is cleared the next time the app starts. A recording any card still points to is never touched.
+* Free: recording counts as a card you set up yourself (the 5-card limit applies), like any other.
 
 ## Downloaded audiobooks
 
@@ -186,6 +199,8 @@ app/src/main/java/com/cardplayer/
   nfc/NfcReader.kt         reader mode for every tag tech, tag-removed callback
   audio/Audiobook.kt       audiobook chapter marks (MP4 chapter track / chpl, ID3 CHAP), tags, cover
   audio/SilenceScanner.kt  waveform + silence detection for splitting one file into songs
+  audio/VoiceRecorder.kt   "Record it yourself": the microphone into one .m4a (pause, carry on)
+  data/Recordings.kt       where recordings live, and removing the ones no card plays any more
   util/MediaScan.kt        folder listing (natural order) and folder cover pictures
   podcast/RssParser.kt     RSS → episodes (OkHttp + XmlPullParser)
   link/LinkResolver.kt     detect Spotify / YT Music / YouTube / Audible, fetch title + artwork

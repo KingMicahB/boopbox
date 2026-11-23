@@ -124,6 +124,7 @@ import com.cardplayer.data.Clip
 import com.cardplayer.data.PlaylistItem
 import com.cardplayer.data.PodcastFeed
 import com.cardplayer.data.PodcastMode
+import com.cardplayer.data.Recordings
 import com.cardplayer.data.SourceType
 import com.cardplayer.link.ArtworkSearch
 import com.cardplayer.link.LinkResolver
@@ -152,6 +153,8 @@ private enum class Category(@param:StringRes val labelRes: Int, @param:StringRes
     AUDIBLE(R.string.editor_cat_audible, R.string.editor_cat_audible_hint),
     AUDIOBOOK(R.string.editor_cat_book, R.string.editor_cat_book_hint),
     PODCAST(R.string.editor_cat_podcast, R.string.editor_cat_podcast_hint),
+    /** Recorded here with the phone's microphone; saved and played as a [SourceType.LOCAL_FILE] ([Recordings]). */
+    RECORDING(R.string.editor_cat_recording, R.string.editor_cat_recording_hint),
     FILE(R.string.source_local_file, R.string.editor_cat_file_hint),
     FOLDER(R.string.source_local_folder, R.string.editor_cat_folder_hint),
     PLAYLIST(R.string.editor_cat_playlist, R.string.editor_cat_playlist_hint),
@@ -164,7 +167,11 @@ private fun categoryOf(card: Card): Category = when (card.sourceType) {
     SourceType.VIDEO -> Category.VIDEO
     SourceType.AUDIBLE -> Category.AUDIBLE
     SourceType.PODCAST -> Category.PODCAST
-    SourceType.LOCAL_FILE -> if (card.audiobook) Category.AUDIOBOOK else Category.FILE
+    SourceType.LOCAL_FILE -> when {
+        card.audiobook -> Category.AUDIOBOOK
+        Recordings.isRecording(card.uri) -> Category.RECORDING
+        else -> Category.FILE
+    }
     SourceType.LOCAL_FOLDER -> if (card.audiobook) Category.AUDIOBOOK else Category.FOLDER
     SourceType.PLAYLIST -> Category.PLAYLIST
     SourceType.YOTO -> Category.YOTO
@@ -275,11 +282,13 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // Split one long file / video into songs and trim its start and end (waveform + silence detection + cuts by hand),
     // or trim one song of a playlist. Null = closed; the key is the Card.clips key being edited.
     var songEditor by remember { mutableStateOf<Pair<String, SongSource>?>(null) }
-    // Splitting into songs / marking chapters by hand / trimming is Plus; a book's own chapter marks stay free.
+    // Splitting into songs / marking chapters by hand / trimming is Plus; a book's own chapter marks stay free,
+    // and so does trimming the ends of a recording made here.
     fun openSongEditor(key: String, source: SongSource?) {
         when {
             source == null -> Unit
-            !plus -> viewModel.showPaywall(if (key == Card.MAIN_TRACK) PlusReason.SPLIT else PlusReason.TRIM)
+            !plus && !(key == Card.MAIN_TRACK && category == Category.RECORDING) ->
+                viewModel.showPaywall(if (key == Card.MAIN_TRACK) PlusReason.SPLIT else PlusReason.TRIM)
             else -> songEditor = key to source
         }
     }
@@ -395,6 +404,14 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     var fetching by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
     var pickedLabel by remember { mutableStateOf<String?>(null) }
+    /** A recording is being made right now: saving, leaving and changing the card type wait until it is done. */
+    var recordingNow by remember { mutableStateOf(false) }
+    /** Says so and returns true while a recording is being made. */
+    fun busyRecording(): Boolean {
+        if (!recordingNow) return false
+        scope.launch { snackbar.showSnackbar(context.getString(R.string.editor_rec_busy)) }
+        return true
+    }
 
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
         if (picked != null) {
@@ -458,7 +475,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.VIDEO -> SourceType.VIDEO
             Category.AUDIOBOOK -> if (bookFolder) SourceType.LOCAL_FOLDER else SourceType.LOCAL_FILE
             Category.PODCAST -> SourceType.PODCAST
-            Category.FILE -> SourceType.LOCAL_FILE
+            Category.FILE, Category.RECORDING -> SourceType.LOCAL_FILE
             Category.FOLDER -> SourceType.LOCAL_FOLDER
             Category.PLAYLIST -> SourceType.PLAYLIST
             Category.YOTO -> SourceType.YOTO
@@ -569,6 +586,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         }
         category = c
         if (!keep) {
+            // A recording made just now and not saved on any card goes with the type change.
+            viewModel.discardTake(uri)
             uri = ""
             feed = null
             loadedFeedUrl = null
@@ -610,6 +629,10 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     val mainClip = clips[Card.MAIN_TRACK]?.takeIf { mainClipUri == uri.trim() && it.isSet }
 
     fun buildCard(): Card? {
+        if (recordingNow) {
+            status = context.getString(R.string.editor_rec_busy)
+            return null
+        }
         if (category == Category.PLAYLIST) {
             if (playlist.isEmpty()) {
                 status = context.getString(R.string.editor_status_playlist_empty)
@@ -676,7 +699,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // ---- the sticker: filled in from what the card says about itself, as it stands in the editor right now.
     /** The files whose lengths add up to the card's running time (none for links, streams and podcasts). */
     fun stickerFiles(): List<String> = when (category) {
-        Category.FILE -> listOf(uri).filter { it.isNotBlank() }
+        Category.FILE, Category.RECORDING -> listOf(uri).filter { it.isNotBlank() }
         Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { it.uri } else listOf(uri).filter { it.isNotBlank() }
         Category.FOLDER -> folderTracks.map { it.uri }
         Category.PLAYLIST -> playlist.map { it.uri }
@@ -691,7 +714,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { StickerRow(it.uri, it.title, trackArt[it.uri]) } else chapterRows()
             Category.PLAYLIST -> playlist.map { StickerRow(it.uri, it.title, trackArt[it.uri]) }
             Category.LINK -> ytListTracks?.map { StickerRow(it.id, it.title, trackArt[it.id]) } ?: chapterRows()
-            Category.FILE -> chapterRows()
+            Category.FILE, Category.RECORDING -> chapterRows()
             // Yoto chapters come with their own pixel icon.
             Category.YOTO -> yotoChapters.map { StickerRow(it.key, yotoPrettyTitle(it.title), trackArt[it.key] ?: it.iconUrl) }
             else -> emptyList()
@@ -737,12 +760,14 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // ---- unsaved-changes guard: everything the editor can change, compared with how it started.
     fun snapshot(): List<Any?> = listOf(
         name, emoji, color, category, uri, artworkUrl, subtitle, podcastMode, episodeUrl, episodeTitle,
-        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder, sticker
+        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder, sticker,
+        clips
     )
     val initialSnapshot = remember(uid) { snapshot() }
     val dirty = snapshot() != initialSnapshot || (saved == null && uri.isNotBlank())
     var showLeaveDialog by remember { mutableStateOf(false) }
     fun leave() {
+        if (busyRecording()) return
         if (dirty) showLeaveDialog = true else viewModel.back()
     }
     BackHandler { leave() }
@@ -767,6 +792,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 Row {
                     TextButton(onClick = {
                         showLeaveDialog = false
+                        // A recording made here and never saved goes with the rest.
+                        viewModel.discardTake(uri)
                         viewModel.back()
                     }) { Text(stringResource(R.string.editor_leave_discard)) }
                     TextButton(onClick = { showLeaveDialog = false }) { Text(stringResource(R.string.editor_leave_keep)) }
@@ -985,7 +1012,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                     },
                                     onClick = {
                                         typeMenuOpen = false
-                                        if (category != c) {
+                                        if (category != c && !busyRecording()) {
                                             // A file or folder already chosen carries over between "File" / "Folder" and "Audiobook".
                                             val keep = uri.isNotBlank() && when {
                                                 c == Category.AUDIOBOOK -> category == Category.FILE || category == Category.FOLDER
@@ -1276,6 +1303,56 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 }
                             }
                         }
+                        Category.RECORDING -> {
+                            RecorderPanel(
+                                uri = uri,
+                                clipStartMs = mainClip?.startMs ?: 0L,
+                                clipEndMs = mainClip?.endMs ?: 0L,
+                                onQuiet = { viewModel.player.pause() },
+                                onActive = { recordingNow = it },
+                                onTake = { file ->
+                                    val before = uri
+                                    uri = Uri.fromFile(file).toString()
+                                    chapters = emptyList()
+                                    scannedChapters = false
+                                    status = null
+                                    if (name.isBlank()) {
+                                        name = context.getString(R.string.editor_rec_default_name)
+                                        autoName = name
+                                    }
+                                    // The take it replaces goes, unless it is the one the saved card plays
+                                    // (that one stays until this is saved, in case it isn't).
+                                    viewModel.discardTake(before)
+                                }
+                            )
+                            if (uri.isNotBlank() && !recordingNow) {
+                                MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
+                                if (chapters.size > 1) {
+                                    Text(
+                                        stringResource(R.string.editor_split_done, chapters.size),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // Trimming the ends of a recording is free; splitting it into songs is Plus, as for any file.
+                                    OutlinedButton(onClick = openSplitEditor) {
+                                        Text(
+                                            stringResource(
+                                                when {
+                                                    !plus -> R.string.editor_rec_trim
+                                                    chapters.size > 1 -> R.string.editor_edit_songs
+                                                    else -> R.string.editor_split_into_songs
+                                                }
+                                            )
+                                        )
+                                    }
+                                    if (chapters.isNotEmpty()) {
+                                        TextButton(onClick = { chapters = emptyList() }) { Text(stringResource(R.string.editor_remove_split)) }
+                                    }
+                                }
+                            }
+                        }
                         Category.AUDIOBOOK -> {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                 OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
@@ -1546,7 +1623,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     // A downloaded YouTube playlist lists its songs (picture and cut each, keyed by video id).
                     Category.LINK -> ytListTracks?.map { it.id to it.title }
                         ?: chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
-                    Category.FILE -> chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
+                    Category.FILE, Category.RECORDING -> chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
                     Category.YOTO -> yotoChapters.map { it.key to yotoPrettyTitle(it.title) }
                     else -> emptyList()
                 }
@@ -1733,7 +1810,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     }
                 }
 
-                val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST || category == Category.AUDIOBOOK
+                val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST ||
+                    category == Category.AUDIOBOOK || category == Category.RECORDING
                 val shareable = !localOnly && uri.isNotBlank()
                 SettingsGroup(stringResource(R.string.editor_section_share)) {
                     SettingRow(
@@ -1877,16 +1955,20 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
     songEditor?.let { (key, source) ->
         val main = key == Card.MAIN_TRACK
+        // One song of a playlist is trimmed only; the card's own file / video can be split too.
+        // (A recording without Plus: the free trim, no splitting.)
+        val split = main && (plus || category != Category.RECORDING)
         SplitEditorDialog(
             source = source,
-            initialChapters = if (main) chapters else emptyList(),
+            initialChapters = if (split) chapters else emptyList(),
             initialClip = if (main) mainClip else clips[key],
-            // One song of a playlist is trimmed only; the card's own file / video can be split too.
-            allowSplit = main,
+            allowSplit = split,
             onDone = { result, clip ->
                 if (main) {
-                    chapters = result
-                    scannedChapters = true
+                    if (split) {
+                        chapters = result
+                        scannedChapters = true
+                    }
                     mainClipUri = uri.trim()
                 }
                 clips = if (clip != null) clips + (key to clip) else clips - key
@@ -1902,7 +1984,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.AUDIOBOOK -> folderTracks.firstOrNull { it.uri == target }?.title ?: chapters.firstOrNull { it.artKey == target }?.title
             Category.PODCAST -> feed?.episodes?.firstOrNull { it.url == target }?.title
             Category.PLAYLIST -> playlist.firstOrNull { it.uri == target }?.title
-            Category.LINK, Category.FILE -> chapters.firstOrNull { it.artKey == target }?.title
+            Category.LINK, Category.FILE, Category.RECORDING -> chapters.firstOrNull { it.artKey == target }?.title
             Category.YOTO -> yotoChapters.firstOrNull { it.key == target }?.title?.let { yotoPrettyTitle(it) }
             else -> null
         }

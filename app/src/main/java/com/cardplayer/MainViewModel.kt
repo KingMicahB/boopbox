@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.cardplayer.billing.Plus
 import com.cardplayer.billing.PlusReason
 import com.cardplayer.data.PendingCardRepository
+import com.cardplayer.data.Recordings
 import com.cardplayer.data.AppSettings
 import com.cardplayer.data.Backup
 import com.cardplayer.data.BoopFile
@@ -116,7 +117,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.pending.discard(card.uid)
         // A card made here and thrown away: the sticker drawn for it goes too.
         if (app.pending.isDraft(card)) StickerStore.delete(app, card.stickerUrl)
+        // So does what was recorded for it.
+        Recordings.cleanUpAfter(app, card, everyCard())
     }
+
+    /** Every card on the phone and every one waiting for a tap: all that can still point at a recording. */
+    private fun everyCard(): List<Card> = app.cards.cards.value + app.pending.pending.value
+
+    /** A recording made in the editor and then recorded again or abandoned: removed, unless a card plays it after all. */
+    fun discardTake(uri: String) = Recordings.discardIfUnused(app, uri, everyCard())
 
     /** The waiting card on screen right now: the first one the grown-up hasn't said "not now" to. */
     fun visiblePending(): Card? = pendingCards.value.firstOrNull { pendingKey(it) !in _snoozedPending.value }
@@ -521,7 +530,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun saveCard(card: Card) {
+        val before = app.cards.get(card.uid)
         app.cards.upsert(card)
+        // Recorded again, or given something else to play: the recording it had goes.
+        if (before != null) Recordings.cleanUpAfter(app, before, everyCard())
         // A YouTube card starts downloading as soon as it is saved, so it plays offline from its first tap.
         if (app.settings.value.youtubeAutoCache) app.player.youtubeCache.ensureAsync(card)
     }
@@ -562,9 +574,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteCard(uid: String) {
-        StickerStore.delete(app, app.cards.get(uid)?.stickerUrl)
+        val card = app.cards.get(uid)
+        StickerStore.delete(app, card?.stickerUrl)
         app.cards.delete(uid)
         app.positions.clear(uid)
+        // What was recorded for it goes too, unless another card (a copy on a second tag) plays it.
+        if (card != null) Recordings.cleanUpAfter(app, card, everyCard())
     }
 
     fun playNow(card: Card) {
