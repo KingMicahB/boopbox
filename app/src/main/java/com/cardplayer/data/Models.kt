@@ -1,9 +1,11 @@
 package com.cardplayer.data
 
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.StringRes
 import com.cardplayer.R
 import kotlinx.serialization.Serializable
+import java.io.File
 
 @Serializable
 enum class SourceType(@param:StringRes val labelRes: Int) {
@@ -91,6 +93,17 @@ data class Card(
 ) {
     /** What to call this card in the UI; a card with no name of its own is called after its subtitle or source. */
     fun displayName(context: Context): String = name.ifBlank { subtitle ?: context.getString(sourceType.labelRes) }
+
+    /**
+     * [stickerUrl], unless it is a file on this phone that is no longer there: then the card is shown with its
+     * plain picture instead (the card picker and the car screen both ask here).
+     */
+    fun stickerIfThere(): String? {
+        val s = stickerUrl ?: return null
+        if (!s.startsWith("file://")) return s
+        val path = Uri.parse(s).path ?: return null
+        return s.takeIf { File(path).isFile }
+    }
 
     fun removedMode(settings: AppSettings): String = settings.cardRemovedOverride ?: cardRemoved ?: settings.cardRemovedMode
 
@@ -210,8 +223,17 @@ data class AppSettings(
     val showClock: Boolean = true,
     /** Holding the logo on the home screen opens every card's picture to choose from, for when the cards aren't there. */
     val holdLogoToPick: Boolean = true,
-    /** How the card picker lays the cards out: "cards" (one big picture at a time, swiped sideways) or "tiles" (a grid of small ones). */
+    /**
+     * How the card picker lays the cards out: "cards" (one big card at a time, swiped sideways) or "tiles" (a grid of
+     * small ones). Phone only: the car screen (Android Auto) has one look of its own, a grid.
+     */
     val pickerStyle: String = "cards",
+    /**
+     * "tiles" on the phone: how many cards one screen of the picker holds, across and down (more cards are a swipe
+     * away).
+     */
+    val pickerTileCols: Int = 3,
+    val pickerTileRows: Int = 3,
     /** "off", "on" or "bedtime" (only during bedtime hours). */
     val nightLight: String = "bedtime",
     val nightLightColor: Long = 0xFFFF8C3AL,

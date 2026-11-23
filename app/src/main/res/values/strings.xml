@@ -98,9 +98,9 @@
     <string name="settings_section_safety_title">Toddler safety</string>
     <string name="settings_section_safety_blurb">Child lock, PIN, grip guard</string>
     <string name="settings_section_bedtime_title">Bedtime &amp; sleep</string>
-    <string name="settings_section_bedtime_blurb">Sleep timer, bedtime hours</string>
+    <string name="settings_section_bedtime_blurb">Sleep timer, bedtime hours, night light</string>
     <string name="settings_section_look_title">Look &amp; idle screen</string>
-    <string name="settings_section_look_blurb">Theme, battery, tap flash, clock, night light</string>
+    <string name="settings_section_look_blurb">Theme, battery, tap flash, clock</string>
     <string name="settings_section_permissions_title">Permissions</string>
     <string name="settings_section_permissions_blurb">Overlay, notification access</string>
     <string name="settings_section_help_title">Help</string>
@@ -278,7 +278,11 @@
     <string name="settings_picker_style_cards">Cards</string>
     <string name="settings_picker_style_tiles">Tiles</string>
     <string name="settings_picker_style_cards_hint">One big picture at a time: swipe sideways to find the card.</string>
-    <string name="settings_picker_style_tiles_hint">Several small pictures at once: scroll to find the card.</string>
+    <string name="settings_picker_style_tiles_hint">Several small cards at once: swipe sideways for the next screenful.</string>
+    <string name="settings_picker_tiles_per_screen">Tiles per screen: %1$d × %2$d</string>
+    <string name="settings_picker_tiles_per_screen_hint">How many cards one screen of the picker holds.</string>
+    <string name="settings_picker_tiles_across">Across</string>
+    <string name="settings_picker_tiles_down">Down</string>
     <string name="settings_picker_cards">Cards in the picker</string>
     <string name="settings_picker_cards_hint">A card that is switched off here plays only with its real card.</string>
     <string name="settings_picker_show_all">Show all</string>

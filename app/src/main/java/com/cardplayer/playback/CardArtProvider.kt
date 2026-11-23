@@ -8,7 +8,9 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Binder
 import android.os.ParcelFileDescriptor
@@ -27,7 +29,7 @@ import kotlin.random.Random
  * Hands card pictures to the car screen. Android Auto loads pictures itself, from a content uri, so it cannot
  * see a picture stored inside BoopBox or one BoopBox draws (the pixel creature of a card without artwork).
  * This provider draws each picture the way the phone shows it (pixel art when that setting is on) into a small
- * PNG and serves that.
+ * PNG and serves that. A card is drawn card-shaped, as its sticker when it has one, like in the phone's card picker.
  *
  * It only ever serves the picture of a card, or of a song of a card, looked up by the card's id: no paths.
  */
@@ -51,12 +53,17 @@ class CardArtProvider : ContentProvider() {
         val seed = if (trackKey != null) card.uid + trackKey else card.uid
         val pixel = app.settings.value.pixelArt
 
+        // A card is shown as its sticker (the printed face of the real card) when it has one; its songs keep their own pictures.
+        val sticker = card.stickerIfThere().takeIf { trackKey == null }
+
         val dir = File(context.cacheDir, "car_art").apply { mkdirs() }
-        val file = File(dir, sha1("$source|$seed|${card.color}|$pixel") + ".png")
+        val file = File(dir, sha1("$LOOK|$trackKey|$sticker|${stickerStamp(sticker)}|$source|$seed|${card.color}|$pixel") + ".png")
         if (!file.exists() || file.length() == 0L) {
             val identity = Binder.clearCallingIdentity()
             try {
-                val bitmap = render(context, source, seed, card.color, pixel)
+                // A card looks like a card, as in the phone's card picker; a song keeps its plain square picture.
+                val bitmap = if (trackKey == null) renderCard(context, sticker, source, seed, card.color, pixel)
+                else render(context, source, seed, card.color, pixel)
                 val tmp = File.createTempFile("art", ".tmp", dir)
                 tmp.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 if (!tmp.renameTo(file)) tmp.delete()
@@ -68,6 +75,45 @@ class CardArtProvider : ContentProvider() {
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
     }
 
+    /**
+     * A card the way the phone's card picker shows it (CardFace there): card-shaped and upright, its sticker when
+     * it has one that opens, else its plain picture on a card of its own colour.
+     *
+     * The car screen only takes square pictures, so the card stands in the middle of a square that is see-through
+     * everywhere else: nothing is drawn round the card, and the car's own background shows beside it. The sticker
+     * is never pixelated (it is print art with small lettering) and never cropped (that would cut its track list).
+     */
+    private fun renderCard(context: Context, sticker: String?, source: String?, seed: String, color: Long, pixel: Boolean): Bitmap {
+        val out = Bitmap.createBitmap(CARD_SIZE, CARD_SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val h = CARD_SIZE.toFloat()
+        val w = h * CARD_ASPECT
+        val box = RectF((CARD_SIZE - w) / 2, 0f, (CARD_SIZE + w) / 2, h)
+        // Rounded like the real card.
+        val corner = w * 0.07f
+        val smooth = Paint().apply { isFilterBitmap = true; isAntiAlias = true }
+        canvas.clipPath(Path().apply { addRoundRect(box, corner, corner, Path.Direction.CW) })
+
+        val face = sticker?.let { load(context, it, CARD_SIZE) }
+        if (face != null) {
+            // Fill the card: a sticker of slightly different proportions loses a sliver at the edges, not its shape.
+            val scale = maxOf(w / face.width, h / face.height)
+            val fw = face.width * scale
+            val fh = face.height * scale
+            canvas.drawBitmap(face, null, RectF(box.centerX() - fw / 2, box.centerY() - fh / 2, box.centerX() + fw / 2, box.centerY() + fh / 2), smooth)
+            return out
+        }
+        // No sticker, or one that is gone or won't open: the plain picture, on a card of the card's colour.
+        val base = color.toInt()
+        canvas.drawColor(Color.rgb(wash(Color.red(base), 0.45f), wash(Color.green(base), 0.45f), wash(Color.blue(base), 0.45f)))
+        val side = w * 0.84f
+        val inner = RectF(box.centerX() - side / 2, box.centerY() - side / 2, box.centerX() + side / 2, box.centerY() + side / 2)
+        canvas.clipPath(Path().apply { addRoundRect(inner, corner * 0.7f, corner * 0.7f, Path.Direction.CW) })
+        // Pixel art stays blocky when blown up.
+        canvas.drawBitmap(render(context, source, seed, color, pixel), null, inner, Paint().apply { isFilterBitmap = !pixel; isAntiAlias = true })
+        return out
+    }
+
     private fun render(context: Context, source: String?, seed: String, color: Long, pixel: Boolean): Bitmap {
         val out = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
@@ -75,7 +121,7 @@ class CardArtProvider : ContentProvider() {
         // The tile behind the picture: the card colour, washed out (35% over white).
         canvas.drawColor(Color.rgb(wash(Color.red(base)), wash(Color.green(base)), wash(Color.blue(base))))
 
-        val picture = source?.let { load(context, it) }
+        val picture = source?.let { load(context, it, SIZE) }
         if (picture == null) {
             drawSprite(canvas, seed, base)
             return out
@@ -89,11 +135,12 @@ class CardArtProvider : ContentProvider() {
         return out
     }
 
-    private fun load(context: Context, source: String): Bitmap? = try {
+    /** [source] scaled to fit inside [size] × [size], or null when it is missing or not a picture. */
+    private fun load(context: Context, source: String, size: Int): Bitmap? = try {
         val request = ImageRequest.Builder(context)
             .data(source)
             .allowHardware(false)
-            .size(SIZE)
+            .size(size)
             .build()
         val result = runBlocking { context.imageLoader.execute(request) } as? SuccessResult
         result?.drawable?.toBitmap()
@@ -135,7 +182,8 @@ class CardArtProvider : ContentProvider() {
         }
     }
 
-    private fun wash(channel: Int): Int = 255 - ((255 - channel) * 0.35f).toInt()
+    /** [channel] at [strength] over white. */
+    private fun wash(channel: Int, strength: Float = 0.35f): Int = 255 - ((255 - channel) * strength).toInt()
 
     private fun sha1(text: String): String =
         MessageDigest.getInstance("SHA-1").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
@@ -151,10 +199,26 @@ class CardArtProvider : ContentProvider() {
         private const val KEY = "k"
         private const val VERSION = "v"
         private const val SIZE = 320
+        /** Cards are drawn bigger: the card only fills part of the square, and a sticker's lettering is small. */
+        private const val CARD_SIZE = 512
+        /** Width over height of a card's face (a Yoto card, 54 × 85.6 mm), as in the phone's card picker. */
+        private const val CARD_ASPECT = 638f / 1011f
+        /** Names how cards are drawn. Change it when that changes: pictures already drawn, and the car's own copies, go stale. */
+        const val LOOK = "card-shaped-1"
         private const val PIXELS = 40
         private const val EYE = 0xFF2B2118.toInt()
 
         private fun authority(context: Context) = context.packageName + ".art"
+
+        /**
+         * Whether the sticker file is there, and which copy of it: part of what makes a card's picture, so a
+         * sticker that goes missing (the card falls back to its plain picture) or is replaced gets drawn afresh.
+         */
+        fun stickerStamp(sticker: String?): String {
+            if (sticker == null || !sticker.startsWith("file://")) return ""
+            val file = Uri.parse(sticker).path?.let { File(it) }
+            return if (file != null && file.isFile) file.lastModified().toString() + ":" + file.length() else "missing"
+        }
 
         /**
          * The picture of a card. [version] changes whenever the picture would (the car keeps pictures by uri,

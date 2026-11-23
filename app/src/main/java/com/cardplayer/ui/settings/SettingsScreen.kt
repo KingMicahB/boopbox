@@ -217,20 +217,13 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 }
             )
         ).joinToString(" · ")
-        Section.BEDTIME -> when {
-            sleepAtEnd -> stringResource(R.string.settings_sleep_after_song)
-            sleepEnds != null -> stringResource(R.string.settings_status_sleep_running)
-            settings.bedtimeEnabled && plus -> stringResource(R.string.settings_status_bedtime_hours, Bedtime.formatMinutes(settings.bedtimeStart), Bedtime.formatMinutes(settings.bedtimeEnd))
-            else -> stringResource(R.string.settings_off)
-        }
-        Section.LOOK -> listOf(
-            stringResource(
-                when (settings.themeMode) {
-                    "dark" -> R.string.settings_theme_dark
-                    "light" -> R.string.settings_theme_light
-                    else -> R.string.settings_status_follows_phone
-                }
-            ),
+        Section.BEDTIME -> listOf(
+            when {
+                sleepAtEnd -> stringResource(R.string.settings_sleep_after_song)
+                sleepEnds != null -> stringResource(R.string.settings_status_sleep_running)
+                settings.bedtimeEnabled && plus -> stringResource(R.string.settings_status_bedtime_hours, Bedtime.formatMinutes(settings.bedtimeStart), Bedtime.formatMinutes(settings.bedtimeEnd))
+                else -> stringResource(R.string.settings_off)
+            },
             stringResource(
                 when (settings.nightLight) {
                     "off" -> R.string.settings_status_night_light_off
@@ -239,6 +232,13 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 }
             )
         ).joinToString(" · ")
+        Section.LOOK -> stringResource(
+            when (settings.themeMode) {
+                "dark" -> R.string.settings_theme_dark
+                "light" -> R.string.settings_theme_light
+                else -> R.string.settings_status_follows_phone
+            }
+        )
         Section.PERMISSIONS -> if (permissionsToFix == 0) stringResource(R.string.settings_status_all_set) else stringResource(R.string.settings_status_to_fix, permissionsToFix)
         Section.HELP -> stringResource(R.string.settings_status_help)
     }
@@ -312,7 +312,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                             Section.ACCOUNTS -> accountsSection(settings, viewModel)
                             Section.SAFETY -> safetySection(settings, viewModel)
                             Section.BEDTIME -> bedtimeSection(settings, plus, viewModel)
-                            Section.LOOK -> lookSection(settings, plus, viewModel)
+                            Section.LOOK -> lookSection(settings, viewModel)
                             Section.PERMISSIONS -> permissionsSection(settings, nfc, overlayGranted, mediaAccess, context)
                             Section.HELP -> helpSection()
                         }
@@ -572,6 +572,30 @@ private fun LazyListScope.pickerSection(cards: List<CardModel>, settings: AppSet
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+    if (settings.pickerStyle == "tiles") {
+        item {
+            Column {
+                Text(
+                    stringResource(R.string.settings_picker_tiles_per_screen, settings.pickerTileCols, settings.pickerTileRows),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    stringResource(R.string.settings_picker_tiles_per_screen_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val sizes = (1..6).map { it.toString() to it.toString() }
+                Text(stringResource(R.string.settings_picker_tiles_across), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
+                ChipGroup(options = sizes, selected = settings.pickerTileCols.toString()) { v ->
+                    viewModel.updateSettings { it.copy(pickerTileCols = v.toInt()) }
+                }
+                Text(stringResource(R.string.settings_picker_tiles_down), style = MaterialTheme.typography.bodyMedium)
+                ChipGroup(options = sizes, selected = settings.pickerTileRows.toString()) { v ->
+                    viewModel.updateSettings { it.copy(pickerTileRows = v.toInt()) }
+                }
+            }
         }
     }
     if (cards.isEmpty()) return
@@ -963,6 +987,7 @@ private fun LazyListScope.bedtimeSection(settings: AppSettings, plus: Boolean, v
     item { SubTitle(stringResource(R.string.settings_bedtime_hours)) }
     if (!plus) {
         item { PlusLockedRow(stringResource(R.string.settings_bedtime_hours)) { viewModel.showPaywall(PlusReason.BEDTIME) } }
+        nightLightItems(settings, plus, viewModel)
         return
     }
     item {
@@ -1008,9 +1033,10 @@ private fun LazyListScope.bedtimeSection(settings: AppSettings, plus: Boolean, v
             }
         }
     }
+    nightLightItems(settings, plus, viewModel)
 }
 
-private fun LazyListScope.lookSection(settings: AppSettings, plus: Boolean, viewModel: MainViewModel) {
+private fun LazyListScope.lookSection(settings: AppSettings, viewModel: MainViewModel) {
     item {
         Column {
             Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.bodyLarge)
@@ -1072,9 +1098,13 @@ private fun LazyListScope.lookSection(settings: AppSettings, plus: Boolean, view
             checked = settings.showClock
         ) { v -> viewModel.updateSettings { it.copy(showClock = v) } }
     }
+}
+
+/** The night light: on, off or only at bedtime; its colour and brightness are Plus. Part of "Bedtime & sleep". */
+private fun LazyListScope.nightLightItems(settings: AppSettings, plus: Boolean, viewModel: MainViewModel) {
+    item { SubTitle(stringResource(R.string.settings_night_light)) }
     item {
         Column {
-            Text(stringResource(R.string.settings_night_light), style = MaterialTheme.typography.bodyLarge)
             Text(
                 stringResource(R.string.settings_night_light_hint),
                 style = MaterialTheme.typography.bodyMedium,

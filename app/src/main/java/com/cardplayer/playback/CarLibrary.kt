@@ -29,17 +29,24 @@ class CarLibrary(private val app: BoopBoxApp) {
 
     fun root(): MediaItem = folder(ROOT, app.getString(R.string.app_name), null, null)
 
-    /** Extras for the root: cards are shown as a grid of pictures. */
-    fun rootExtras(): Bundle = Bundle().apply {
+    /**
+     * Cards are a grid on the car screen, each a picture with only its name under it: the nearest a car screen
+     * comes to the phone's card picker (a media app gets a list or a grid there, no carousel, and the car sizes
+     * the tiles). One look, whatever the picker on the phone is set to.
+     */
+    private fun cardStyleExtras(): Bundle = Bundle().apply {
         putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM)
         putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM)
     }
 
+    /** Extras for the root: the look of the lists of cards. */
+    fun rootExtras(): Bundle = cardStyleExtras()
+
     /** The items under [parentId], or null when there is no such place. */
     suspend fun children(parentId: String): List<MediaItem>? = when {
         parentId == ROOT -> listOf(
-            folder(TAB_CARDS, app.getString(R.string.car_tab_cards), resourceUri(R.drawable.ic_car_cards), null),
-            folder(TAB_SONGS, app.getString(R.string.car_tab_songs), resourceUri(R.drawable.ic_car_songs), null)
+            folder(TAB_CARDS, app.getString(R.string.car_tab_cards), resourceUri(R.drawable.ic_car_cards), cardStyleExtras()),
+            folder(TAB_SONGS, app.getString(R.string.car_tab_songs), resourceUri(R.drawable.ic_car_songs), cardStyleExtras())
         )
         parentId == TAB_CARDS -> playableCards().map { cardItem(it) }
         parentId == TAB_SONGS -> playableCards().filter { hasSongList(it) }.map { card ->
@@ -145,11 +152,11 @@ class CarLibrary(private val app: BoopBoxApp) {
     private fun cardItem(card: Card): MediaItem = playable(
         id = PLAY + card.uid,
         title = card.displayName(app),
-        subtitle = card.subtitle?.takeIf { card.name.isNotBlank() } ?: app.getString(card.sourceType.labelRes),
+        // Picture first: nothing under the picture but the name.
         art = cardArt(card)
     )
 
-    private fun playable(id: String, title: String, subtitle: String?, art: Uri): MediaItem =
+    private fun playable(id: String, title: String, subtitle: String? = null, art: Uri): MediaItem =
         MediaItem.Builder()
             .setMediaId(id)
             .setMediaMetadata(
@@ -179,22 +186,27 @@ class CarLibrary(private val app: BoopBoxApp) {
             )
             .build()
 
+    /** A card's picture: its sticker when it has one that is still there, else its plain picture (see CardArtProvider). */
     private fun cardArt(card: Card): Uri =
-        CardArtProvider.cardUri(app, card.uid, artVersion(card, card.artworkUrl))
+        CardArtProvider.cardUri(
+            app,
+            card.uid,
+            artVersion(card, card.stickerUrl + "|" + CardArtProvider.stickerStamp(card.stickerUrl) + "|" + card.artworkUrl)
+        )
 
     private fun trackArt(card: Card, artKey: String): Uri =
         CardArtProvider.trackUri(app, card.uid, artKey, artVersion(card, card.trackArt[artKey] ?: card.artworkUrl))
 
     /** Changes when the picture drawn for [source] would look different. */
     private fun artVersion(card: Card, source: String?): String =
-        Integer.toHexString("$source|${card.color}|${app.settings.value.pixelArt}".hashCode())
+        Integer.toHexString("${CardArtProvider.LOOK}|$source|${card.color}|${app.settings.value.pixelArt}".hashCode())
 
     /**
      * Everything about the cards that the car screen shows, except when each was last played: when this changes
      * the lists on the car screen are stale. (The order is left alone while someone is looking at it.)
      */
     fun fingerprint(cards: List<Card>): Int = cards.filter { playsHere(it) }
-        .map { listOf(it.uid, it.name, it.subtitle, it.artworkUrl, it.color, it.chapters, it.playlist, it.trackArt) }
+        .map { listOf(it.uid, it.name, it.subtitle, it.artworkUrl, it.stickerUrl, it.color, it.chapters, it.playlist, it.trackArt) }
         .hashCode()
 
     private fun resourceUri(id: Int): Uri =

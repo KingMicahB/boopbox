@@ -71,7 +71,8 @@ object BoopFile {
                 else -> pack(c.uri)!!
             },
             artworkUrl = pack(c.artworkUrl),
-            stickerUrl = pack(c.stickerUrl),
+            // A sticker that has gone missing is left out; the card itself still sends.
+            stickerUrl = c.stickerUrl?.takeIf { !isLocal(it) || open(context, it)?.also { s -> s.close() } != null }?.let(::pack),
             playlist = c.playlist.map { it.copy(uri = pack(it.uri)!!) },
             trackArt = c.trackArt.entries.associate { (k, v) -> pack(k)!! to pack(v)!! }
         )

@@ -96,9 +96,9 @@
     <string name="settings_section_safety_title">בטיחות לפעוטות</string>
     <string name="settings_section_safety_blurb">נעילת ילדים, קוד PIN, הגנה מאחיזה</string>
     <string name="settings_section_bedtime_title">שעת שינה וטיימר</string>
-    <string name="settings_section_bedtime_blurb">טיימר שינה, שעות שינה</string>
+    <string name="settings_section_bedtime_blurb">טיימר שינה, שעות שינה, אור לילה</string>
     <string name="settings_section_look_title">מראה ומסך המתנה</string>
-    <string name="settings_section_look_blurb">ערכת נושא, סוללה, הבהוב בהקשה, שעון, אור לילה</string>
+    <string name="settings_section_look_blurb">ערכת נושא, סוללה, הבהוב בהקשה, שעון</string>
     <string name="settings_section_permissions_title">הרשאות</string>
     <string name="settings_section_permissions_blurb">הצגה מעל אפליקציות, גישה להתראות</string>
     <string name="settings_section_help_title">עזרה</string>
@@ -282,7 +282,11 @@
     <string name="settings_picker_style_cards">כרטיסים</string>
     <string name="settings_picker_style_tiles">אריחים</string>
     <string name="settings_picker_style_cards_hint">תמונה גדולה אחת בכל פעם: מחליקים הצידה כדי למצוא את הכרטיס.</string>
-    <string name="settings_picker_style_tiles_hint">כמה תמונות קטנות יחד: גוללים כדי למצוא את הכרטיס.</string>
+    <string name="settings_picker_style_tiles_hint">כמה כרטיסים קטנים יחד: מחליקים הצידה למסך הבא.</string>
+    <string name="settings_picker_tiles_per_screen">אריחים במסך: %1$d × %2$d</string>
+    <string name="settings_picker_tiles_per_screen_hint">כמה כרטיסים נכנסים במסך אחד של הבוחר.</string>
+    <string name="settings_picker_tiles_across">לרוחב</string>
+    <string name="settings_picker_tiles_down">לגובה</string>
     <string name="settings_picker_cards">כרטיסים בבוחר</string>
     <string name="settings_picker_cards_hint">כרטיס שכבוי כאן מתנגן רק עם הכרטיס האמיתי.</string>
     <string name="settings_picker_show_all">הצגת הכול</string>

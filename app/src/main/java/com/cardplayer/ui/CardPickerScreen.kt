@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,11 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -38,9 +34,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,13 +71,15 @@ private const val PickerIdleMs = 60_000L
  * "The cards aren't here": the cards' pictures to choose from; tapping one plays it as if its card had been put
  * on the phone. Opened by holding the logo on the home screen.
  *
- * [style] (settings, "Card picker"): "cards" = one big picture at a time, swiped sideways like a carousel;
- * "tiles" = a scrolling grid of small ones.
+ * [style] (settings, "Card picker"): "cards" = one big card at a time, swiped sideways like a carousel;
+ * "tiles" = [tileCols] × [tileRows] small ones per screen.
  */
 @Composable
 fun CardPickerScreen(
     cards: List<Card>,
     style: String,
+    tileCols: Int,
+    tileRows: Int,
     pixel: Boolean,
     /** Night light: shade the pictures too, not only the chrome. */
     dim: Boolean,
@@ -112,7 +112,7 @@ fun CardPickerScreen(
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
         if (style == "tiles") {
-            PickerTiles(cards = ordered, pixel = pixel, dim = dim, onPick = pick, onIdle = { currentOnClose() })
+            PickerTiles(cards = ordered, cols = tileCols, rows = tileRows, pixel = pixel, dim = dim, onPick = pick, onIdle = { currentOnClose() })
         } else {
             PickerCarousel(cards = ordered, pixel = pixel, dim = dim, onPick = pick, onIdle = { currentOnClose() })
         }
@@ -155,13 +155,17 @@ private fun CardFace(card: Card, pixel: Boolean, dim: Boolean, corner: Dp, modif
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
     ) {
-        if (card.stickerUrl != null) {
+        // A sticker that is gone or won't open (file deleted, link dead): the card falls back to its plain picture.
+        val sticker = remember(card.stickerUrl) { card.stickerIfThere() }
+        var stickerFailed by remember(card.stickerUrl) { mutableStateOf(false) }
+        if (sticker != null && !stickerFailed) {
             // The sticker is print art with small lettering: never pixelated, whatever the pictures setting says.
             AsyncImage(
-                model = card.stickerUrl,
+                model = sticker,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                onError = { stickerFailed = true }
             )
         } else {
             Box(
@@ -259,76 +263,132 @@ private fun PickerCarousel(cards: List<Card>, pixel: Boolean, dim: Boolean, onPi
                 }
             }
             Spacer(Modifier.height(if (landscape) 8.dp else 14.dp))
-            if (cards.size in 2..12) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    for (i in cards.indices) {
-                        val isCurrent = i == pagerState.currentPage
-                        Box(
-                            Modifier
-                                .size(if (isCurrent) 14.dp else 8.dp)
-                                .clip(CircleShape)
-                                .background(if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f))
-                        )
-                    }
-                }
-            } else if (cards.size > 12) {
-                // Too many for dots: plain numbers instead.
-                Text(
-                    text = "${pagerState.currentPage + 1} / ${cards.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            PageMarks(count = cards.size, current = pagerState.currentPage)
         }
     }
 }
 
-/** "Tiles": several small cards on screen at once, scrolled up and down. */
+/**
+ * "Tiles": [cols] × [rows] small cards per screen (the grown-up's choice in settings), each as big as its share
+ * of the screen allows; the next screenful is a swipe sideways away.
+ */
 @Composable
-private fun PickerTiles(cards: List<Card>, pixel: Boolean, dim: Boolean, onPick: (Card) -> Unit, onIdle: () -> Unit) {
+private fun PickerTiles(cards: List<Card>, cols: Int, rows: Int, pixel: Boolean, dim: Boolean, onPick: (Card) -> Unit, onIdle: () -> Unit) {
     val context = LocalContext.current
-    val gridState = rememberLazyGridState()
-    LaunchedEffect(gridState.firstVisibleItemIndex, gridState.isScrollInProgress) {
+    val across = cols.coerceIn(1, 6)
+    val down = rows.coerceIn(1, 6)
+    val pages = remember(cards, across, down) { cards.chunked(across * down) }
+    val pagerState = rememberPagerState { pages.size }
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
         delay(PickerIdleMs)
         onIdle()
     }
-    LazyVerticalGrid(
-        // Three across on a phone, more on anything wider.
-        columns = GridCells.Adaptive(minSize = 96.dp),
-        state = gridState,
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding(),
-        // Room at the bottom so the last row clears a notice or the NFC banner.
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 96.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            // As tall as the close button beside it, and clear of it on both sides.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // As tall as the close button beside it, and clear of it on both sides. A short screen keeps the room for cards.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 60.dp)
-                    .padding(horizontal = 52.dp),
+                    .heightIn(min = if (landscape) 12.dp else 76.dp)
+                    .padding(horizontal = 56.dp),
                 contentAlignment = Alignment.Center
-            ) { PickerTitle() }
+            ) { if (!landscape) PickerTitle() }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                key = { pages[it].first().uid }
+            ) { page ->
+                val shown = pages[page]
+                val gap = if (across >= 5 || down >= 5) 6.dp else 12.dp
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(gap)
+                ) {
+                    for (r in 0 until down) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(gap)
+                        ) {
+                            for (c in 0 until across) {
+                                // A last screen that isn't full keeps its empty places, so cards don't change size.
+                                val card = shown.getOrNull(r * across + c)
+                                BoxWithConstraints(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (card != null) {
+                                        // The card is as big as its place allows, under one line for its name.
+                                        val nameRoom = 24.dp
+                                        val width = minOf(maxWidth, (maxHeight - nameRoom) * CardAspect).coerceAtLeast(20.dp)
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CardFace(
+                                                card = card,
+                                                pixel = pixel,
+                                                dim = dim,
+                                                corner = (width * 0.08f).coerceIn(4.dp, 18.dp),
+                                                modifier = Modifier.width(width)
+                                            ) { onPick(card) }
+                                            Box(Modifier.height(nameRoom), contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = card.displayName(context),
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    color = MaterialTheme.colorScheme.onBackground,
+                                                    textAlign = TextAlign.Center,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            PageMarks(count = pages.size, current = pagerState.currentPage)
+            Spacer(Modifier.height(12.dp))
         }
-        items(cards, key = { it.uid }) { card ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CardFace(card = card, pixel = pixel, dim = dim, corner = 12.dp, modifier = Modifier.fillMaxWidth()) { onPick(card) }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = card.displayName(context),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+    }
+}
+
+/** Where in the row of screens (or cards) the picker is: dots, or plain numbers when there are too many for dots. */
+@Composable
+private fun PageMarks(count: Int, current: Int) {
+    if (count in 2..12) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            for (i in 0 until count) {
+                val isCurrent = i == current
+                Box(
+                    Modifier
+                        .size(if (isCurrent) 14.dp else 8.dp)
+                        .clip(CircleShape)
+                        .background(if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f))
                 )
             }
         }
+    } else if (count > 12) {
+        Text(
+            text = "${current + 1} / $count",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

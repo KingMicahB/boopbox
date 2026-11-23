@@ -607,6 +607,8 @@ fun PlayerScreen(viewModel: MainViewModel) {
             CardPickerScreen(
                 cards = pickable,
                 style = settings.pickerStyle,
+                tileCols = settings.pickerTileCols,
+                tileRows = settings.pickerTileRows,
                 pixel = settings.pixelArt,
                 dim = nightLight,
                 haptics = settings.zoneHaptics,
