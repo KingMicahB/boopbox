@@ -381,6 +381,61 @@
     <string name="editor_untitled">כרטיס ללא שם</string>
     <string name="editor_card_id">מזהה כרטיס %1$s</string>
     <string name="editor_read_from_shared">נקרא מכרטיס משותף. שמרו אותו כדי שיישאר.</string>
+    <string name="editor_sticker_cd">מדבקת הכרטיס. פותחת את יוצר המדבקות.</string>
+    <string name="sticker_maker_title">יוצר המדבקות</string>
+    <string name="sticker_maker_hint">הקישו כדי לבחור. גררו כדי להזיז, צבטו כדי לשנות גודל. הקישו שוב על טקסט כדי להקליד.</string>
+    <string name="sticker_undo">ביטול</string>
+    <string name="sticker_redo">ביצוע מחדש</string>
+    <string name="sticker_add">הוספה</string>
+    <string name="sticker_layouts">פריסות</string>
+    <string name="sticker_layouts_hint">בחרו אחת להתחיל ממנה. אפשר עדיין להזיז ולשנות בה הכול.</string>
+    <string name="sticker_layout_auto">מומלץ</string>
+    <string name="sticker_layout_poster">תמונה מלאה</string>
+    <string name="sticker_layout_block">תמונה ושם</string>
+    <string name="sticker_layout_middle">תמונה באמצע</string>
+    <string name="sticker_layout_icon">תמונה קטנה</string>
+    <string name="sticker_put_back">החזרה למקום</string>
+    <string name="sticker_box_colour">צבע התיבה</string>
+    <string name="sticker_box_opacity">משקוף לאטום</string>
+    <string name="sticker_new_line">הטקסט שלכם</string>
+    <string name="sticker_font_round">עגול</string>
+    <string name="sticker_font_heavy">עבה</string>
+    <string name="sticker_font_narrow">צר</string>
+    <string name="sticker_font_book">ספר</string>
+    <string name="sticker_font_handwriting">כתב יד</string>
+    <string name="sticker_font_script">מסולסל</string>
+    <string name="sticker_font_typewriter">מכונת כתיבה</string>
+    <string name="sticker_imported_note">המדבקה הזו הגיעה עם הכרטיס.</string>
+    <string name="sticker_make_new">יצירת מדבקה חדשה</string>
+    <string name="sticker_start_over">התחלה מחדש</string>
+    <string name="sticker_from_gallery">בחירה מהגלריה</string>
+    <string name="sticker_add_name">הוספת השם</string>
+    <string name="sticker_add_list">הוספת רשימת השירים</string>
+    <string name="sticker_rows_restore">החזרת השורות שהוסרו</string>
+    <string name="sticker_change_text">שינוי הטקסט</string>
+    <string name="sticker_line_under">שורה מתחת לשם</string>
+    <string name="sticker_use_card_text">כמו בכרטיס</string>
+    <string name="sticker_remove_text">הסרה מהמדבקה</string>
+    <string name="sticker_row_remove">הסרת השורה</string>
+    <string name="sticker_list_remove">הסרת כל הרשימה</string>
+    <!-- Sticker footer: printed on the sticker itself -->
+    <string name="sticker_foot_podcast">פודקאסט</string>
+    <string name="sticker_foot_movie">סרט</string>
+    <string name="sticker_foot_audiobook">ספר שמע</string>
+    <string name="sticker_foot_minutes">%1$d דק׳</string>
+    <string name="sticker_foot_hours">%1$d שע׳ %2$d דק׳</string>
+    <plurals name="sticker_foot_songs">
+        <item quantity="one">שיר אחד</item>
+        <item quantity="two">%1$d שירים</item>
+        <item quantity="many">%1$d שירים</item>
+        <item quantity="other">%1$d שירים</item>
+    </plurals>
+    <plurals name="sticker_foot_chapters">
+        <item quantity="one">פרק אחד</item>
+        <item quantity="two">%1$d פרקים</item>
+        <item quantity="many">%1$d פרקים</item>
+        <item quantity="other">%1$d פרקים</item>
+    </plurals>
 
     <!-- Card editor: what should it play -->
     <string name="editor_section_play">מה הכרטיס ינגן?</string>
@@ -529,8 +584,6 @@
     <!-- Card editor: looks -->
     <string name="editor_section_looks">מראה</string>
     <string name="editor_name">שם</string>
-    <string name="editor_picture">תמונה</string>
-    <string name="editor_picture_note">מוצגת בגדול באמצע הנגן. בחרו סמל פיקסלים (yotoicons.com) או עטיפת אלבום, או הדביקו קישור לכל תמונה שתרצו. בלי תמונה, כל קטע מקבל יצור פיקסלים קטן משלו.</string>
     <string name="editor_find_picture">חיפוש תמונה</string>
     <string name="editor_change_picture">החלפת תמונה</string>
     <string name="editor_tracks_songs_title">שירים והתמונות שלהם</string>

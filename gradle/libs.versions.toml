@@ -12,6 +12,7 @@ serialization = "1.9.0"
 coroutines = "1.10.2"
 documentfile = "1.1.0"
 junit = "4.13.2"
+robolectric = "4.14.1"
 billing = "8.3.0"
 fragment = "1.8.9"
 carApp = "1.4.0"
@@ -40,6 +41,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 billing = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

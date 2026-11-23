@@ -50,6 +50,12 @@ data class Card(
      * a computer push and a backup.
      */
     val stickerUrl: String? = null,
+    /**
+     * The sticker as made in the app's sticker maker: what was changed from what the card itself says.
+     * Null = none made here ([stickerUrl], if any, is a finished picture that came with the card).
+     * [stickerUrl] is drawn from this whenever the card is saved.
+     */
+    val sticker: StickerDesign? = null,
     val subtitle: String? = null,
     val podcastMode: PodcastMode = PodcastMode.LATEST,
     val episodeUrl: String? = null,
@@ -115,6 +121,55 @@ data class Card(
         const val MAIN_TRACK = ""
     }
 }
+
+/**
+ * A card's sticker, as data: only what the grown-up changed. Everything left alone (null / empty) is filled in
+ * from the card and what it plays (its name, picture, author, songs and their icons), and keeps following them.
+ * Drawn by [com.cardplayer.sticker.StickerRenderer].
+ */
+@Serializable
+data class StickerDesign(
+    /** The name printed on the sticker. Null = the card's name. */
+    val title: String? = null,
+    /** Whether the name is printed. Null = only where the picture leaves it room (a poster carries its own title). */
+    val showTitle: Boolean? = null,
+    /** The small line under the name. Null = the card's author / artist; "" = none. */
+    val subtitle: String? = null,
+    /** Whether the song list is printed. Null = when there are a few songs to list (not for audiobooks and podcasts). */
+    val showList: Boolean? = null,
+    /** Song names as printed (often shortened to fit), by the song's key. Others are printed as the card names them. */
+    val rowTitles: Map<String, String> = emptyMap(),
+    /** Songs left off the printed list, by key. */
+    val hiddenRows: Set<String> = emptySet(),
+    /**
+     * How the sticker is laid out: "poster" (the picture fills the card), "block" (picture on top, the name on a
+     * block of the card's colour), "middle" (picture across the middle of a blurred copy of itself) or "icon"
+     * (a small picture on a pixel checker). Null = picked from the shape of the card's picture.
+     */
+    val layout: String? = null,
+    /** Where each part was dragged and how big it was made. Null = where the layout puts it. */
+    val picturePlace: StickerPlace? = null,
+    val titlePlace: StickerPlace? = null,
+    val subtitlePlace: StickerPlace? = null,
+    val listPlace: StickerPlace? = null,
+    /** Fonts by name (see StickerRenderer.FONTS). Null = the sticker's own round one. */
+    val titleFont: String? = null,
+    val subtitleFont: String? = null,
+    val listFont: String? = null,
+    /** Text colours (ARGB). Null = the layout's. The outline picks itself to stand out against it. */
+    val titleColor: Long? = null,
+    val subtitleColor: Long? = null,
+    /** The song list's box: its colour (ARGB; null = a pale tint of the card's colour) and how solid it is (0 = no box, only the songs; 1 = solid; null = frosted glass). */
+    val listColor: Long? = null,
+    val listOpacity: Float? = null
+)
+
+/**
+ * A part's box on the sticker, in sticker pixels (638 x 1011): its left, top, width and height. It may hang
+ * off the card. A picture keeps its own shape (only [w] counts); a line of text is as tall as its box.
+ */
+@Serializable
+data class StickerPlace(val x: Float, val y: Float, val w: Float, val h: Float)
 
 /** Where a track starts and stops playing. [endMs] 0 = to the end. */
 @Serializable

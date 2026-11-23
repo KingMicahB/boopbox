@@ -377,6 +377,57 @@
     <string name="editor_untitled">Untitled card</string>
     <string name="editor_card_id">Card ID %1$s</string>
     <string name="editor_read_from_shared">Read from a shared card. Save to keep it.</string>
+    <string name="editor_sticker_cd">Card sticker. Opens the sticker maker.</string>
+    <string name="sticker_maker_title">Sticker maker</string>
+    <string name="sticker_maker_hint">Tap to pick. Drag to move, pinch to resize. Tap text again to type.</string>
+    <string name="sticker_undo">Undo</string>
+    <string name="sticker_redo">Redo</string>
+    <string name="sticker_add">Add</string>
+    <string name="sticker_layouts">Layouts</string>
+    <string name="sticker_layouts_hint">Pick one to start from. Everything on it can still be moved and changed.</string>
+    <string name="sticker_layout_auto">Suggested</string>
+    <string name="sticker_layout_poster">Full picture</string>
+    <string name="sticker_layout_block">Picture and name</string>
+    <string name="sticker_layout_middle">Picture in the middle</string>
+    <string name="sticker_layout_icon">Small picture</string>
+    <string name="sticker_put_back">Put back where it was</string>
+    <string name="sticker_box_colour">Box colour</string>
+    <string name="sticker_box_opacity">See-through to solid</string>
+    <string name="sticker_new_line">Your text</string>
+    <string name="sticker_font_round">Round</string>
+    <string name="sticker_font_heavy">Heavy</string>
+    <string name="sticker_font_narrow">Narrow</string>
+    <string name="sticker_font_book">Book</string>
+    <string name="sticker_font_handwriting">Handwriting</string>
+    <string name="sticker_font_script">Script</string>
+    <string name="sticker_font_typewriter">Typewriter</string>
+    <string name="sticker_imported_note">This sticker came with the card.</string>
+    <string name="sticker_make_new">Make a new sticker</string>
+    <string name="sticker_start_over">Start over</string>
+    <string name="sticker_from_gallery">Choose from gallery</string>
+    <string name="sticker_add_name">Add the name</string>
+    <string name="sticker_add_list">Add the song list</string>
+    <string name="sticker_rows_restore">Bring back removed rows</string>
+    <string name="sticker_change_text">Change the text</string>
+    <string name="sticker_line_under">Line under the name</string>
+    <string name="sticker_use_card_text">Use the card\'s own</string>
+    <string name="sticker_remove_text">Remove from the sticker</string>
+    <string name="sticker_row_remove">Remove this row</string>
+    <string name="sticker_list_remove">Remove the whole list</string>
+    <!-- Sticker footer: printed on the sticker itself -->
+    <string name="sticker_foot_podcast">Podcast</string>
+    <string name="sticker_foot_movie">Movie</string>
+    <string name="sticker_foot_audiobook">Audiobook</string>
+    <string name="sticker_foot_minutes">%1$d min</string>
+    <string name="sticker_foot_hours">%1$d hr %2$d min</string>
+    <plurals name="sticker_foot_songs">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="sticker_foot_chapters">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
 
     <!-- Card editor: what should it play -->
     <string name="editor_section_play">What should it play?</string>
@@ -511,8 +562,6 @@
     <!-- Card editor: looks -->
     <string name="editor_section_looks">Looks</string>
     <string name="editor_name">Name</string>
-    <string name="editor_picture">Picture</string>
-    <string name="editor_picture_note">Shown big in the middle of the player. Pick a pixel icon (yotoicons.com) or album art, or paste a link to any picture. With no picture, each track gets its own little pixel creature.</string>
     <string name="editor_find_picture">Find a picture</string>
     <string name="editor_change_picture">Change picture</string>
     <string name="editor_tracks_songs_title">Songs and their pictures</string>

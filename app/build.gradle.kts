@@ -48,6 +48,8 @@ android {
     testOptions {
         // Plain JVM tests (the audiobook chapter reader): android.* stubs return defaults instead of throwing.
         unitTests.isReturnDefaultValues = true
+        // The sticker renderer test draws real stickers (Robolectric's native graphics), fonts and logo included.
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -86,4 +88,5 @@ dependencies {
     implementation(libs.androidx.fragment)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }

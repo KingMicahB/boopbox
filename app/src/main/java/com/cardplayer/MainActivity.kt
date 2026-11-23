@@ -89,8 +89,10 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
 
         handleNfcIntent(intent)
         // Only on a real launch: a recreated activity would unpack the same .boop a second time.
-        if (savedInstanceState == null) handleBoopIntent(intent)
-        handleDebugIntent(intent)
+        if (savedInstanceState == null) {
+            handleBoopIntent(intent)
+            handleDebugIntent(intent)
+        }
         requestNotificationPermissionIfNeeded()
     }
 
@@ -110,7 +112,10 @@ class MainActivity : ComponentActivity(), PlayerController.ActivityHooks {
     private fun handleDebugIntent(intent: Intent?) {
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE == 0) return
         val section = intent?.getStringExtra("debug_settings") ?: return
-        viewModel.debugOpenSettings(section, intent.getIntExtra("debug_scroll", 0))
+        val row = intent.getIntExtra("debug_scroll", 0)
+        // Once only: the intent stays with the activity, and would ask again after a rotation.
+        intent.removeExtra("debug_settings")
+        viewModel.debugOpenSettings(section, row)
     }
 
     /** NFC switched on or off while we are on screen (quick-settings tile): keep the banner honest. */

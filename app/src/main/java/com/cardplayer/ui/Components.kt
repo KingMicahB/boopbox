@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +71,59 @@ fun CardArtwork(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+        }
+    }
+}
+
+/** Width over height of a card's face: a Yoto card, 54 x 85.6 mm, which is what the stickers are printed for. */
+const val StickerAspect = 638f / 1011f
+
+/**
+ * A card as it looks in the hand: its [sticker] when it has one, else its picture on a card of its own colour.
+ * Always card-shaped ([StickerAspect]): give it a width or a height, not both. Given neither, it grows as big as fits.
+ */
+@Composable
+fun CardSticker(
+    sticker: Any?,
+    artwork: Any?,
+    seed: String,
+    color: Long,
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 12.dp,
+    pixel: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(StickerAspect)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        if (sticker != null) {
+            // The sticker is print art with small lettering: never pixelated, whatever the pictures setting says.
+            AsyncImage(
+                model = sticker,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(color).copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CardArtwork(
+                    artwork = artwork,
+                    seed = seed,
+                    color = color,
+                    modifier = Modifier
+                        .fillMaxWidth(0.84f)
+                        .aspectRatio(1f),
+                    cornerRadius = cornerRadius * 0.7f,
+                    pixel = pixel
+                )
+            }
         }
     }
 }

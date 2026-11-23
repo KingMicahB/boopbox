@@ -162,7 +162,15 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var section by rememberSaveable { mutableStateOf<Section?>(null) }
     // Test builds only: a section asked for over adb (MainActivity.handleDebugIntent).
     val debugSettings by viewModel.debugSettings.collectAsStateWithLifecycle()
-    LaunchedEffect(debugSettings) { debugSettings?.let { asked -> section = Section.entries.firstOrNull { it.name == asked.first } } }
+    // The row to scroll to once the asked-for section is showing.
+    var debugRow by remember { mutableStateOf<Pair<String, Int>?>(null) }
+    LaunchedEffect(debugSettings) {
+        val asked = debugSettings ?: return@LaunchedEffect
+        section = Section.entries.firstOrNull { it.name == asked.first }
+        debugRow = asked
+        // Used once: the next time settings open, they open on their home as usual.
+        viewModel.debugSettingsShown()
+    }
     BackHandler(enabled = section != null) { section = null }
 
     editPrompt?.let { card ->
@@ -306,11 +314,14 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     // Each section starts at its top.
                     val listState = key(current) { rememberLazyListState() }
-                    LaunchedEffect(debugSettings, current) {
-                        val asked = debugSettings ?: return@LaunchedEffect
-                        if (asked.first == current.name && asked.second > 0) {
-                            delay(150)
-                            listState.scrollToItem(asked.second)
+                    LaunchedEffect(debugRow, current) {
+                        val asked = debugRow ?: return@LaunchedEffect
+                        if (asked.first == current.name) {
+                            if (asked.second > 0) {
+                                delay(150)
+                                listState.scrollToItem(asked.second)
+                            }
+                            debugRow = null
                         }
                     }
                     LazyColumn(

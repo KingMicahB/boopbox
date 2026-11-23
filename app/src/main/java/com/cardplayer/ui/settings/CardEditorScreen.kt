@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -125,6 +127,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.cardplayer.podcast.RssParser
 import com.cardplayer.ui.CardArtwork
+import com.cardplayer.sticker.StickerKind
+import com.cardplayer.sticker.StickerRow
+import com.cardplayer.sticker.StickerSource
 import com.cardplayer.ui.theme.CardColorChoices
 import com.cardplayer.ui.theme.EmojiChoices
 import com.cardplayer.ui.theme.Ink
@@ -201,6 +206,11 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     var category by remember { mutableStateOf(existing?.let { categoryOf(it) } ?: Category.LINK) }
     var uri by remember { mutableStateOf(existing?.uri ?: "") }
     var artworkUrl by remember { mutableStateOf(existing?.artworkUrl ?: "") }
+    /** A finished sticker that came with the card (a .boop, a computer push), or the last one drawn from [sticker]. */
+    val stickerUrl = existing?.stickerUrl
+    /** The sticker as made in the sticker maker: only what was swapped; the rest follows the card. Null = none made here. */
+    var sticker by remember { mutableStateOf(existing?.sticker) }
+    var showStickerMaker by remember { mutableStateOf(false) }
     var subtitle by remember { mutableStateOf(existing?.subtitle) }
     var podcastMode by remember { mutableStateOf(existing?.podcastMode ?: PodcastMode.LATEST) }
     var episodeUrl by remember { mutableStateOf(existing?.episodeUrl) }
@@ -272,6 +282,24 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         }
     }
     var artworkCredit by remember { mutableStateOf(existing?.artworkCredit) }
+    // A photo from the phone's gallery as the card's picture: copied in, so it stays when the photo is deleted.
+    val galleryPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { picked ->
+        if (picked != null) {
+            scope.launch {
+                val saved = withContext(Dispatchers.IO) {
+                    try {
+                        context.contentResolver.openInputStream(picked)?.use { it.readBytes() }?.let { Audiobook.saveCover(context, it) }
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                if (saved != null) {
+                    artworkUrl = saved
+                    artworkCredit = null
+                }
+            }
+        }
+    }
     /** null = picker closed, "" = picking the card picture, otherwise the track uri being picked for. */
     var pickerTarget by remember { mutableStateOf<String?>(null) }
     var folderTracks by remember { mutableStateOf<List<MediaScan.Track>>(emptyList()) }
@@ -591,8 +619,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             sourceType = linkType,
             uri = uri.trim(),
             artworkUrl = artworkUrl.trim().ifBlank { null },
-            // Arrives with a .boop or a computer push; the editor doesn't change it.
-            stickerUrl = existing?.stickerUrl,
+            stickerUrl = stickerUrl,
+            sticker = sticker,
             subtitle = subtitle,
             podcastMode = podcastMode,
             episodeUrl = episodeUrl,
@@ -631,10 +659,61 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         null
     }
 
+    // ---- the sticker: filled in from what the card says about itself, as it stands in the editor right now.
+    /** The files whose lengths add up to the card's running time (none for links, streams and podcasts). */
+    fun stickerFiles(): List<String> = when (category) {
+        Category.FILE -> listOf(uri).filter { it.isNotBlank() }
+        Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { it.uri } else listOf(uri).filter { it.isNotBlank() }
+        Category.FOLDER -> folderTracks.map { it.uri }
+        Category.PLAYLIST -> playlist.map { it.uri }
+        else -> emptyList()
+    }
+    val stickerDurationMs = rememberStickerDuration(stickerFiles(), mainClip)
+
+    fun stickerSource(): StickerSource {
+        fun chapterRows() = chapters.map { StickerRow(it.artKey, it.title, trackArt[it.artKey]) }
+        val rows = when (category) {
+            Category.FOLDER -> folderTracks.map { StickerRow(it.uri, it.title, trackArt[it.uri]) }
+            Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { StickerRow(it.uri, it.title, trackArt[it.uri]) } else chapterRows()
+            Category.PLAYLIST -> playlist.map { StickerRow(it.uri, it.title, trackArt[it.uri]) }
+            Category.LINK -> ytListTracks?.map { StickerRow(it.id, it.title, trackArt[it.id]) } ?: chapterRows()
+            Category.FILE -> chapterRows()
+            // Yoto chapters come with their own pixel icon.
+            Category.YOTO -> yotoChapters.map { StickerRow(it.key, yotoPrettyTitle(it.title), trackArt[it.key] ?: it.iconUrl) }
+            else -> emptyList()
+        }
+        val kind = when {
+            category == Category.PODCAST -> StickerKind.PODCAST
+            category == Category.VIDEO -> StickerKind.MOVIE
+            category == Category.AUDIOBOOK || category == Category.AUDIBLE -> StickerKind.AUDIOBOOK
+            // Something that plays elsewhere, or a stream: no songs of its own to count.
+            rows.isEmpty() && (linkType.isExternal || linkType == SourceType.STREAM_URL) -> StickerKind.LINK
+            resume -> StickerKind.CHAPTERS
+            else -> StickerKind.SONGS
+        }
+        return StickerSource(
+            seed = uid,
+            name = name.trim(),
+            subtitle = subtitle,
+            picture = artworkUrl.trim().ifBlank { null },
+            color = color,
+            kind = kind,
+            rows = rows,
+            durationMs = stickerDurationMs,
+            linkLabel = context.getString(linkType.labelRes)
+        )
+    }
+
+    /** Saves the card; a card with a sticker made here gets it drawn afresh, so it keeps up with the card. */
+    fun saveCard(card: Card) {
+        viewModel.saveCard(card)
+        if (card.sticker != null) viewModel.saveSticker(card, stickerSource())
+    }
+
     // ---- unsaved-changes guard: everything the editor can change, compared with how it started.
     fun snapshot(): List<Any?> = listOf(
         name, emoji, color, category, uri, artworkUrl, subtitle, podcastMode, episodeUrl, episodeTitle,
-        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder
+        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder, sticker
     )
     val initialSnapshot = remember(uid) { snapshot() }
     val dirty = snapshot() != initialSnapshot || (saved == null && uri.isNotBlank())
@@ -653,7 +732,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 TextButton(onClick = {
                     val card = buildCardOrComplain()
                     if (card != null) {
-                        viewModel.saveCard(card)
+                        saveCard(card)
                         showLeaveDialog = false
                         viewModel.back()
                     } else {
@@ -730,7 +809,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     Button(
                         onClick = {
                             buildCardOrComplain()?.let {
-                                viewModel.saveCard(it)
+                                saveCard(it)
                                 viewModel.back()
                             }
                         },
@@ -743,7 +822,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     OutlinedButton(
                         onClick = {
                             buildCardOrComplain()?.let {
-                                viewModel.saveCard(it)
+                                saveCard(it)
                                 viewModel.playNow(it)
                             }
                         },
@@ -766,16 +845,36 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Preview
+            // Preview: the card's sticker (its printed face). Tapping it opens the sticker maker.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardArtwork(
-                    artwork = artworkUrl.ifBlank { null },
-                    seed = uid,
-                    color = color,
-                    modifier = Modifier.size(96.dp),
-                    cornerRadius = 20.dp,
-                    pixel = appSettings.pixelArt
-                )
+                val stickerCd = stringResource(R.string.editor_sticker_cd)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClickLabel = stringResource(R.string.sticker_maker_title)) { showStickerMaker = true }
+                        .semantics { contentDescription = stickerCd }
+                ) {
+                    StickerThumb(
+                        source = stickerSource(),
+                        design = sticker,
+                        imported = stickerUrl,
+                        modifier = Modifier.width(84.dp),
+                        cornerRadius = 12.dp,
+                        pixel = appSettings.pixelArt
+                    )
+                    // A pencil in the corner: the sticker is a button, not only a preview.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+                    }
+                }
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
                     // The name lives next to the picture it belongs with, not far down under "Looks".
@@ -1403,20 +1502,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
             val looksSection: @Composable ColumnScope.() -> Unit = {
                 SectionTitle(stringResource(R.string.editor_section_looks))
-                InfoTitle(stringResource(R.string.editor_picture), stringResource(R.string.editor_picture_note), style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(onClick = { pickerTarget = "" }) { Text(stringResource(if (artworkUrl.isBlank()) R.string.editor_find_picture else R.string.editor_change_picture)) }
-                    Spacer(Modifier.width(8.dp))
-                    if (artworkUrl.isNotBlank()) {
-                        TextButton(onClick = {
-                            artworkUrl = ""
-                            artworkCredit = null
-                        }) { Text(stringResource(R.string.common_remove)) }
-                    }
-                }
-                artworkCredit?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                // The card's own picture is chosen in the sticker maker (the sticker at the top of the editor).
 
                 val tracks: List<Pair<String, String>> = when (category) {
                     Category.FOLDER -> folderTracks.map { it.uri to it.title }
@@ -1567,7 +1653,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             if (category == Category.AUDIOBOOK) {
                                 IconButton(onClick = {
                                     buildCardOrComplain()?.let { card ->
-                                        viewModel.saveCard(card)
+                                        saveCard(card)
                                         val chapter = chapters.firstOrNull { it.artKey == trackUri }
                                         if (chapter != null) viewModel.playFrom(card, null, chapter.startMs) else viewModel.playFrom(card, trackUri, 0L)
                                     }
@@ -1635,7 +1721,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                         OutlinedButton(
                             onClick = {
                                 buildCardOrComplain()?.let {
-                                    viewModel.saveCard(it)
+                                    saveCard(it)
                                     viewModel.startMove(it, copy = false)
                                 }
                             },
@@ -1644,7 +1730,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                         OutlinedButton(
                             onClick = {
                                 buildCardOrComplain()?.let {
-                                    viewModel.saveCard(it)
+                                    saveCard(it)
                                     viewModel.startMove(it, copy = true)
                                 }
                             },
@@ -1667,7 +1753,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     enabled = shareable,
                     onClick = {
                         buildCardOrComplain()?.let {
-                            viewModel.saveCard(it)
+                            saveCard(it)
                             viewModel.startWrite(it)
                         }
                     },
@@ -1751,6 +1837,26 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             },
             confirmButton = { TextButton(onClick = { yotoCards = null; showYotoPicker = true }) { Text(stringResource(R.string.editor_reload)) } },
             dismissButton = { TextButton(onClick = { showYotoPicker = false }) { Text(stringResource(R.string.common_close)) } }
+        )
+    }
+
+    if (showStickerMaker) {
+        StickerMakerDialog(
+            source = stickerSource(),
+            design = sticker,
+            imported = stickerUrl,
+            pixel = appSettings.pixelArt,
+            onFindPicture = { pickerTarget = "" },
+            onGalleryPicture = { galleryPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onRemovePicture = {
+                artworkUrl = ""
+                artworkCredit = null
+            },
+            onDone = {
+                sticker = it
+                showStickerMaker = false
+            },
+            onDismiss = { showStickerMaker = false }
         )
     }
 

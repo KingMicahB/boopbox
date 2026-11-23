@@ -15,6 +15,10 @@ import com.cardplayer.data.SharedMedia
 import com.cardplayer.nfc.CardTag
 import com.cardplayer.playback.NowPlaying
 import com.cardplayer.link.SharedLink
+import com.cardplayer.sticker.StickerRenderer
+import com.cardplayer.sticker.StickerSource
+import com.cardplayer.sticker.StickerStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -415,6 +419,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         setScreen(Screen.Settings)
     }
 
+    /** The request has been acted on: opening settings the normal way must not replay it. */
+    fun debugSettingsShown() {
+        _debugSettings.value = null
+    }
+
     fun openScan() {
         if (allowNewCard()) setScreen(Screen.Scan)
     }
@@ -455,7 +464,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Draws the sticker a saved card was given in the sticker maker and keeps it as the card's printed face.
+     * [source] is what the card says about itself (the editor knows its songs; the stored card alone doesn't).
+     */
+    fun saveSticker(card: Card, source: StickerSource) {
+        val design = card.sticker ?: return
+        viewModelScope.launch {
+            val url = try {
+                withContext(Dispatchers.Default) {
+                    StickerStore.write(app, card.uid, StickerRenderer.render(app, source, design).bitmap)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                return@launch
+            }
+            // The card may have been saved again, or deleted, while the sticker was being drawn.
+            val now = app.cards.get(card.uid)
+            if (now == null) {
+                StickerStore.delete(app, url)
+                return@launch
+            }
+            app.cards.upsert(now.copy(stickerUrl = url))
+            if (now.stickerUrl != url) StickerStore.delete(app, now.stickerUrl)
+        }
+    }
+
     fun deleteCard(uid: String) {
+        StickerStore.delete(app, app.cards.get(uid)?.stickerUrl)
         app.cards.delete(uid)
         app.positions.clear(uid)
     }
