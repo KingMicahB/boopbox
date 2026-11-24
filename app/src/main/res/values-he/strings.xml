@@ -400,6 +400,7 @@
     <!-- Card editor: preview -->
     <string name="editor_untitled">כרטיס ללא שם</string>
     <string name="editor_card_id">מזהה כרטיס %1$s</string>
+    <string name="editor_no_card_yet">נשמר לאחר כך: עדיין לא על כרטיס</string>
     <string name="editor_read_from_shared">נקרא מכרטיס משותף. שמרו אותו כדי שיישאר.</string>
     <string name="editor_sticker_cd">מדבקת הכרטיס. פותחת את יוצר המדבקות.</string>
     <string name="sticker_maker_title">יוצר המדבקות</string>
@@ -638,6 +639,11 @@
     <string name="editor_tag_note">המדבקה אבדה או נשחקה? העבירו את הכרטיס הזה לתג NFC אחר. או העתיקו אותו, כך ששני תגים ינגנו אותו דבר.</string>
     <string name="editor_move_tag">העברה לתג אחר</string>
     <string name="editor_copy_tag">העתקה לתג אחר</string>
+    <!-- Card editor: a card saved for later, with no NFC card of its own yet -->
+    <string name="editor_section_put_on_card">עדיין לא על כרטיס</string>
+    <string name="editor_put_on_card_note">הכרטיס נשמר לאחר כך, ולכן אף כרטיס NFC עדיין לא מנגן אותו. עד אז הוא מתנגן ממדף הכרטיסים (לחיצה ארוכה על הלוגו במסך הבית) ומרשימת הכרטיסים.</string>
+    <string name="editor_put_on_card">לשים על כרטיס</string>
+    <string name="editor_put_waiting">הכרטיס ההוא ינגן את \"%1$s\".</string>
     <string name="editor_section_share">שיתוף הכרטיס</string>
     <string name="editor_share_local_only">אי אפשר לשתף בכרטיס קבצים, תיקיות ורשימות השמעה שנמצאים בטלפון הזה. קישורים, פודקאסטים ושידורים אפשר.</string>
     <string name="editor_share_note">כתיבת פרטי הכרטיס על תג ה-NFC עצמו. מי שיש לו BoopBox יכול אז להצמיד את התג, והכרטיס יתווסף לטלפון שלו אוטומטית. נדרש תג שאפשר לכתוב עליו (מדבקות NTAG213/215/216 מתאימות).</string>
@@ -751,6 +757,7 @@
         <item quantity="other">%1$d קטעים</item>
     </plurals>
     <string name="pending_hold_card">הצמידו כרטיס לטלפון</string>
+    <string name="pending_save_for_later">שמירה לאחר כך</string>
     <string name="pending_will_get">הכרטיס יקבל את השירים האלה והם יתחילו להתנגן</string>
     <string name="pending_double_tap">הקשה כפולה</string>
     <string name="pending_replace_title">הכרטיס הזה כבר מנגן את \"%1$s\"</string>
@@ -780,6 +787,9 @@
     <string name="msg_move_card_in_use">הכרטיס הזה כבר מנגן את \"%1$s\". מחקו קודם את הכרטיס ההוא, או השתמשו בכרטיס אחר.</string>
     <string name="msg_added_from_card">\"%1$s\" נוסף מהכרטיס</string>
     <string name="msg_card_set_up">הכרטיס הוגדר: \"%1$s\"</string>
+    <!-- "Save for later" on a card waiting for an NFC card: kept without one. The second is for phones without the Card Shelf (Plus). -->
+    <string name="msg_saved_for_later">\"%1$s\" נמצא במדף הכרטיסים. לחיצה ארוכה על הלוגו מנגנת אותו.</string>
+    <string name="msg_saved_for_later_list">\"%1$s\" נשמר. תמצאו אותו בהגדרות ← כרטיסים.</string>
     <string name="msg_updated_card">\"%1$s\" עודכן</string>
     <string name="msg_added_card">\"%1$s\" נוסף</string>
     <string name="msg_card_ready">\"%1$s\" מוכן: הצמידו כרטיס חדש</string>

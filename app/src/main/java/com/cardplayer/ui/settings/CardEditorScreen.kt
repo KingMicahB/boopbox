@@ -1035,8 +1035,12 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        // No NFC card yet, no id to show.
-                        if (!draft) Text(stringResource(R.string.editor_card_id, uid), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        // No NFC card yet, no id to show; one saved for later says so instead.
+                        if (!draft) Text(
+                            if (Card.isUntaggedUid(uid)) stringResource(R.string.editor_no_card_yet) else stringResource(R.string.editor_card_id, uid),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         if (saved == null && existing != null) {
                             Text(stringResource(R.string.editor_read_from_shared), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
@@ -1813,7 +1817,20 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             looksSection()
 
             val tagAndShareSection: @Composable ColumnScope.() -> Unit = {
-                if (saved != null) {
+                if (saved != null && saved.untagged) {
+                    // Saved for later, with no NFC card of its own: this is where it gets one.
+                    SettingsGroup(title = stringResource(R.string.editor_section_put_on_card), info = stringResource(R.string.editor_put_on_card_note)) {
+                        SettingRow(
+                            title = stringResource(R.string.editor_put_on_card),
+                            onClick = {
+                                buildCardOrComplain()?.let {
+                                    saveCard(it)
+                                    viewModel.startMove(it, copy = false)
+                                }
+                            }
+                        )
+                    }
+                } else if (saved != null) {
                     SettingsGroup(title = stringResource(R.string.editor_section_tag), info = stringResource(R.string.editor_tag_note)) {
                         SettingRow(
                             title = stringResource(R.string.editor_move_tag),
@@ -2099,13 +2116,31 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         MoveState.Idle -> Unit
         is MoveState.Waiting -> AlertDialog(
             onDismissRequest = { viewModel.endMove() },
-            title = { Text(stringResource(if (ms.copy) R.string.editor_copy_hold else R.string.editor_move_hold)) },
+            title = {
+                Text(
+                    stringResource(
+                        when {
+                            ms.copy -> R.string.editor_copy_hold
+                            // A card saved for later has no tag to move from: it is simply given one.
+                            ms.card.untagged -> R.string.pending_hold_card
+                            else -> R.string.editor_move_hold
+                        }
+                    )
+                )
+            },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(22.dp))
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        stringResource(if (ms.copy) R.string.editor_copy_waiting else R.string.editor_move_waiting, ms.card.displayName(context))
+                        stringResource(
+                            when {
+                                ms.copy -> R.string.editor_copy_waiting
+                                ms.card.untagged -> R.string.editor_put_waiting
+                                else -> R.string.editor_move_waiting
+                            },
+                            ms.card.displayName(context)
+                        )
                     )
                 }
             },

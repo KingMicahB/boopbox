@@ -97,6 +97,12 @@ data class Card(
     val lastPlayedAt: Long = 0L,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    /**
+     * Kept without an NFC card of its own ("Save for later" on a card waiting for one): it plays from the Card
+     * Shelf and the card list, and gets a real card from its editor ("Put it on a card").
+     */
+    val untagged: Boolean get() = isUntaggedUid(uid)
+
     /** What to call this card in the UI; a card with no name of its own is called after its subtitle or source. */
     fun displayName(context: Context): String = name.ifBlank { subtitle ?: context.getString(sourceType.labelRes) }
 
@@ -119,6 +125,14 @@ data class Card(
     companion object {
         /** [clips] key of the one file / video a single-track card plays. */
         const val MAIN_TRACK = ""
+
+        /** Starts the stand-in id of a card with no NFC card of its own. A real card's id is its tag's, in capital hex. */
+        private const val UNTAGGED_PREFIX = "shelf"
+
+        /** A fresh id for a card kept without an NFC card (see [untagged]). */
+        fun untaggedUid(now: Long = System.currentTimeMillis()) = UNTAGGED_PREFIX + now
+
+        fun isUntaggedUid(uid: String) = uid.startsWith(UNTAGGED_PREFIX)
     }
 }
 

@@ -396,6 +396,7 @@
     <!-- Card editor: preview -->
     <string name="editor_untitled">Untitled card</string>
     <string name="editor_card_id">Card ID %1$s</string>
+    <string name="editor_no_card_yet">Saved for later: not on a card yet</string>
     <string name="editor_read_from_shared">Read from a shared card. Save to keep it.</string>
     <string name="editor_sticker_cd">Card sticker. Opens the sticker maker.</string>
     <string name="sticker_maker_title">Sticker maker</string>
@@ -616,6 +617,11 @@
     <string name="editor_tag_note">Sticker lost or worn out? Move this card onto a different NFC tag. Or copy it, so two tags play the same thing.</string>
     <string name="editor_move_tag">Move to another tag</string>
     <string name="editor_copy_tag">Copy to another tag</string>
+    <!-- Card editor: a card saved for later, with no NFC card of its own yet -->
+    <string name="editor_section_put_on_card">Not on a card yet</string>
+    <string name="editor_put_on_card_note">This was saved for later, so no NFC card plays it yet. Until one does, it plays from the Card Shelf (hold the logo on the home screen) and from the card list.</string>
+    <string name="editor_put_on_card">Put it on a card</string>
+    <string name="editor_put_waiting">That card will play \"%1$s\".</string>
     <string name="editor_section_share">Share this card</string>
     <string name="editor_share_local_only">Files, folders and playlists on this phone can\'t be shared on a card. Links, podcasts and streams can.</string>
     <string name="editor_share_note">Writes the card\'s details onto the NFC tag itself. Anyone with BoopBox can then tap it and it is added to their phone automatically. Needs a writable tag (NTAG213/215/216 stickers work).</string>
@@ -723,6 +729,7 @@
         <item quantity="other">%1$d tracks</item>
     </plurals>
     <string name="pending_hold_card">Hold a card to the phone</string>
+    <string name="pending_save_for_later">Save for later</string>
     <string name="pending_will_get">It will get these songs and start playing</string>
     <string name="pending_double_tap">double-tap</string>
     <string name="pending_replace_title">This card already plays \"%1$s\"</string>
@@ -752,6 +759,9 @@
     <string name="msg_move_card_in_use">That card already plays \"%1$s\". Delete that card first, or use another one.</string>
     <string name="msg_added_from_card">Added \"%1$s\" from the card</string>
     <string name="msg_card_set_up">Card set up: \"%1$s\"</string>
+    <!-- "Save for later" on a card waiting for an NFC card: kept without one. The second is for phones without the Card Shelf (Plus). -->
+    <string name="msg_saved_for_later">\"%1$s\" is on the Card Shelf. Hold the logo to play it.</string>
+    <string name="msg_saved_for_later_list">\"%1$s\" is saved. Find it in Settings → Cards.</string>
     <string name="msg_updated_card">Updated \"%1$s\"</string>
     <string name="msg_added_card">Added \"%1$s\"</string>
     <string name="msg_card_ready">\"%1$s\" is ready: tap a new card</string>

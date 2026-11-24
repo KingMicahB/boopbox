@@ -55,7 +55,9 @@ import com.cardplayer.data.Card
  * from a .boop someone shared is waiting for an NFC card. Deliberately looks nothing like the toddler
  * player: the grown-up can see at a glance that the next card tapped will get [card].
  *
- * "Not now", "Remove", "Replace" and "Keep it" need a double tap, like the rest of the grown-up controls.
+ * "Save for later" keeps it as a card with no NFC card of its own (played from the Card Shelf and the card list,
+ * put on a real card from its editor); "Remove" throws it away. Those two, "Replace" and "Keep it" need a double
+ * tap, like the rest of the grown-up controls.
  */
 @Composable
 fun PendingCardScreen(
@@ -73,7 +75,7 @@ fun PendingCardScreen(
     replace: ReplacePrompt?,
     onReplace: (ReplacePrompt) -> Unit,
     onKeep: () -> Unit,
-    onNotNow: () -> Unit,
+    onSaveForLater: () -> Unit,
     onRemove: () -> Unit
 ) {
     val accent = Color(card.color)
@@ -246,7 +248,7 @@ fun PendingCardScreen(
 
             Spacer(Modifier.height(28.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                GrownUpButton(stringResource(R.string.common_not_now), onNotNow)
+                GrownUpButton(stringResource(R.string.pending_save_for_later), onSaveForLater)
                 GrownUpButton(stringResource(R.string.common_remove), onRemove)
             }
             Text(

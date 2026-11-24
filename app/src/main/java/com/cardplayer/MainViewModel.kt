@@ -101,15 +101,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Cards pushed from the computer, waiting for an NFC card (oldest first). */
     val pendingCards: StateFlow<List<Card>> = app.pending.pending
 
-    /** Waiting cards the grown-up said "not now" to, keyed by uid+createdAt so a re-push shows again. */
-    private val _snoozedPending = MutableStateFlow<Set<String>>(emptySet())
-    val snoozedPending: StateFlow<Set<String>> = _snoozedPending.asStateFlow()
-
-    fun pendingKey(card: Card) = card.uid + "@" + card.createdAt
-
-    fun snoozePending(card: Card) {
+    /**
+     * "Save for later" on a waiting card: it is kept as a card of the phone with no NFC card of its own yet
+     * ([Card.untagged]). It plays from the Card Shelf and the card list; its editor puts it on a real card.
+     */
+    fun savePendingForLater(card: Card) {
         _replacePrompt.value = null
-        _snoozedPending.value = _snoozedPending.value + pendingKey(card)
+        // A card of the grown-up's own counts toward the free limit, as it would when tapped onto a card.
+        // Shared .boop cards always land.
+        if (!app.pending.isShared(card) && !allowNewCard()) return
+        val kept = app.pending.keepWithoutCard(card.uid) ?: return
+        // The Card Shelf is Plus: without it, say where the card can be found instead.
+        val said = if (plus.value) R.string.msg_saved_for_later else R.string.msg_saved_for_later_list
+        _notices.tryEmit(Notice(app.getString(said, kept.displayName(app))))
     }
 
     fun discardPending(card: Card) {
@@ -127,8 +131,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** A recording made in the editor and then recorded again or abandoned: removed, unless a card plays it after all. */
     fun discardTake(uri: String) = Recordings.discardIfUnused(app, uri, everyCard())
 
-    /** The waiting card on screen right now: the first one the grown-up hasn't said "not now" to. */
-    fun visiblePending(): Card? = pendingCards.value.firstOrNull { pendingKey(it) !in _snoozedPending.value }
+    /** The waiting card on screen right now. */
+    fun visiblePending(): Card? = pendingCards.value.firstOrNull()
 
     /** True when [card] (a waiting card) came out of a .boop someone shared, not a computer push. */
     fun isSharedPending(card: Card) = app.pending.isShared(card)
@@ -351,8 +355,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> {
                 // A card pushed from the computer (tools/cardpush.py) is waiting: this card gets it.
                 // Shared .boop cards always land; a link shared from another app counts as a card of your own.
-                val next = waiting ?: pendingCards.value.firstOrNull()
-                if (next != null && !app.pending.isShared(next) && !allowNewCard(uid)) return
+                if (waiting != null && !app.pending.isShared(waiting) && !allowNewCard(uid)) return
                 val pushed = app.pending.claim(uid, waiting?.uid)
                 if (pushed != null) {
                     _unknownCard.value = null

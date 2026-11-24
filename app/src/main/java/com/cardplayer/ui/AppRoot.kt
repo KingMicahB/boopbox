@@ -29,7 +29,6 @@ fun AppRoot(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val isPlayer = screen == Screen.Player
     val pending by viewModel.pendingCards.collectAsStateWithLifecycle()
-    val snoozed by viewModel.snoozedPending.collectAsStateWithLifecycle()
     val receive by viewModel.receive.collectAsStateWithLifecycle()
     val replacePrompt by viewModel.replacePrompt.collectAsStateWithLifecycle()
     val nfc by viewModel.nfc.collectAsStateWithLifecycle()
@@ -66,8 +65,7 @@ fun AppRoot(
         Screen.Player -> Box {
             PlayerScreen(viewModel)
             // A card pushed from the computer or shared as a .boop is waiting: its own screen, on top of the player.
-            val waiting = pending.filterNot { viewModel.pendingKey(it) in snoozed }
-            waiting.firstOrNull()?.let { card ->
+            pending.firstOrNull()?.let { card ->
                 PendingCardScreen(
                     card = card,
                     position = pending.indexOf(card) + 1,
@@ -79,7 +77,7 @@ fun AppRoot(
                     replace = replacePrompt,
                     onReplace = { viewModel.replaceWithPending(it) },
                     onKeep = { viewModel.dismissReplacePrompt() },
-                    onNotNow = { viewModel.snoozePending(card) },
+                    onSaveForLater = { viewModel.savePendingForLater(card) },
                     onRemove = { viewModel.discardPending(card) }
                 )
             }
