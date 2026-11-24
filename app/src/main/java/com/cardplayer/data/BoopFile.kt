@@ -75,7 +75,11 @@ object BoopFile {
             stickerUrl = c.stickerUrl?.takeIf { !isLocal(it) || open(context, it)?.also { s -> s.close() } != null }?.let(::pack),
             playlist = c.playlist.map { it.copy(uri = pack(it.uri)!!) },
             trackArt = c.trackArt.entries.associate { (k, v) -> pack(k)!! to pack(v)!! }
-        )
+        ).let { p ->
+            // A playlist song's start / end cut is filed under the song's address, so it is renamed with the song
+            // (it used to stay under the address on this phone, and the cut was lost on the way).
+            p.copy(clips = c.clips.mapKeys { (key, _) -> files[key]?.let { name -> "lib:$id/$name" } ?: key })
+        }
 
         out.parentFile?.mkdirs()
         ZipOutputStream(out.outputStream().buffered()).use { zip ->

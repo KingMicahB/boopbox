@@ -162,7 +162,9 @@ class PendingCardRepository(private val context: Context, private val cards: Car
             artworkUrl = card.artworkUrl?.let(::r),
             stickerUrl = card.stickerUrl?.let(::r),
             playlist = card.playlist.map { it.copy(uri = r(it.uri)) },
-            trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) }
+            trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) },
+            // Start / end cuts of a playlist's songs are filed under the song's address.
+            clips = card.clips.mapKeys { (k, _) -> r(k) }
         )
     }
 }
