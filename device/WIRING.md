@@ -27,9 +27,8 @@ jack are already wired on the Audio Kit.
 
 ### Not in the order, worth getting
 
-* **Multimeter** (any cheap one). The battery step needs a polarity check, and a reversed LiPo
-  destroys the board in an instant. Without one, the only check is the + / − print on the board
-  against the red wire, which is not enough for pre-made plugs that are often wired backwards.
+A multimeter is already to hand; the battery step depends on it.
+
 * **Slide or rocker switch** (rated 1 A or more). The kit has no power switch: with the battery
   plugged in, it is on. For the first tests, unplugging the battery is the switch.
 
