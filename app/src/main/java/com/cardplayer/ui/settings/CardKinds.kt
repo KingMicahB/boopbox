@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +35,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cardplayer.R
 
@@ -145,7 +149,13 @@ internal fun <T> LinkTypeChips(options: List<Pair<T, String>>, selected: T, onSe
 /** Four tiles side by side, one per [CardKind]: the first thing "Add a card" asks. */
 @Composable
 internal fun CardKindTiles(selected: CardKind, onPick: (CardKind) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    // Every tile as tall as the tallest ("On this phone" takes two lines), icons on one line, labels under them.
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max)
+    ) {
         CardKind.entries.forEach { kind ->
             val on = kind == selected
             Surface(
@@ -156,7 +166,7 @@ internal fun CardKindTiles(selected: CardKind, onPick: (CardKind) -> Unit) {
                 border = BorderStroke(if (on) 2.dp else 1.dp, if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 84.dp)
+                    .fillMaxHeight()
                     .semantics {
                         role = Role.Tab
                         this.selected = on
@@ -164,8 +174,10 @@ internal fun CardKindTiles(selected: CardKind, onPick: (CardKind) -> Unit) {
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                    verticalArrangement = Arrangement.Top,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 4.dp, vertical = 12.dp)
                 ) {
                     Icon(kind.icon, contentDescription = null, modifier = Modifier.size(28.dp))
                     Text(
@@ -173,7 +185,10 @@ internal fun CardKindTiles(selected: CardKind, onPick: (CardKind) -> Unit) {
                         style = MaterialTheme.typography.labelLarge,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
-                        modifier = Modifier.padding(top = 6.dp)
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
                     )
                 }
             }
