@@ -126,13 +126,25 @@ object SilenceScanner {
 
     private fun cacheFileFor(context: Context, uri: Uri): File {
         var size = -1L
-        try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
-                if (c.moveToFirst()) size = c.getLong(0)
+        var modified = 0L
+        if (uri.scheme == "file") {
+            // A file in the app's own library. The content resolver knows nothing about those, and a card sent or
+            // pushed again replaces the file under the same name: without its size and date the waveform of the
+            // file that used to be there was shown over the new one (too short, or with the songs in other places).
+            uri.path?.let { File(it) }?.let { f ->
+                size = f.length()
+                modified = f.lastModified()
             }
-        } catch (_: Exception) {
+        } else {
+            try {
+                context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                    if (c.moveToFirst()) size = c.getLong(0)
+                }
+            } catch (_: Exception) {
+            }
         }
-        val key = MessageDigest.getInstance("SHA-1").digest("$uri|$size".toByteArray()).joinToString("") { "%02x".format(it) }
+        val stamp = if (modified != 0L) "$uri|$size|$modified" else "$uri|$size"
+        val key = MessageDigest.getInstance("SHA-1").digest(stamp.toByteArray()).joinToString("") { "%02x".format(it) }
         val dir = File(context.cacheDir, "timelines").apply { mkdirs() }
         return File(dir, "$key.v1.bin")
     }

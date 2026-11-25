@@ -46,6 +46,39 @@ object LinkResolver {
         }
     }
 
+    /**
+     * What a pasted link most likely is, for the card editor's one "Link" field: [detect], plus a guess from the
+     * address alone at the web addresses it can't place (a podcast feed, a radio stream, or a page for another app).
+     * Only a starting point: the editor shows what it picked and lets the grown-up change it.
+     */
+    fun interpret(link: String): SourceType {
+        val detected = detect(link)
+        if (detected != SourceType.APP_LINK) return detected
+        val l = link.trim().lowercase()
+        if (!l.startsWith("http")) return detected
+        val path = l.substringBefore('#').substringBefore('?').trimEnd('/')
+        val host = path.substringAfter("://").substringBefore('/')
+        val streamEnds = listOf(".mp3", ".m4a", ".aac", ".ogg", ".oga", ".opus", ".flac", ".wav", ".m3u", ".m3u8", ".pls")
+        if (streamEnds.any { path.endsWith(it) }) return SourceType.STREAM_URL
+        // Internet radio: Icecast / Shoutcast mounts and the usual stream hosts.
+        if (Regex(":(8000|8010|8080|8443)(/|$)").containsMatchIn(host + "/") ||
+            host.startsWith("stream.") || host.startsWith("streams.") || host.startsWith("icecast.") ||
+            host.contains("streamtheworld.com") || host.contains("radio.co") || host.contains("zeno.fm") ||
+            Regex("/(stream|listen|live)(\\.\\w+)?$").containsMatchIn(path)
+        ) return SourceType.STREAM_URL
+        // Podcast feeds: an RSS / XML address, or one of the big podcast hosts' feed addresses.
+        val feedHosts = listOf(
+            "anchor.fm/s/", "libsyn.com", "megaphone.fm", "buzzsprout.com", "podbean.com",
+            "simplecast.com", "omny.fm", "omnycontent.com", "acast.com", "transistor.fm", "spreaker.com", "captivate.fm",
+            "podcastics.com", "audioboom.com", "soundcloud.com/users/soundcloud:users:", "redcircle.com", "feedburner.com"
+        )
+        if (path.endsWith(".rss") || path.endsWith(".xml") || path.endsWith("/rss") || path.endsWith("/feed") ||
+            path.endsWith("/podcast") || path.contains("/rss/") || path.contains("/feed/") || l.contains("format=rss") ||
+            host.startsWith("feeds.") || host.startsWith("feed.") || host.startsWith("rss.") || feedHosts.any { path.contains(it) }
+        ) return SourceType.PODCAST
+        return detected
+    }
+
     fun packageFor(type: SourceType): String? = when (type) {
         SourceType.SPOTIFY -> PKG_SPOTIFY
         SourceType.YOUTUBE_MUSIC -> PKG_YT_MUSIC

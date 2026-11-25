@@ -345,6 +345,8 @@
     <string name="editor_cat_audible_hint">קישור לספר באפליקציית Audible</string>
     <string name="editor_cat_podcast">פודקאסט</string>
     <string name="editor_cat_podcast_hint">כתובת של עדכון RSS</string>
+    <string name="editor_cat_recording">הקלטה משלכם</string>
+    <string name="editor_cat_recording_hint">סיפור בקול, שיר, הודעה מסבתא: מקליטים במיקרופון של הטלפון הזה</string>
     <string name="editor_cat_file_hint">MP3, M4B, FLAC, OGG, סרטון… כל מה שהטלפון יודע לנגן</string>
     <string name="editor_cat_folder_hint">מנגן כל קובץ שמע בתיקייה, לפי סדר השמות</string>
     <string name="editor_cat_playlist">רשימת השמעה</string>
@@ -352,6 +354,20 @@
     <string name="editor_cat_yoto_hint">כרטיס מספריית Yoto שלכם: Yoto Daily, כרטיסים שנקנו, Yoto Club</string>
     <string name="editor_cat_stream">שידור שמע</string>
     <string name="editor_cat_stream_hint">כתובת ישירה של MP3 / שידור</string>
+    <string name="editor_kind_link">קישור</string>
+    <string name="editor_kind_link_hint">Spotify, YouTube, Netflix, Audible, פודקאסט או שידור רדיו: מדביקים את הקישור ו-BoopBox מבין לבד את השאר</string>
+    <string name="editor_kind_phone">בטלפון הזה</string>
+    <string name="editor_kind_phone_hint">קובץ, שירים בסדר שתבחרו, תיקייה או ספר שמע שהורד</string>
+    <string name="editor_kind_record">הקלטה</string>
+    <string name="editor_kind_yoto">Yoto</string>
+    <string name="editor_paste_any">הדביקו קישור</string>
+    <string name="editor_link_plays_as">מתנגן בתור</string>
+    <string name="editor_plays_as_value">מתנגן בתור: %1$s</string>
+    <string name="editor_phone_choose_files">בחירת קבצים</string>
+    <string name="editor_phone_choose_folder">בחירת תיקייה</string>
+    <string name="editor_phone_note">קובץ אחד מתנגן לבד; בוחרים כמה והם הופכים לרשימת השמעה שאפשר לסדר.</string>
+    <string name="editor_is_audiobook">זה ספר שמע</string>
+    <string name="editor_is_audiobook_note">ממשיך מאיפה שעצר ומציג את פרקי הספר</string>
 
     <!-- Card editor: default titles stored with the card -->
     <string name="editor_default_song_title">שיר</string>
@@ -384,6 +400,7 @@
     <!-- Card editor: preview -->
     <string name="editor_untitled">כרטיס ללא שם</string>
     <string name="editor_card_id">מזהה כרטיס %1$s</string>
+    <string name="editor_no_card_yet">נשמר לאחר כך: עדיין לא על כרטיס</string>
     <string name="editor_read_from_shared">נקרא מכרטיס משותף. שמרו אותו כדי שיישאר.</string>
     <string name="editor_sticker_cd">מדבקת הכרטיס. פותחת את יוצר המדבקות.</string>
     <string name="sticker_maker_title">יוצר המדבקות</string>
@@ -445,7 +462,6 @@
 
     <!-- Card editor: what should it play -->
     <string name="editor_section_play">מה הכרטיס ינגן?</string>
-    <string name="editor_card_type">סוג כרטיס</string>
     <string name="editor_paste_link">הדביקו קישור (באפליקציה: שיתוף ← העתקת קישור)</string>
     <string name="editor_paste_video">הדביקו קישור מ-Netflix או מ-Disney+ (שיתוף ← העתקת קישור)</string>
     <string name="editor_video_unknown">זה לא קישור של Netflix או Disney+</string>
@@ -480,9 +496,7 @@
     <string name="editor_episode_load_feed">טענו את העדכון כדי לבחור פרק.</string>
 
     <!-- Card editor: file / folder -->
-    <string name="editor_choose_file">בחירת קובץ</string>
     <string name="editor_file_chosen">נבחר קובץ</string>
-    <string name="editor_no_file">עדיין אין קובץ</string>
     <string name="editor_songs_inside">שירים בתוך הקובץ הזה</string>
     <!-- Always 2 or more songs here, so no plural. -->
     <string name="editor_split_done">הקובץ חולק ל-%1$d שירים. הצד הימני והשמאלי של המסך מדלגים ביניהם, ולכל שיר יכולה להיות תמונה משלו.</string>
@@ -490,6 +504,30 @@
     <string name="editor_edit_songs">עריכת השירים</string>
     <string name="editor_split_into_songs">חלוקה או חיתוך</string>
     <string name="editor_remove_split">הסרת הפיצול</string>
+    <!-- "Record it yourself": recording with the phone's microphone in the card editor. -->
+    <string name="editor_rec_start">הקלטה</string>
+    <string name="editor_rec_tip">במקום שקט, כשהטלפון קרוב. אפשר להשהות, להאזין ולהקליט שוב.</string>
+    <string name="editor_rec_no_mic">במכשיר הזה אין מיקרופון להקלטה.</string>
+    <string name="editor_rec_recording">מקליט…</string>
+    <string name="editor_rec_paused">בהשהיה</string>
+    <string name="editor_rec_pause">השהיה</string>
+    <string name="editor_rec_resume">המשך</string>
+    <!-- %1$s = how long the recording is, e.g. 2:15 -->
+    <string name="editor_rec_take">הוקלט: %1$s</string>
+    <string name="editor_rec_take_plain">הוקלט</string>
+    <string name="editor_rec_listen">האזנה</string>
+    <string name="editor_rec_stop_listening">עצירה</string>
+    <string name="editor_rec_again">הקלטה מחדש</string>
+    <string name="editor_rec_again_title">להקליט מחדש?</string>
+    <string name="editor_rec_again_body">ההקלטה החדשה תחליף את הזאת. אחרי שמירת הכרטיס אי אפשר יהיה לשחזר אותה.</string>
+    <string name="editor_rec_nothing">לא הוקלט כלום. נסו שוב.</string>
+    <string name="editor_rec_failed">ההקלטה לא התחילה. ייתכן שאפליקציה אחרת משתמשת במיקרופון.</string>
+    <string name="editor_rec_no_room">אין מספיק מקום בטלפון כדי להקליט.</string>
+    <string name="editor_rec_mic_needed">BoopBox צריך את המיקרופון כדי להקליט. הוא מאזין רק בזמן שמקליטים כאן.</string>
+    <string name="editor_rec_mic_settings">פתיחת הגדרות האפליקציה</string>
+    <string name="editor_rec_busy">קודם סיימו את ההקלטה.</string>
+    <string name="editor_rec_default_name">ההקלטה שלי</string>
+    <string name="editor_rec_trim">חיתוך ההתחלה והסוף</string>
     <plurals name="editor_file_has_chapters">
         <item quantity="one">בקובץ הזה יש סימון פרק אחד משלו.</item>
         <item quantity="two">בקובץ הזה יש %d סימוני פרקים משלו.</item>
@@ -501,8 +539,6 @@
     <!-- ספרי שמע שהורדו -->
     <string name="editor_cat_book">ספר שמע בטלפון הזה</string>
     <string name="editor_cat_book_hint">ספר שהורד: קובץ אחד או תיקייה של פרקים</string>
-    <string name="editor_book_choose_file">קובץ ספר</string>
-    <string name="editor_book_choose_folder">תיקיית ספר</string>
     <string name="editor_book_note">ספרים מוגנים (Audible, Apple Books, Libby) מתנגנים רק באפליקציות שלהם. ספרים שהורדו בלי הגנה וספרי LibriVox עובדים כאן.</string>
     <string name="editor_book_reading">קורא את הספר…</string>
     <plurals name="editor_book_chapters">
@@ -530,9 +566,7 @@
     <string name="editor_speed_title">מהירות</string>
     <string name="editor_speed_note">לאט יותר עוזר לקטנטנים לעקוב אחרי הסיפור.</string>
     <string name="editor_speed_normal">רגיל</string>
-    <string name="editor_choose_folder">בחירת תיקייה</string>
     <string name="editor_folder_chosen">נבחרה תיקייה</string>
-    <string name="editor_no_folder">עדיין אין תיקייה</string>
 
     <!-- Card editor: Yoto -->
     <string name="editor_yoto_signin_note">התחברו פעם אחת עם חשבון ה-Yoto של המשפחה, ואז אפשר יהיה לנגן ב-BoopBox כל דבר מספריית ה-Yoto שלכם, כולל הפרק היומי של Yoto Daily. כרטיסי Yoto אמיתיים לא דורשים התחברות: פשוט הצמידו כרטיס כזה לטלפון כשמסך הנגן פתוח.</string>
@@ -605,6 +639,11 @@
     <string name="editor_tag_note">המדבקה אבדה או נשחקה? העבירו את הכרטיס הזה לתג NFC אחר. או העתיקו אותו, כך ששני תגים ינגנו אותו דבר.</string>
     <string name="editor_move_tag">העברה לתג אחר</string>
     <string name="editor_copy_tag">העתקה לתג אחר</string>
+    <!-- Card editor: a card saved for later, with no NFC card of its own yet -->
+    <string name="editor_section_put_on_card">עדיין לא על כרטיס</string>
+    <string name="editor_put_on_card_note">הכרטיס נשמר לאחר כך, ולכן אף כרטיס NFC עדיין לא מנגן אותו. עד אז הוא מתנגן ממדף הכרטיסים (לחיצה ארוכה על הלוגו במסך הבית) ומרשימת הכרטיסים.</string>
+    <string name="editor_put_on_card">לשים על כרטיס</string>
+    <string name="editor_put_waiting">הכרטיס ההוא ינגן את \"%1$s\".</string>
     <string name="editor_section_share">שיתוף הכרטיס</string>
     <string name="editor_share_local_only">אי אפשר לשתף בכרטיס קבצים, תיקיות ורשימות השמעה שנמצאים בטלפון הזה. קישורים, פודקאסטים ושידורים אפשר.</string>
     <string name="editor_share_note">כתיבת פרטי הכרטיס על תג ה-NFC עצמו. מי שיש לו BoopBox יכול אז להצמיד את התג, והכרטיס יתווסף לטלפון שלו אוטומטית. נדרש תג שאפשר לכתוב עליו (מדבקות NTAG213/215/216 מתאימות).</string>
@@ -718,6 +757,7 @@
         <item quantity="other">%1$d קטעים</item>
     </plurals>
     <string name="pending_hold_card">הצמידו כרטיס לטלפון</string>
+    <string name="pending_save_for_later">שמירה לאחר כך</string>
     <string name="pending_will_get">הכרטיס יקבל את השירים האלה והם יתחילו להתנגן</string>
     <string name="pending_double_tap">הקשה כפולה</string>
     <string name="pending_replace_title">הכרטיס הזה כבר מנגן את \"%1$s\"</string>
@@ -747,6 +787,9 @@
     <string name="msg_move_card_in_use">הכרטיס הזה כבר מנגן את \"%1$s\". מחקו קודם את הכרטיס ההוא, או השתמשו בכרטיס אחר.</string>
     <string name="msg_added_from_card">\"%1$s\" נוסף מהכרטיס</string>
     <string name="msg_card_set_up">הכרטיס הוגדר: \"%1$s\"</string>
+    <!-- "Save for later" on a card waiting for an NFC card: kept without one. The second is for phones without the Card Shelf (Plus). -->
+    <string name="msg_saved_for_later">\"%1$s\" נמצא במדף הכרטיסים. לחיצה ארוכה על הלוגו מנגנת אותו.</string>
+    <string name="msg_saved_for_later_list">\"%1$s\" נשמר. תמצאו אותו בהגדרות ← כרטיסים.</string>
     <string name="msg_updated_card">\"%1$s\" עודכן</string>
     <string name="msg_added_card">\"%1$s\" נוסף</string>
     <string name="msg_card_ready">\"%1$s\" מוכן: הצמידו כרטיס חדש</string>

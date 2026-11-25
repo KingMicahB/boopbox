@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.cardplayer.billing.Plus
 import com.cardplayer.billing.PlusReason
 import com.cardplayer.data.PendingCardRepository
+import com.cardplayer.data.Recordings
 import com.cardplayer.data.AppSettings
 import com.cardplayer.data.Backup
 import com.cardplayer.data.BoopFile
@@ -100,15 +101,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Cards pushed from the computer, waiting for an NFC card (oldest first). */
     val pendingCards: StateFlow<List<Card>> = app.pending.pending
 
-    /** Waiting cards the grown-up said "not now" to, keyed by uid+createdAt so a re-push shows again. */
-    private val _snoozedPending = MutableStateFlow<Set<String>>(emptySet())
-    val snoozedPending: StateFlow<Set<String>> = _snoozedPending.asStateFlow()
-
-    fun pendingKey(card: Card) = card.uid + "@" + card.createdAt
-
-    fun snoozePending(card: Card) {
+    /**
+     * "Save for later" on a waiting card: it is kept as a card of the phone with no NFC card of its own yet
+     * ([Card.untagged]). It plays from the Card Shelf and the card list; its editor puts it on a real card.
+     */
+    fun savePendingForLater(card: Card) {
         _replacePrompt.value = null
-        _snoozedPending.value = _snoozedPending.value + pendingKey(card)
+        // A card of the grown-up's own counts toward the free limit, as it would when tapped onto a card.
+        // Shared .boop cards always land.
+        if (!app.pending.isShared(card) && !allowNewCard()) return
+        val kept = app.pending.keepWithoutCard(card.uid) ?: return
+        // The Card Shelf is Plus: without it, say where the card can be found instead.
+        val said = if (plus.value) R.string.msg_saved_for_later else R.string.msg_saved_for_later_list
+        _notices.tryEmit(Notice(app.getString(said, kept.displayName(app))))
     }
 
     fun discardPending(card: Card) {
@@ -116,10 +121,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         app.pending.discard(card.uid)
         // A card made here and thrown away: the sticker drawn for it goes too.
         if (app.pending.isDraft(card)) StickerStore.delete(app, card.stickerUrl)
+        // So does what was recorded for it.
+        Recordings.cleanUpAfter(app, card, everyCard())
     }
 
-    /** The waiting card on screen right now: the first one the grown-up hasn't said "not now" to. */
-    fun visiblePending(): Card? = pendingCards.value.firstOrNull { pendingKey(it) !in _snoozedPending.value }
+    /** Every card on the phone and every one waiting for a tap: all that can still point at a recording. */
+    private fun everyCard(): List<Card> = app.cards.cards.value + app.pending.pending.value
+
+    /** A recording made in the editor and then recorded again or abandoned: removed, unless a card plays it after all. */
+    fun discardTake(uri: String) = Recordings.discardIfUnused(app, uri, everyCard())
+
+    /** The waiting card on screen right now. */
+    fun visiblePending(): Card? = pendingCards.value.firstOrNull()
 
     /** True when [card] (a waiting card) came out of a .boop someone shared, not a computer push. */
     fun isSharedPending(card: Card) = app.pending.isShared(card)
@@ -342,8 +355,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> {
                 // A card pushed from the computer (tools/cardpush.py) is waiting: this card gets it.
                 // Shared .boop cards always land; a link shared from another app counts as a card of your own.
-                val next = waiting ?: pendingCards.value.firstOrNull()
-                if (next != null && !app.pending.isShared(next) && !allowNewCard(uid)) return
+                if (waiting != null && !app.pending.isShared(waiting) && !allowNewCard(uid)) return
                 val pushed = app.pending.claim(uid, waiting?.uid)
                 if (pushed != null) {
                     _unknownCard.value = null
@@ -521,7 +533,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun saveCard(card: Card) {
+        val before = app.cards.get(card.uid)
         app.cards.upsert(card)
+        // Recorded again, or given something else to play: the recording it had goes.
+        if (before != null) Recordings.cleanUpAfter(app, before, everyCard())
         // A YouTube card starts downloading as soon as it is saved, so it plays offline from its first tap.
         if (app.settings.value.youtubeAutoCache) app.player.youtubeCache.ensureAsync(card)
     }
@@ -562,9 +577,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteCard(uid: String) {
-        StickerStore.delete(app, app.cards.get(uid)?.stickerUrl)
+        val card = app.cards.get(uid)
+        StickerStore.delete(app, card?.stickerUrl)
         app.cards.delete(uid)
         app.positions.clear(uid)
+        // What was recorded for it goes too, unless another card (a copy on a second tag) plays it.
+        if (card != null) Recordings.cleanUpAfter(app, card, everyCard())
     }
 
     fun playNow(card: Card) {

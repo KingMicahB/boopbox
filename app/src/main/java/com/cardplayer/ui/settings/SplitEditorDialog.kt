@@ -170,13 +170,24 @@ fun SplitEditorDialog(
     }
 
     val totalMs = maxOf(timeline?.durationMs ?: 0L, preview.durationMs, pageDurationMs)
-    // The length arrives late: an end of 0 (= to the end) or past the end becomes the real end.
+    /** The length the end was last lined up with. */
+    var lastTotalMs by remember { mutableLongStateOf(0L) }
+    // The length arrives late, and in steps (the player's, then the waveform's, which seldom agree to the
+    // millisecond): an end of 0 (= to the end), past the end, or sitting at the length as it was known a moment
+    // ago, becomes the real end. Otherwise the second step left a cut nobody made just short of the end.
     LaunchedEffect(totalMs) {
         if (totalMs <= 0) return@LaunchedEffect
-        if (clipEnd <= 0L || clipEnd > totalMs) clipEnd = totalMs
+        if (clipEnd <= 0L || clipEnd > totalMs || clipEnd == lastTotalMs) clipEnd = totalMs
+        lastTotalMs = totalMs
         clipStart = clipStart.coerceIn(0L, (clipEnd - MIN_CLIP_MS).coerceAtLeast(0L))
     }
-    val endMs = if (clipEnd > 0L) clipEnd else totalMs
+    /**
+     * Where the cut ends right now, read from state. The waveform's gesture code and the functions it calls keep
+     * running with what they captured when a finger first touched the waveform (Compose swaps a pointerInput
+     * block only when its keys change), so they ask here: [endMs] is a value, and would be the end as it was then.
+     */
+    fun endNow(): Long = if (clipEnd > 0L) clipEnd else totalMs
+    val endMs = endNow()
 
     // Follow the preview playhead and stop at its end.
     LaunchedEffect(previewToken) {
@@ -208,10 +219,13 @@ fun SplitEditorDialog(
         previewToken++
     }
 
-    fun hearStart() = previewAt(clipStart, minOf(clipStart + EDGE_PREVIEW_MS, endMs))
-    fun hearEnd() = previewAt(maxOf(endMs - EDGE_PREVIEW_MS, clipStart), endMs)
+    fun hearStart() = previewAt(clipStart, minOf(clipStart + EDGE_PREVIEW_MS, endNow()))
+    fun hearEnd() {
+        val end = endNow()
+        previewAt(maxOf(end - EDGE_PREVIEW_MS, clipStart), end)
+    }
     fun setStart(ms: Long) {
-        clipStart = ms.coerceIn(0L, (endMs - MIN_CLIP_MS).coerceAtLeast(0L))
+        clipStart = ms.coerceIn(0L, (endNow() - MIN_CLIP_MS).coerceAtLeast(0L))
     }
     fun setEnd(ms: Long) {
         clipEnd = ms.coerceIn((clipStart + MIN_CLIP_MS).coerceAtMost(totalMs), totalMs)
@@ -327,7 +341,8 @@ fun SplitEditorDialog(
                                     if (totalMs > 0) {
                                         checkingCuts = false
                                         val at = (pos.x / size.width * totalMs).toLong().coerceIn(0, totalMs)
-                                        previewAt(at, if (at < endMs) endMs else totalMs)
+                                        val end = endNow()
+                                        previewAt(at, if (at < end) end else totalMs)
                                     }
                                 }
                             }
@@ -337,7 +352,7 @@ fun SplitEditorDialog(
                                     onDragStart = { pos ->
                                         if (totalMs <= 0) return@detectHorizontalDragGestures
                                         val sx = size.width * clipStart.toFloat() / totalMs
-                                        val ex = size.width * endMs.toFloat() / totalMs
+                                        val ex = size.width * endNow().toFloat() / totalMs
                                         val nearStart = abs(pos.x - sx) <= abs(pos.x - ex)
                                         // Splitting: only a drag that starts on a handle moves it. Trim alone: any drag.
                                         if (!allowSplit || minOf(abs(pos.x - sx), abs(pos.x - ex)) <= grabPx) {
@@ -585,14 +600,18 @@ private fun Waveform(
                 val x1 = w * s.endMs / totalMs
                 drawRect(silenceColor, Offset(x0, 0f), Size((x1 - x0).coerceAtLeast(1f), h))
             }
-            // Loudness bars: one per ~2 px, peak of the windows in that span. Unanalysed spans stay empty.
-            val bars = (w / 2f).toInt().coerceAtLeast(1)
-            val perBar = (timeline.size / bars).coerceAtLeast(1)
+            // Loudness bars: one per ~2 px (fewer, and wider, for a very short file), peak of the windows in that
+            // span. The windows are shared out over the bars to the last one: a whole number of windows per bar
+            // left the rest of the file, up to half of a short song, without bars. Unanalysed spans stay empty.
+            val windows = timeline.size
+            val bars = minOf((w / 2f).toInt().coerceAtLeast(1), windows)
+            // The timeline's own length on screen (the player may say the file is a little longer).
+            val waveW = (w * (windows * SilenceScanner.STEP_MS).toFloat() / totalMs).coerceAtMost(w)
+            val barW = waveW / bars
             for (b in 0 until bars) {
                 var peak = Float.NaN
-                val from = b * perBar
-                val to = minOf(from + perBar, timeline.size)
-                if (from >= timeline.size) break
+                val from = (b.toLong() * windows / bars).toInt()
+                val to = ((b + 1).toLong() * windows / bars).toInt().coerceIn(from + 1, windows)
                 for (i in from until to) {
                     val v = timeline.levelsDb[i]
                     if (!v.isNaN() && (peak.isNaN() || v > peak)) peak = v
@@ -600,8 +619,12 @@ private fun Waveform(
                 if (peak.isNaN()) continue
                 val norm = ((peak + 60f) / 60f).coerceIn(0f, 1f)
                 val bh = norm * h
-                val x = w * timeline.timeMs(from).toFloat() / totalMs
-                drawRect(if (x in sx..ex) barColor else cutAwayColor, Offset(x, (h - bh) / 2f), Size(2f, bh.coerceAtLeast(1f)))
+                val x = barW * b
+                drawRect(
+                    if (x in sx..ex) barColor else cutAwayColor,
+                    Offset(x, (h - bh) / 2f),
+                    Size(if (barW > 3f) barW - 1f else 2f, bh.coerceAtLeast(1f))
+                )
             }
         } else {
             // No waveform (a YouTube video): a plain bar for the part that plays.

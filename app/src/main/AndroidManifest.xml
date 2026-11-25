@@ -12,8 +12,12 @@
     <!-- Lets the app bring itself back to the front after launching Spotify / YouTube / etc. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REORDER_TASKS" />
+    <!-- "Record it yourself" in the card editor. Asked for the first time Record is pressed, used only while recording there. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
+    <!-- Recording is an extra: a device without a microphone still gets the app. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <queries>
         <package android:name="com.spotify.music" />

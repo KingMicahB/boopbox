@@ -32,6 +32,7 @@ import com.cardplayer.data.CardRepository
 import com.cardplayer.data.Clip
 import com.cardplayer.data.PodcastMode
 import com.cardplayer.data.PositionStore
+import com.cardplayer.data.Recordings
 import com.cardplayer.data.SettingsRepository
 import com.cardplayer.data.SourceType
 import com.cardplayer.link.LinkResolver
@@ -518,8 +519,12 @@ class PlayerController(
     private fun chapterIndexAt(card: Card, positionMs: Long): Int =
         card.chapters.indexOfLast { it.startMs <= positionMs }.coerceAtLeast(0)
 
-    /** The Plus start / end cut of one track, or null (no cut, or no Plus). */
-    private fun clipOf(card: Card, trackKey: String): Clip? = if (Plus.isActive) card.clipFor(trackKey) else null
+    /**
+     * The start / end cut of one track, or null (no cut, or no Plus). Cuts are Plus, except the trimmed ends of
+     * a recording made in the card editor, which are free.
+     */
+    private fun clipOf(card: Card, trackKey: String): Clip? =
+        if (Plus.isActive || (trackKey == Card.MAIN_TRACK && Recordings.isRecording(card.uri))) card.clipFor(trackKey) else null
 
     /**
      * Where song [idx] of a split file / video really plays, in ms from the start of the file: its chapter,

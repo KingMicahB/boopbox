@@ -64,6 +64,22 @@ class PendingCardRepository(private val context: Context, private val cards: Car
         return card
     }
 
+    /**
+     * "Save for later": the waiting card [which] becomes a card of this phone with no NFC card of its own
+     * ([Card.untagged]), or null when it is no longer waiting. It is always offered on the Card Shelf, whatever
+     * the phone it came from chose: with no card to tap, that and the card list are where it plays.
+     */
+    @Synchronized
+    fun keepWithoutCard(which: String): Card? {
+        val next = store.value.firstOrNull { it.uid == which } ?: return null
+        store.update { list -> list.filterNot { it.uid == next.uid } }
+        var now = System.currentTimeMillis()
+        while (cards.get(Card.untaggedUid(now)) != null) now++
+        val card = next.copy(uid = Card.untaggedUid(now), createdAt = now, showInPicker = true)
+        cards.upsert(card)
+        return card
+    }
+
     /** True for a waiting card that came out of a .boop someone shared (rather than a computer push). */
     fun isShared(card: Card) = card.uid.startsWith(SHARED_PREFIX)
 
@@ -123,7 +139,7 @@ class PendingCardRepository(private val context: Context, private val cards: Car
                     _imported.tryEmit(context.getString(R.string.msg_added_card, card.displayName(context)))
                 }
                 else -> {
-                    // A fresh createdAt, so a card the grown-up said "not now" to shows again when it is sent again.
+                    // (A card that was saved for later is on the phone by now: it was updated in place, above.)
                     val waiting = card.copy(uid = waitingUid(push), createdAt = System.currentTimeMillis())
                     store.update { list ->
                         val rest = list.filterNot { it.isWaitingFor(push.id) }
@@ -162,7 +178,9 @@ class PendingCardRepository(private val context: Context, private val cards: Car
             artworkUrl = card.artworkUrl?.let(::r),
             stickerUrl = card.stickerUrl?.let(::r),
             playlist = card.playlist.map { it.copy(uri = r(it.uri)) },
-            trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) }
+            trackArt = card.trackArt.entries.associate { (k, v) -> r(k) to r(v) },
+            // Start / end cuts of a playlist's songs are filed under the song's address.
+            clips = card.clips.mapKeys { (k, _) -> r(k) }
         )
     }
 }

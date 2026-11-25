@@ -60,12 +60,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -124,6 +120,7 @@ import com.cardplayer.data.Clip
 import com.cardplayer.data.PlaylistItem
 import com.cardplayer.data.PodcastFeed
 import com.cardplayer.data.PodcastMode
+import com.cardplayer.data.Recordings
 import com.cardplayer.data.SourceType
 import com.cardplayer.link.ArtworkSearch
 import com.cardplayer.link.LinkResolver
@@ -152,6 +149,8 @@ private enum class Category(@param:StringRes val labelRes: Int, @param:StringRes
     AUDIBLE(R.string.editor_cat_audible, R.string.editor_cat_audible_hint),
     AUDIOBOOK(R.string.editor_cat_book, R.string.editor_cat_book_hint),
     PODCAST(R.string.editor_cat_podcast, R.string.editor_cat_podcast_hint),
+    /** Recorded here with the phone's microphone; saved and played as a [SourceType.LOCAL_FILE] ([Recordings]). */
+    RECORDING(R.string.editor_cat_recording, R.string.editor_cat_recording_hint),
     FILE(R.string.source_local_file, R.string.editor_cat_file_hint),
     FOLDER(R.string.source_local_folder, R.string.editor_cat_folder_hint),
     PLAYLIST(R.string.editor_cat_playlist, R.string.editor_cat_playlist_hint),
@@ -164,11 +163,45 @@ private fun categoryOf(card: Card): Category = when (card.sourceType) {
     SourceType.VIDEO -> Category.VIDEO
     SourceType.AUDIBLE -> Category.AUDIBLE
     SourceType.PODCAST -> Category.PODCAST
-    SourceType.LOCAL_FILE -> if (card.audiobook) Category.AUDIOBOOK else Category.FILE
+    SourceType.LOCAL_FILE -> when {
+        card.audiobook -> Category.AUDIOBOOK
+        Recordings.isRecording(card.uri) -> Category.RECORDING
+        else -> Category.FILE
+    }
     SourceType.LOCAL_FOLDER -> if (card.audiobook) Category.AUDIOBOOK else Category.FOLDER
     SourceType.PLAYLIST -> Category.PLAYLIST
     SourceType.YOTO -> Category.YOTO
     SourceType.STREAM_URL -> Category.STREAM
+}
+
+/** Which of the four tiles a type sits under. */
+private val Category.kind: CardKind
+    get() = when (this) {
+        Category.LINK, Category.VIDEO, Category.AUDIBLE, Category.PODCAST, Category.STREAM -> CardKind.LINK
+        Category.FILE, Category.FOLDER, Category.PLAYLIST, Category.AUDIOBOOK -> CardKind.PHONE
+        Category.RECORDING -> CardKind.RECORD
+        Category.YOTO -> CardKind.YOTO
+    }
+
+/** The type a tile starts on, before anything is pasted or picked. */
+private val CardKind.firstCategory: Category
+    get() = when (this) {
+        CardKind.LINK -> Category.LINK
+        CardKind.PHONE -> Category.FILE
+        CardKind.RECORD -> Category.RECORDING
+        CardKind.YOTO -> Category.YOTO
+    }
+
+/** The link types, in the order the "Plays as" chips show them. */
+private val LinkCategories = listOf(Category.LINK, Category.VIDEO, Category.AUDIBLE, Category.PODCAST, Category.STREAM)
+
+/** What a pasted link is taken for ([LinkResolver.interpret]). */
+private fun linkCategoryOf(link: String): Category = when (LinkResolver.interpret(link)) {
+    SourceType.AUDIBLE -> Category.AUDIBLE
+    SourceType.VIDEO -> Category.VIDEO
+    SourceType.PODCAST -> Category.PODCAST
+    SourceType.STREAM_URL -> Category.STREAM
+    else -> Category.LINK
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -275,11 +308,13 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // Split one long file / video into songs and trim its start and end (waveform + silence detection + cuts by hand),
     // or trim one song of a playlist. Null = closed; the key is the Card.clips key being edited.
     var songEditor by remember { mutableStateOf<Pair<String, SongSource>?>(null) }
-    // Splitting into songs / marking chapters by hand / trimming is Plus; a book's own chapter marks stay free.
+    // Splitting into songs / marking chapters by hand / trimming is Plus; a book's own chapter marks stay free,
+    // and so does trimming the ends of a recording made here.
     fun openSongEditor(key: String, source: SongSource?) {
         when {
             source == null -> Unit
-            !plus -> viewModel.showPaywall(if (key == Card.MAIN_TRACK) PlusReason.SPLIT else PlusReason.TRIM)
+            !plus && !(key == Card.MAIN_TRACK && category == Category.RECORDING) ->
+                viewModel.showPaywall(if (key == Card.MAIN_TRACK) PlusReason.SPLIT else PlusReason.TRIM)
             else -> songEditor = key to source
         }
     }
@@ -395,27 +430,15 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     var fetching by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
     var pickedLabel by remember { mutableStateOf<String?>(null) }
-
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { picked ->
-        if (picked != null) {
-            try {
-                context.contentResolver.takePersistableUriPermission(picked, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: Exception) {
-            }
-            uri = picked.toString()
-            chapters = emptyList()
-            scannedChapters = false
-            freshPick = true
-            if (category == Category.AUDIOBOOK) bookFolder = false
-            val doc = DocumentFile.fromSingleUri(context, picked)
-            pickedLabel = doc?.name
-            if (name.isBlank()) {
-                name = doc?.name?.substringBeforeLast('.') ?: ""
-                autoName = name
-            }
-            if (resume.not() && (category == Category.AUDIOBOOK || doc?.name?.endsWith(".m4b", true) == true)) resume = true
-        }
+    /** A recording is being made right now: saving, leaving and changing the card type wait until it is done. */
+    var recordingNow by remember { mutableStateOf(false) }
+    /** Says so and returns true while a recording is being made. */
+    fun busyRecording(): Boolean {
+        if (!recordingNow) return false
+        scope.launch { snackbar.showSnackbar(context.getString(R.string.editor_rec_busy)) }
+        return true
     }
+
     val songsPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { picked ->
         val added = picked.mapNotNull { u ->
             try {
@@ -434,6 +457,12 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             try {
                 context.contentResolver.takePersistableUriPermission(picked, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             } catch (_: Exception) {
+            }
+            // On this phone, a folder is a folder card (or a book of chapter files when the audiobook switch is on).
+            if (category != Category.AUDIOBOOK && category.kind == CardKind.PHONE) {
+                category = Category.FOLDER
+                playlist = emptyList()
+                chapters = emptyList()
             }
             uri = picked.toString()
             if (category == Category.AUDIOBOOK) {
@@ -458,7 +487,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.VIDEO -> SourceType.VIDEO
             Category.AUDIOBOOK -> if (bookFolder) SourceType.LOCAL_FOLDER else SourceType.LOCAL_FILE
             Category.PODCAST -> SourceType.PODCAST
-            Category.FILE -> SourceType.LOCAL_FILE
+            Category.FILE, Category.RECORDING -> SourceType.LOCAL_FILE
             Category.FOLDER -> SourceType.LOCAL_FOLDER
             Category.PLAYLIST -> SourceType.PLAYLIST
             Category.YOTO -> SourceType.YOTO
@@ -569,6 +598,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         }
         category = c
         if (!keep) {
+            // A recording made just now and not saved on any card goes with the type change.
+            viewModel.discardTake(uri)
             uri = ""
             feed = null
             loadedFeedUrl = null
@@ -581,7 +612,66 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         status = null
     }
 
-    val isYouTube = linkType == SourceType.YOUTUBE || linkType == SourceType.YOUTUBE_MUSIC
+    /** The grown-up chose what the link is ("Plays as"): a retyped link no longer changes it by itself. */
+    var linkTypeChosen by remember { mutableStateOf(false) }
+
+    /** The one "Link" field: what is pasted or typed decides the type (Spotify, Netflix, Audible, podcast, stream). */
+    fun takeLink(text: String) {
+        uri = text
+        if (linkTypeChosen || text.isBlank() || category.kind != CardKind.LINK) return
+        val c = linkCategoryOf(text)
+        if (c != category) applyCategory(c, keep = true)
+    }
+
+    /** One file picked "On this phone": a file card, or an audiobook when it is an .m4b or the switch is on. */
+    fun takeFile(picked: Uri) {
+        try {
+            context.contentResolver.takePersistableUriPermission(picked, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: Exception) {
+        }
+        val doc = DocumentFile.fromSingleUri(context, picked)
+        val book = category == Category.AUDIOBOOK || doc?.name?.endsWith(".m4b", true) == true
+        category = if (book) Category.AUDIOBOOK else Category.FILE
+        playlist = emptyList()
+        uri = picked.toString()
+        chapters = emptyList()
+        scannedChapters = false
+        freshPick = true
+        if (book) {
+            bookFolder = false
+            resume = true
+        }
+        pickedLabel = doc?.name
+        if (name.isBlank()) {
+            name = doc?.name?.substringBeforeLast('.') ?: ""
+            autoName = name
+        }
+    }
+
+    /** Several files picked "On this phone": a playlist, in the order they came, to be put in order below. */
+    val phoneFilesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { picked ->
+        when {
+            picked.isEmpty() -> Unit
+            picked.size == 1 -> takeFile(picked.first())
+            else -> {
+                val items = picked.map { u ->
+                    try {
+                        context.contentResolver.takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    } catch (_: Exception) {
+                    }
+                    PlaylistItem(u.toString(), DocumentFile.fromSingleUri(context, u)?.name?.substringBeforeLast('.') ?: context.getString(R.string.editor_default_song_title))
+                }.distinctBy { it.uri }
+                category = Category.PLAYLIST
+                playlist = items
+                uri = "playlist:$uid"
+                chapters = emptyList()
+                scannedChapters = false
+                pickedLabel = null
+            }
+        }
+    }
+
+    val isYouTube =linkType == SourceType.YOUTUBE || linkType == SourceType.YOUTUBE_MUSIC
     val ytCache = viewModel.player.youtubeCache
     val ytVersion by ytCache.version.collectAsStateWithLifecycle()
     /** A YouTube playlist card's downloaded songs (sideload build), for a picture and a cut each. */
@@ -610,6 +700,10 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     val mainClip = clips[Card.MAIN_TRACK]?.takeIf { mainClipUri == uri.trim() && it.isSet }
 
     fun buildCard(): Card? {
+        if (recordingNow) {
+            status = context.getString(R.string.editor_rec_busy)
+            return null
+        }
         if (category == Category.PLAYLIST) {
             if (playlist.isEmpty()) {
                 status = context.getString(R.string.editor_status_playlist_empty)
@@ -676,7 +770,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // ---- the sticker: filled in from what the card says about itself, as it stands in the editor right now.
     /** The files whose lengths add up to the card's running time (none for links, streams and podcasts). */
     fun stickerFiles(): List<String> = when (category) {
-        Category.FILE -> listOf(uri).filter { it.isNotBlank() }
+        Category.FILE, Category.RECORDING -> listOf(uri).filter { it.isNotBlank() }
         Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { it.uri } else listOf(uri).filter { it.isNotBlank() }
         Category.FOLDER -> folderTracks.map { it.uri }
         Category.PLAYLIST -> playlist.map { it.uri }
@@ -691,7 +785,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.AUDIOBOOK -> if (bookFolder) folderTracks.map { StickerRow(it.uri, it.title, trackArt[it.uri]) } else chapterRows()
             Category.PLAYLIST -> playlist.map { StickerRow(it.uri, it.title, trackArt[it.uri]) }
             Category.LINK -> ytListTracks?.map { StickerRow(it.id, it.title, trackArt[it.id]) } ?: chapterRows()
-            Category.FILE -> chapterRows()
+            Category.FILE, Category.RECORDING -> chapterRows()
             // Yoto chapters come with their own pixel icon.
             Category.YOTO -> yotoChapters.map { StickerRow(it.key, yotoPrettyTitle(it.title), trackArt[it.key] ?: it.iconUrl) }
             else -> emptyList()
@@ -737,12 +831,14 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
     // ---- unsaved-changes guard: everything the editor can change, compared with how it started.
     fun snapshot(): List<Any?> = listOf(
         name, emoji, color, category, uri, artworkUrl, subtitle, podcastMode, episodeUrl, episodeTitle,
-        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder, sticker
+        resume, shuffle, trackArt, playlist, chapters, artworkCredit, cardRemoved, sleepMinutes, speed, bookFolder, sticker,
+        clips
     )
     val initialSnapshot = remember(uid) { snapshot() }
     val dirty = snapshot() != initialSnapshot || (saved == null && uri.isNotBlank())
     var showLeaveDialog by remember { mutableStateOf(false) }
     fun leave() {
+        if (busyRecording()) return
         if (dirty) showLeaveDialog = true else viewModel.back()
     }
     BackHandler { leave() }
@@ -767,6 +863,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                 Row {
                     TextButton(onClick = {
                         showLeaveDialog = false
+                        // A recording made here and never saved goes with the rest.
+                        viewModel.discardTake(uri)
                         viewModel.back()
                     }) { Text(stringResource(R.string.editor_leave_discard)) }
                     TextButton(onClick = { showLeaveDialog = false }) { Text(stringResource(R.string.editor_leave_keep)) }
@@ -779,7 +877,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         AlertDialog(
             onDismissRequest = { pendingCategory = null },
             title = { Text(stringResource(R.string.editor_type_change_title)) },
-            text = { Text(stringResource(R.string.editor_type_change_body, stringResource(c.labelRes))) },
+            text = { Text(stringResource(R.string.editor_type_change_body, stringResource(c.kind.labelRes))) },
             confirmButton = {
                 TextButton(onClick = {
                     applyCategory(c, keep = false)
@@ -937,8 +1035,12 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        // No NFC card yet, no id to show.
-                        if (!draft) Text(stringResource(R.string.editor_card_id, uid), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        // No NFC card yet, no id to show; one saved for later says so instead.
+                        if (!draft) Text(
+                            if (Card.isUntaggedUid(uid)) stringResource(R.string.editor_no_card_yet) else stringResource(R.string.editor_card_id, uid),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         if (saved == null && existing != null) {
                             Text(stringResource(R.string.editor_read_from_shared), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
@@ -948,75 +1050,150 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
             // Each section is its own composable lambda, so it compiles to its own method: as one huge method D8 mis-allocated
             // registers and ART rejected CardEditorScreenKt (VerifyError) in release builds.
-            val playSection: @Composable ColumnScope.() -> Unit = {
-                ContentGroup(stringResource(R.string.editor_section_play)) {
-                    var typeMenuOpen by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = typeMenuOpen,
-                        onExpandedChange = { typeMenuOpen = it }
+            // The podcast's own controls under the shared link field: load the feed, newest or one episode.
+            val podcastSection: @Composable ColumnScope.() -> Unit = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = { loadFeed() }, enabled = uri.isNotBlank() && !fetching) {
+                        Text(stringResource(if (feed == null) R.string.editor_load_feed else R.string.editor_reload))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(
+                        enabled = uri.isNotBlank(),
+                        onClick = {
+                            val temp = Card(uid = uid, sourceType = SourceType.PODCAST, uri = uri.trim(), podcastMode = podcastMode, episodeUrl = episodeUrl)
+                            scope.launch {
+                                status = context.getString(R.string.editor_status_downloading_newest)
+                                val f = viewModel.player.podcastCache.refresh(temp, download = true)
+                                status = if (f == null) {
+                                    context.getString(R.string.editor_status_feed_unreachable)
+                                } else {
+                                    context.getString(
+                                        R.string.editor_status_downloaded,
+                                        viewModel.player.podcastCache.targetEpisode(temp, f)?.title ?: context.getString(R.string.editor_newest_episode_fallback)
+                                    )
+                                }
+                            }
+                        }
+                    ) { Text(stringResource(R.string.editor_download_newest)) }
+                }
+                // Own line: beside the buttons it was squeezed into a column a few letters wide.
+                feed?.let {
+                    Text(
+                        pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                PodcastMode.entries.forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                podcastMode = mode
+                                if (mode == PodcastMode.LATEST) {
+                                    episodeUrl = feed?.episodes?.firstOrNull()?.url ?: episodeUrl
+                                    episodeTitle = feed?.episodes?.firstOrNull()?.title ?: episodeTitle
+                                }
+                            },
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = stringResource(category.labelRes),
-                            onValueChange = {},
-                            readOnly = true,
-                            singleLine = true,
-                            label = { Text(stringResource(R.string.editor_card_type)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuOpen) },
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
+                        RadioButton(selected = podcastMode == mode, onClick = null)
+                        Text(stringResource(mode.labelRes), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                if (podcastMode == PodcastMode.EPISODE) {
+                    val episodes = feed?.episodes
+                    if (episodes == null) {
+                        Text(
+                            episodeTitle?.let { stringResource(R.string.editor_episode_chosen, it) } ?: stringResource(R.string.editor_episode_load_feed),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        ExposedDropdownMenu(
-                            expanded = typeMenuOpen,
-                            onDismissRequest = { typeMenuOpen = false }
+                    } else {
+                        // Long feeds: a search box, so an episode from years ago is a few letters away.
+                        if (episodes.size > 10) {
+                            OutlinedTextField(
+                                value = episodeQuery,
+                                onValueChange = { episodeQuery = it },
+                                label = { Text(stringResource(R.string.editor_episode_search)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        val wanted = episodeQuery.trim()
+                        val shown = episodes.filter { wanted.isEmpty() || it.title.contains(wanted, ignoreCase = true) }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(8.dp)
                         ) {
-                            Category.entries.forEach { c ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(stringResource(c.labelRes), style = MaterialTheme.typography.bodyLarge)
-                                            Text(stringResource(c.hintRes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (shown.isEmpty()) {
+                                Text(stringResource(R.string.editor_episode_none_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            shown.take(60).forEach { ep ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            episodeUrl = ep.url
+                                            episodeTitle = ep.title
                                         }
-                                    },
-                                    leadingIcon = if (category == c) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, Modifier.size(18.dp)) }
-                                    } else {
-                                        { Spacer(Modifier.size(18.dp)) }
-                                    },
-                                    onClick = {
-                                        typeMenuOpen = false
-                                        if (category != c) {
-                                            // A file or folder already chosen carries over between "File" / "Folder" and "Audiobook".
-                                            val keep = uri.isNotBlank() && when {
-                                                c == Category.AUDIOBOOK -> category == Category.FILE || category == Category.FOLDER
-                                                category == Category.AUDIOBOOK -> c == (if (bookFolder) Category.FOLDER else Category.FILE)
-                                                else -> false
-                                            }
-                                            // Switching away from something already chosen throws it away: ask first.
-                                            if (!keep && (uri.isNotBlank() || playlist.isNotEmpty())) pendingCategory = c
-                                            else applyCategory(c, keep)
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(selected = episodeUrl == ep.url, onClick = null)
+                                    Column {
+                                        Text(ep.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
+                                        val meta = listOfNotNull(ep.pubDate?.take(16), ep.durationText).joinToString(" · ")
+                                        if (meta.isNotBlank()) {
+                                            Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                    },
-                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                )
+                                    }
+                                }
                             }
                         }
                     }
-                    Text(stringResource(category.hintRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            val playSection: @Composable ColumnScope.() -> Unit = {
+                ContentGroup(stringResource(R.string.editor_section_play)) {
+                    // Four tiles; what the card is inside its tile is worked out from what is pasted or picked below.
+                    CardKindTiles(selected = category.kind) { k ->
+                        if (k != category.kind && !busyRecording()) {
+                            linkTypeChosen = false
+                            val c = k.firstCategory
+                            // Switching away from something already chosen throws it away: ask first.
+                            if (uri.isNotBlank() || playlist.isNotEmpty()) pendingCategory = c else applyCategory(c, keep = false)
+                        }
+                    }
+                    Text(stringResource(category.kind.hintRes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (category.kind == CardKind.PHONE) {
+                        PhonePickers(
+                            onFiles = { phoneFilesPicker.launch(arrayOf("audio/*", "video/*", "*/*")) },
+                            onFolder = { folderPicker.launch(null) },
+                            playsAs = if (uri.isNotBlank()) stringResource(category.labelRes) else null
+                        )
+                    }
 
                     when (category) {
-                        Category.LINK, Category.AUDIBLE, Category.VIDEO, Category.STREAM -> {
+                        Category.LINK, Category.AUDIBLE, Category.VIDEO, Category.STREAM, Category.PODCAST -> {
+                            // One field for every kind of link: what is pasted decides the type, shown under "Plays as".
                             OutlinedTextField(
                                 value = uri,
-                                onValueChange = { uri = it },
+                                onValueChange = { takeLink(it) },
                                 label = {
                                     Text(
                                         stringResource(
-                                            when (category) {
-                                                Category.LINK -> R.string.editor_paste_link
-                                                Category.AUDIBLE -> R.string.editor_paste_audible
-                                                Category.VIDEO -> R.string.editor_paste_video
-                                                else -> R.string.editor_stream_url
+                                            when {
+                                                uri.isBlank() -> R.string.editor_paste_any
+                                                category == Category.AUDIBLE -> R.string.editor_paste_audible
+                                                category == Category.VIDEO -> R.string.editor_paste_video
+                                                category == Category.PODCAST -> R.string.editor_rss_address
+                                                category == Category.STREAM -> R.string.editor_stream_url
+                                                else -> R.string.editor_paste_link
                                             }
                                         )
                                     )
@@ -1024,21 +1201,25 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                                 trailingIcon = {
-                                    TextButton(onClick = {
-                                        paste { text ->
-                                            uri = text
-                                            // An Audible link pasted into the music field is still an Audible card.
-                                            if (category == Category.LINK && LinkResolver.detect(text) == SourceType.AUDIBLE) category = Category.AUDIBLE
-                                            // Same for a Netflix / Disney+ link: it is a video card.
-                                            if (category == Category.LINK && LinkResolver.detect(text) == SourceType.VIDEO) category = Category.VIDEO
-                                        }
-                                    }) { Text(stringResource(R.string.editor_paste)) }
+                                    TextButton(onClick = { paste { text -> takeLink(text) } }) { Text(stringResource(R.string.editor_paste)) }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )
                             if (uri.isBlank() && clipboardHasText) {
                                 Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                             }
+                            if (uri.isNotBlank()) {
+                                LinkTypeChips(
+                                    options = LinkCategories.map { it to stringResource(it.labelRes) },
+                                    selected = category
+                                ) { c ->
+                                    if (c != category) {
+                                        linkTypeChosen = true
+                                        applyCategory(c, keep = true)
+                                    }
+                                }
+                            }
+                            if (category == Category.PODCAST) podcastSection()
                             if (category == Category.LINK && uri.isNotBlank()) {
                                 val appName = when (linkType) {
                                     SourceType.SPOTIFY -> R.string.source_spotify
@@ -1116,134 +1297,9 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 InfoLink(stringResource(R.string.editor_audible_note))
                             }
                         }
-                        Category.PODCAST -> {
-                            OutlinedTextField(
-                                value = uri,
-                                onValueChange = { uri = it },
-                                label = { Text(stringResource(R.string.editor_rss_address)) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                                trailingIcon = {
-                                    TextButton(onClick = { paste { text -> uri = text } }) { Text(stringResource(R.string.editor_paste)) }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            if (uri.isBlank() && clipboardHasText) {
-                                Text(stringResource(R.string.editor_clipboard_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedButton(onClick = { loadFeed() }, enabled = uri.isNotBlank() && !fetching) {
-                                    Text(stringResource(if (feed == null) R.string.editor_load_feed else R.string.editor_reload))
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                OutlinedButton(
-                                    enabled = uri.isNotBlank(),
-                                    onClick = {
-                                        val temp = Card(uid = uid, sourceType = SourceType.PODCAST, uri = uri.trim(), podcastMode = podcastMode, episodeUrl = episodeUrl)
-                                        scope.launch {
-                                            status = context.getString(R.string.editor_status_downloading_newest)
-                                            val f = viewModel.player.podcastCache.refresh(temp, download = true)
-                                            status = if (f == null) {
-                                                context.getString(R.string.editor_status_feed_unreachable)
-                                            } else {
-                                                context.getString(
-                                                    R.string.editor_status_downloaded,
-                                                    viewModel.player.podcastCache.targetEpisode(temp, f)?.title ?: context.getString(R.string.editor_newest_episode_fallback)
-                                                )
-                                            }
-                                        }
-                                    }
-                                ) { Text(stringResource(R.string.editor_download_newest)) }
-                            }
-                            // Own line: beside the buttons it was squeezed into a column a few letters wide.
-                            feed?.let {
-                                Text(
-                                    pluralStringResource(R.plurals.editor_feed_summary, it.episodes.size, it.title, it.episodes.size),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            PodcastMode.entries.forEach { mode ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            podcastMode = mode
-                                            if (mode == PodcastMode.LATEST) {
-                                                episodeUrl = feed?.episodes?.firstOrNull()?.url ?: episodeUrl
-                                                episodeTitle = feed?.episodes?.firstOrNull()?.title ?: episodeTitle
-                                            }
-                                        },
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(selected = podcastMode == mode, onClick = null)
-                                    Text(stringResource(mode.labelRes), style = MaterialTheme.typography.bodyLarge)
-                                }
-                            }
-                            if (podcastMode == PodcastMode.EPISODE) {
-                                val episodes = feed?.episodes
-                                if (episodes == null) {
-                                    Text(
-                                        episodeTitle?.let { stringResource(R.string.editor_episode_chosen, it) } ?: stringResource(R.string.editor_episode_load_feed),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    // Long feeds: a search box, so an episode from years ago is a few letters away.
-                                    if (episodes.size > 10) {
-                                        OutlinedTextField(
-                                            value = episodeQuery,
-                                            onValueChange = { episodeQuery = it },
-                                            label = { Text(stringResource(R.string.editor_episode_search)) },
-                                            singleLine = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                    val wanted = episodeQuery.trim()
-                                    val shown = episodes.filter { wanted.isEmpty() || it.title.contains(wanted, ignoreCase = true) }
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(MaterialTheme.colorScheme.surface)
-                                            .padding(8.dp)
-                                    ) {
-                                        if (shown.isEmpty()) {
-                                            Text(stringResource(R.string.editor_episode_none_match), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                        shown.take(60).forEach { ep ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable {
-                                                        episodeUrl = ep.url
-                                                        episodeTitle = ep.title
-                                                    }
-                                                    .padding(vertical = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                RadioButton(selected = episodeUrl == ep.url, onClick = null)
-                                                Column {
-                                                    Text(ep.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
-                                                    val meta = listOfNotNull(ep.pubDate?.take(16), ep.durationText).joinToString(" · ")
-                                                    if (meta.isNotBlank()) {
-                                                        Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         Category.FILE -> {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.editor_choose_file)) }
-                                Spacer(Modifier.width(12.dp))
-                                Text(pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_file_chosen else R.string.editor_no_file), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                            }
                             if (uri.isNotBlank()) {
+                                Text(pickedLabel ?: stringResource(R.string.editor_file_chosen), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 InfoTitle(stringResource(R.string.editor_songs_inside), stringResource(R.string.editor_split_hint), style = MaterialTheme.typography.titleMedium)
                                 if (chapters.size > 1) {
                                     Text(
@@ -1276,15 +1332,57 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                                 }
                             }
                         }
-                        Category.AUDIOBOOK -> {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                                OutlinedButton(onClick = { filePicker.launch(arrayOf("*/*")) }, modifier = Modifier.weight(1f)) {
-                                    Text(stringResource(R.string.editor_book_choose_file))
+                        Category.RECORDING -> {
+                            RecorderPanel(
+                                uri = uri,
+                                clipStartMs = mainClip?.startMs ?: 0L,
+                                clipEndMs = mainClip?.endMs ?: 0L,
+                                onQuiet = { viewModel.player.pause() },
+                                onActive = { recordingNow = it },
+                                onTake = { file ->
+                                    val before = uri
+                                    uri = Uri.fromFile(file).toString()
+                                    chapters = emptyList()
+                                    scannedChapters = false
+                                    status = null
+                                    if (name.isBlank()) {
+                                        name = context.getString(R.string.editor_rec_default_name)
+                                        autoName = name
+                                    }
+                                    // The take it replaces goes, unless it is the one the saved card plays
+                                    // (that one stays until this is saved, in case it isn't).
+                                    viewModel.discardTake(before)
                                 }
-                                OutlinedButton(onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
-                                    Text(stringResource(R.string.editor_book_choose_folder))
+                            )
+                            if (uri.isNotBlank() && !recordingNow) {
+                                MainClipLine(mainClip) { clips = clips - Card.MAIN_TRACK }
+                                if (chapters.size > 1) {
+                                    Text(
+                                        stringResource(R.string.editor_split_done, chapters.size),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // Trimming the ends of a recording is free; splitting it into songs is Plus, as for any file.
+                                    OutlinedButton(onClick = openSplitEditor) {
+                                        Text(
+                                            stringResource(
+                                                when {
+                                                    !plus -> R.string.editor_rec_trim
+                                                    chapters.size > 1 -> R.string.editor_edit_songs
+                                                    else -> R.string.editor_split_into_songs
+                                                }
+                                            )
+                                        )
+                                    }
+                                    if (chapters.isNotEmpty()) {
+                                        TextButton(onClick = { chapters = emptyList() }) { Text(stringResource(R.string.editor_remove_split)) }
+                                    }
                                 }
                             }
+                        }
+                        Category.AUDIOBOOK -> {
                             InfoLink(stringResource(R.string.editor_book_note))
                             if (uri.isNotBlank()) {
                                 Text(
@@ -1350,15 +1448,14 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             }
                         }
                         Category.FOLDER -> {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedButton(onClick = { folderPicker.launch(null) }) { Text(stringResource(R.string.editor_choose_folder)) }
-                                Spacer(Modifier.width(12.dp))
-                                // "<folder> · 12 tracks": what the folder holds, right where it was picked.
+                            // "<folder> · 12 tracks": what the folder holds, right where it was picked.
+                            if (uri.isNotBlank()) {
                                 Text(
-                                    (pickedLabel ?: stringResource(if (uri.isNotBlank()) R.string.editor_folder_chosen else R.string.editor_no_folder)) +
+                                    (pickedLabel ?: stringResource(R.string.editor_folder_chosen)) +
                                         if (folderTracks.isNotEmpty()) " · " + pluralStringResource(R.plurals.editor_folder_track_count, folderTracks.size, folderTracks.size) else "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 2
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -1470,6 +1567,16 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                             }
                         }
                     }
+                    // A file or folder can't say for sure that it is a book: the grown-up can.
+                    if (uri.isNotBlank() && (category == Category.FILE || category == Category.FOLDER || category == Category.AUDIOBOOK)) {
+                        SwitchSetting(
+                            title = stringResource(R.string.editor_is_audiobook),
+                            note = stringResource(R.string.editor_is_audiobook_note),
+                            checked = category == Category.AUDIOBOOK
+                        ) { on ->
+                            applyCategory(if (on) Category.AUDIOBOOK else if (bookFolder) Category.FOLDER else Category.FILE, keep = true)
+                        }
+                    }
 
                     if (fetching) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1546,7 +1653,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     // A downloaded YouTube playlist lists its songs (picture and cut each, keyed by video id).
                     Category.LINK -> ytListTracks?.map { it.id to it.title }
                         ?: chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
-                    Category.FILE -> chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
+                    Category.FILE, Category.RECORDING -> chapters.map { it.artKey to "${YouTubeChapters.formatTime(it.startMs)}  ${it.title}" }
                     Category.YOTO -> yotoChapters.map { it.key to yotoPrettyTitle(it.title) }
                     else -> emptyList()
                 }
@@ -1710,7 +1817,20 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             looksSection()
 
             val tagAndShareSection: @Composable ColumnScope.() -> Unit = {
-                if (saved != null) {
+                if (saved != null && saved.untagged) {
+                    // Saved for later, with no NFC card of its own: this is where it gets one.
+                    SettingsGroup(title = stringResource(R.string.editor_section_put_on_card), info = stringResource(R.string.editor_put_on_card_note)) {
+                        SettingRow(
+                            title = stringResource(R.string.editor_put_on_card),
+                            onClick = {
+                                buildCardOrComplain()?.let {
+                                    saveCard(it)
+                                    viewModel.startMove(it, copy = false)
+                                }
+                            }
+                        )
+                    }
+                } else if (saved != null) {
                     SettingsGroup(title = stringResource(R.string.editor_section_tag), info = stringResource(R.string.editor_tag_note)) {
                         SettingRow(
                             title = stringResource(R.string.editor_move_tag),
@@ -1733,7 +1853,8 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
                     }
                 }
 
-                val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST || category == Category.AUDIOBOOK
+                val localOnly = category == Category.FILE || category == Category.FOLDER || category == Category.PLAYLIST ||
+                    category == Category.AUDIOBOOK || category == Category.RECORDING
                 val shareable = !localOnly && uri.isNotBlank()
                 SettingsGroup(stringResource(R.string.editor_section_share)) {
                     SettingRow(
@@ -1877,16 +1998,20 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
 
     songEditor?.let { (key, source) ->
         val main = key == Card.MAIN_TRACK
+        // One song of a playlist is trimmed only; the card's own file / video can be split too.
+        // (A recording without Plus: the free trim, no splitting.)
+        val split = main && (plus || category != Category.RECORDING)
         SplitEditorDialog(
             source = source,
-            initialChapters = if (main) chapters else emptyList(),
+            initialChapters = if (split) chapters else emptyList(),
             initialClip = if (main) mainClip else clips[key],
-            // One song of a playlist is trimmed only; the card's own file / video can be split too.
-            allowSplit = main,
+            allowSplit = split,
             onDone = { result, clip ->
                 if (main) {
-                    chapters = result
-                    scannedChapters = true
+                    if (split) {
+                        chapters = result
+                        scannedChapters = true
+                    }
                     mainClipUri = uri.trim()
                 }
                 clips = if (clip != null) clips + (key to clip) else clips - key
@@ -1902,7 +2027,7 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
             Category.AUDIOBOOK -> folderTracks.firstOrNull { it.uri == target }?.title ?: chapters.firstOrNull { it.artKey == target }?.title
             Category.PODCAST -> feed?.episodes?.firstOrNull { it.url == target }?.title
             Category.PLAYLIST -> playlist.firstOrNull { it.uri == target }?.title
-            Category.LINK, Category.FILE -> chapters.firstOrNull { it.artKey == target }?.title
+            Category.LINK, Category.FILE, Category.RECORDING -> chapters.firstOrNull { it.artKey == target }?.title
             Category.YOTO -> yotoChapters.firstOrNull { it.key == target }?.title?.let { yotoPrettyTitle(it) }
             else -> null
         }
@@ -1991,13 +2116,31 @@ fun CardEditorScreen(viewModel: MainViewModel, uid: String) {
         MoveState.Idle -> Unit
         is MoveState.Waiting -> AlertDialog(
             onDismissRequest = { viewModel.endMove() },
-            title = { Text(stringResource(if (ms.copy) R.string.editor_copy_hold else R.string.editor_move_hold)) },
+            title = {
+                Text(
+                    stringResource(
+                        when {
+                            ms.copy -> R.string.editor_copy_hold
+                            // A card saved for later has no tag to move from: it is simply given one.
+                            ms.card.untagged -> R.string.pending_hold_card
+                            else -> R.string.editor_move_hold
+                        }
+                    )
+                )
+            },
             text = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(22.dp))
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        stringResource(if (ms.copy) R.string.editor_copy_waiting else R.string.editor_move_waiting, ms.card.displayName(context))
+                        stringResource(
+                            when {
+                                ms.copy -> R.string.editor_copy_waiting
+                                ms.card.untagged -> R.string.editor_put_waiting
+                                else -> R.string.editor_move_waiting
+                            },
+                            ms.card.displayName(context)
+                        )
                     )
                 }
             },
